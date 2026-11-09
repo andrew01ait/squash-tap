@@ -21,7 +21,7 @@ outputs/
 .npmrc
 public/apks/*.idsig
 
-# Source-only GitHub publication; official release binaries stay on the download site.
+# Source-only public export; official release artifacts stay separate.
 public/apks/
 public/SquashTap-source.zip
 .openai/deliverables.json

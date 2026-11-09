@@ -1,165 +1,93 @@
 # Testing and verification
 
-## Automated checks — v0.13.0
+Current watch release: **v0.13.0 / code 14**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
 
-**265 JUnit tests pass** against the production shared-core classes:
+## Recorded release evidence
 
-| Area | Tests | Coverage |
+| Suite | v0.13 recorded passing checks | Coverage |
 | --- | ---: | --- |
-| ScoreState | 23 | PAR-11, deuce, Undo, winners, bounds, malformed persistence and 1,000 seeded random game round-trips. |
-| TouchTargets | 10 | Card/header/footer geometry, ordinary taps, swipe/long-press rejection. |
-| UpdatePolicy | 22 | Version/SDK/app identity, HTTPS/host restrictions, malformed responses, bounded metadata, hash validation. |
-| VerifiedDownload | 9 | Streamed checksum/size/progress, corruption, truncation, overrun, connection and storage failures. |
-| MatchState | 26 | BO3/BO5, set transitions, final winner, Undo across sets, legacy-score migration, malformed persistence and guarded format changes with retained points/Undo. |
-| MatchBook | 36 | Saved results, set summaries, local daily numbers, correction/re-completion, deletion/tombstones, restart, full history, invalid data, format corrections and saving results under the new format. |
-| MatchDisplayPolicy | 16 | Explicit current-match session ID; idle/legacy/stale/missing IDs; ongoing and screen-power rules for active, paused, complete, ambient, background and modal states. |
-| MatchTiming | 28 | First-point start, final-point finish, elapsed formatting, restarts, Undo/format/new-match/deletion, migration fixtures, local display, midnight/DST/timezone changes, clock corrections and corrupt timing rejection. |
-| CompactMatchTiming | 7 | One same-day date; short times; overnight/year-boundary end date; recorded timezone after travel; missing times; clock reversal. |
-| MatchStatistics | 7 | Mixed BO3/BO5 and deuce scores, Me perspective, empty/legacy/unfinished history, import/persistence, deletion and Undo/re-completion/tombstones. |
-| MatchRetirement | 17 | Both participants, actual partial/between-set scores, timing/Undo/deletion/references, stats, CSV/import/dedupe, invalid outcomes and real B2 migration fixtures. |
-| ManualMatchEntry | 27 | Score-only sets, invalid/deuce/boundary scores, live/manual progression/Undo/timing, independent drafts, dates/edits, retirement/deletion and real B3 migration. |
-| OpponentDirectory | 8 | Stable identities, Unicode/NFC, rename, removal/history retention, catalog replacement, duplicates, bounds and persistence. |
-| MatchCsv | 13 | RFC quoting/BOM/semicolon, spreadsheet escaping, timing/score validation, merge/deduplication/conflicts, reserved current IDs, reference counters and legacy missing times. |
-| ResultFilter | 5 | Combined inclusive date/opponent filters, removed/unnamed identities, recorded timezone/day and range validation. |
-| TransferCrypto | 7 | Random IVs, Unicode round-trip, authenticated key/context/tamper rejection, bounds, fingerprints and browser golden vector. |
-| DiagnosticTransfer | 4 | Compressed Unicode round-trip, fragment payload, HTTPS validation and size bounds. |
+| Shared core / JUnit | 265 | PAR-11/deuce/BO3/BO5, Undo, persistence/migrations/recovery, timing, manual totals, retirement, counters/tombstones, people, filters/statistics, CSV, crypto and update/download policy. |
+| Native UI / Robolectric API 34 | 100 | Real MainActivity/dialog/button callbacks, compiled AAPT resources, contextual Back/swipe wiring, styles/targets, session/window flags, manual controls and late transfer completion guards. |
+| Browser/relay | 35 | 13 interchange/crypto, 12 transfer-state and 10 Miniflare D1/R2 relay checks; native/browser vectors, CSV and capability/isolation/expiry/storage behavior. |
+| Total | 400 | Automated release evidence; not a physical Wear OS emulator/watch battery test. |
 
-The build verifies the new APK signature against the original certificate, package/version/watch metadata and ZIP alignment. Retained APK hashes (v0.3.0 onward) are checked and preserved. Distribution retention checks verify v0.1/v0.2 are absent from APKs, metadata, checksums and page links, while retained binaries and release.properties remain byte-identical. This cleanup does not rebuild the Android app. The public report is `public/test-results.txt`; metadata and hashes are in `public/builds.json` and `public/SHA256SUMS.txt`.
+The preserved combined report is `public/test-results.txt`. APK metadata/signatures/alignment and immutable retained checksums were also verified by the release builder. [DEVICE_TESTS.json](DEVICE_TESTS.json) records actual user reports separately; raw user diagnostics are not published.
 
-A browser check verified phone-side decoding of a synthetic Unicode report, fragment removal, the clipboard-unavailable fallback and invalid-payload handling. The cloud browser cancelled the TXT download; saving/sharing a file and optical QR scanning remain phone/watch acceptance checks.
+## Checks without the private signing key
 
-## Historical physical-device evidence
+Documentation integrity and the independent phone-state suite require only Python 3 and Node.js >=22.13:
 
-On 3 November 2026 the user reported successful phone-only installation with Wear Installer 2, working basic operation, enabling allow-updates, in-app update **v0.1.0 → v0.2.0** and retention of the existing score on the OnePlus Watch 2R / Wear OS 5. Undo-history retention was not separately confirmed. These user reports are recorded in `DEVICE_TESTS.json` and do not apply automatically to later releases.
+```sh
+python3 scripts/check_docs.py
+node --test web-test/transfer-state.test.mjs
+```
 
-The user subsequently reported that v0.2 returned to the watch face/closed during a match, including with Keep screen on enabled. Without logs, a normal watch-face timeout, activity closure and process crash cannot yet be distinguished. v0.3 adds ambient/ongoing support and diagnostics to investigate this.
+With JUnit/Hamcrest prepared by `scripts/bootstrap_android.py`, the shared-core tests can run before any signing step:
 
-The user later confirmed installing v0.3, then reported that match results were mixed with general Settings and the BO3/BO5 selector was hard to find. v0.4 separates navigation and adds an explicit in-place format selector. This feedback does not confirm the idle/ambient or QR transfer fix.
+```sh
+python3 - <<'PY'
+from pathlib import Path
+import os, subprocess
+root = Path.cwd()
+folder = root / 'android/src/at/andrew/squashtap'
+names = ('ScoreState','TouchTargets','UpdatePolicy','VerifiedDownload','MatchState',
+         'MatchResult','MatchStatistics','ManualMatchEntry','MatchBook','MatchDisplayPolicy',
+         'DiagnosticTransfer','OpponentDirectory','ResultFilter','MatchCsv','TransferCrypto')
+tests = sorted((root / 'android/test').rglob('*Test.java'))
+classes = root / 'build/test-classes'
+classes.mkdir(parents=True, exist_ok=True)
+cp = os.pathsep.join(str(root / '.local/android-sdk' / p)
+                     for p in ('junit.jar', 'hamcrest-core.jar'))
+subprocess.run(['java','com.sun.tools.javac.Main','--release','8','-classpath',cp,
+                '-d',str(classes),*[str(folder / (n + '.java')) for n in names],
+                *map(str, tests)], check=True)
+subprocess.run(['java','-cp',str(classes) + os.pathsep + cp,'org.junit.runner.JUnitCore',
+                *['at.andrew.squashtap.' + p.stem for p in tests]], check=True)
+PY
+```
 
-## Android navigation/style checks
+After core classes exist, install locked Node dependencies and run the complete web suite:
 
-**100 Robolectric tests pass** on API 34 using the real MainActivity, Dialogs, Buttons, service implementation and compiled AAPT resources. Ten navigation/style/timing checks cover:
+```sh
+node --test web-test/interchange.test.mjs web-test/transfer-state.test.mjs web-test/relay.test.mjs
+```
 
-- Root title is Menu, with Current match, Results, Statistics, purple Opponents and grey Settings; updates stay out of match navigation.
-- Current match and Match options contain no app settings.
-- Settings actions stay neutral grey in enabled, pressed and disabled states; Back is outlined.
-- The update page has grey actions and outlined Back navigation.
-- Choosing BO5 through actual menu/button navigation retains points and past results.
-- Single-result deletion and its confirmation are red; outlined Cancel retains the result.
-- Delete-all and its confirmation are red and preserve the active score.
-- Saved results use coloured cards rather than grey buttons.
-- Result headings use start time, with correct start/finish/duration and the secondary match reference.
-- Opening an actual B1 fixture preserves the backup, upgrades to B4 and shows unknown old times honestly.
+Three interchange cases execute Java fixtures; the full command requires the compiled core tests. Relay cases require Miniflare from the project's locked Wrangler dependency. Do not silently skip missing prerequisites and claim all 35 ran.
 
-Fifteen session/power regressions in SessionPowerUiTest cover:
+## Full native release checks
 
-- Fresh launch has no screen flag, service start or app wake lock; advancing the looper ten minutes triggers no update check.
-- The first point starts a session; Undo back to 0–0 retains that explicit session.
-- Start match before a point activates availability without inventing a start timestamp.
-- Pause releases screen/service; reopening retains score/timing and requires Resume. A scoring tap while paused opens Match without adding a point.
-- An older unfinished saved book with no session ID waits for Resume and retains Undo.
-- Match completion clears the session; navigating history/Settings cannot restart it.
-- Undo of a completed match waits for Resume.
-- Committing a new match ends the previous session and waits for play.
-- Ordinary activity backgrounding releases the screen flag while preserving a real match; resuming restores it.
-- Results/Settings release the screen flag; Back restores it only for active play.
-- A null-intent sticky service restart with an old score but no session ID stops itself with START_NOT_STICKY and no foreground notification.
-- A valid service can run; explicit task dismissal clears its ID, pauses and stops foreground mode; a later sticky restart stays stopped.
-- Diagnostics and activation/pause events use on-demand whole-watch battery snapshots; unsupported capacity is labelled unavailable.
-- The QR's screen-on flag expires after one minute and clears immediately on backgrounding.
+Follow [DEPLOYMENT.md](DEPLOYMENT.md) for SDK, locked runtime/UI dependencies, original signing key and verified retained APKs. The standard builder executes core/web tests, compiles real AAPT resources and runs native UI tests before D8/signing. UI tests can also be repeated once those resources/generated classes exist:
 
-Run `python3 scripts/test_ui.py --version 0.13.0` after resources are built. The default release builder runs these checks before D8/signing. Test-only Maven 3.9.9/Robolectric 4.14.1 dependencies and Android framework jars are cached under ignored `.local/` and are not bundled in the watch APK. API 34 executes tests; Robolectric uses an API 35 framework jar to parse resources. Proxy settings, if needed, are passed through an anonymous memory file, not stored credentials. See `android/ui-test/pom.xml` and `scripts/test_ui.py`.
+```sh
+python3 scripts/test_ui.py --version 0.13.0
+```
 
-These are headless Android UI checks, not a Wear OS emulator or physical display capture. They verify routing, button roles/state colours and persistence through real view actions; they do not prove optical display fidelity, firmware ambient transitions or battery use.
+Robolectric executes API 34 and uses its configured API 35 framework for resource parsing. Test tooling stays under ignored `.local/`; it is not bundled in the APK. A fresh export does not contain the maintainer's signing key, SDK or prior unsigned build, so the complete release pipeline is not a key-free out-of-box build.
 
-## v0.4 watch reports — 3 November 2026
+Before distributing any new APK, verify original certificate/package/version/SDK/watch metadata, alignment, download size/SHA-256 and all retained APK hashes. Inspect the updated update feed and report. B1/B2/B3 migration fixtures, manual/live mixtures, retirement, Undo, deletion and optional-name assignment must remain covered.
 
-The user confirmed v0.4 installation and extracted a diagnostic report through the watch QR code. QR scanning/phone report extraction is passed; saving a TXT was not separately confirmed. The user reports the app has stayed in the foreground since v0.3. Detailed ambient transitions and battery measurements remain open.
+## Documentation/source synchronization checks
 
-The supplied report contained no captured Java crash. Its package-update exits and ordinary pause/resume events do not establish a malfunction. The force-stop entry does not identify who requested it, and battery exemption false alone does not establish a cause. Do not publish the raw report; DEVICE_TESTS.json contains aggregate observations only. v0.5 labels update exits and logs page/window context for future reports.
+`check_docs.py` requires the complete guide set, validates local Markdown links, verifies current release identifiers and can compare every current guide with an exported copy:
 
-The user also reported confusing Match menu naming/Settings colours and requested red delete actions and distinct Back styles. v0.5 addresses those with explicit action roles and the UI checks above.
+```sh
+python3 scripts/package_source.py --github-dir /absolute/path/to/empty-public-source
+python3 scripts/check_docs.py --compare /absolute/path/to/empty-public-source
+```
 
-The user approved v0.5’s cleaner navigation/design and requested start/finish timestamps and duration for results. The v0.6 model/UI changes are covered by the new timing/migration tests.
+Verify public export paths, sanitized hosting/signing metadata and absence of credentials, private artifact references, real user exports, generated APKs and Git/build/cache directories. Verify runtime source bytes and existing release artifacts are unchanged for docs-only work. After publishing, compare the exact GitHub tree/blob hashes and check the internal pushed revision/deployment status. This is source verification, not new native/physical acceptance.
 
-## Current watch acceptance
+## Physical OnePlus acceptance
 
-1. Update in place and confirm v0.13.0 under the grey MENU → Settings entry. The root must say Menu and show Current match, Results, Statistics, Opponents and Settings. Any older unfinished score must wait for Current match → Resume match, keeping its points, Undo, sets and timing.
-2. Open Current match and Match options: scoring/navigation controls use blue and contain no updates. Open Settings: its update/display/diagnostic actions are neutral grey. All Back/Cancel controls are outlined; check the QR page’s return control too.
-3. With a disposable result, verify both single/all delete entry and confirmation actions are red. Cancel once before confirming. Check the active score remains and deletions persist after reopening.
-4. Open MENU → Current match → Match options → Match format; change an unfinished BO3 to BO5 and verify points/Undo remain. Check Next/set history, final result, date/number and winner-coloured cards during ordinary play.
-5. Verify foreground retention continues during a started match. Separately exercise Keep screen on OFF/ambient and the ongoing shortcut, then pause/resume under Current match. Recheck after Settings/Back, including hardware Back. On Pause/completion, the ongoing shortcut should disappear and the watch should sleep/return home normally; reopening results must not restart it. A new draft stays idle until the first point or Start match.
-6. If sharing a new diagnostic report, check readable App updated labels, page/window context and complete trace lines. Re-scan the QR; TXT save/share is still worth checking on the phone.
-7. Start a fresh match. Verify the start is the first scored point, not setup, and survives reopening. Finish it after a known interval; check time title, Started/Finished timestamps, duration, date and secondary number. Undo/re-win the last point and check finish/duration update. Old untimed results should say Not recorded; an ongoing match begun before the update must not invent a start.
-8. Check Diagnostics for the whole-watch battery percentage/charging state and session-active status. Compare a paused/finished idle period of 30–60 minutes with a similar period when the app has not been used, under comparable brightness/AOD/network conditions. Turn off wireless debugging for the comparison. Test active play separately. Record start/end battery/time and charging state; a percentage drop includes all watch activity, so cannot prove app-only consumption. No physical battery measurements have been supplied yet.
-9. Leave the diagnostic QR open: its forced-screen-on flag should release after one minute. Returning home should release it immediately. Opening the app alone should no longer initiate an update request; Settings → Check for updates must still work.
+- Scoring/deuce/Undo/BO3/BO5, NEXT and completed result storage, including optional opponents and retained history across updates.
+- Real swipe recognition, contextual Back, round-screen readability, 48dp target comfort, wheels and manually entered sets/past matches.
+- No silent name reassignment after phone catalog edits; correct filtered-page/scroll return and confirmed single/bulk deletion.
+- Retirement winner versus actual sets/points, Undo retirement and resumed play; missing/manual/overnight times shown honestly.
+- Optical QR scan, browser file picking/download/sharing, explicit receive/preview/apply/cancel, schema/conflict/expiry behavior and updater installation.
+- Active-match availability/ambient transitions and idle sleep after Pause/completion/task dismissal. Measure battery on the actual device; event snapshots alone do not attribute energy to this app.
 
-Public-page checks cover concise feature copy, current download/installation links, responsive layout and absence of chat/debugging/internal-test narratives on the landing page. The update feed points to v0.13.0; retained v0.3–v0.12.1 APKs remain byte-identical.
+Initial phone-only installation, v0.1→v0.2 update/score retention, later version installations, working foreground retention since v0.3 and a v0.4 diagnostic QR export were user-reported. They do not automatically validate a future app/firmware release. Ordinary activity pauses and package-install exits are not evidence of a crash.
 
-## v0.8 transfer/opponent verification
+## Documentation/publication verification — 2026-11-09
 
-Twelve additional Robolectric checks execute opponent management/add/picking/rename/delete roles, scoreboard accessibility, combined opponent/custom-date filters, invalid-range rejection, system speech intent/confirmation, actual phone-preview Apply/Cancel, stale fingerprint rejection and refusal to silently reuse an open transfer for a different export selection. The apply test verifies the active score and session remain, and credentials never enter preferences. Cleanup network work is queued by the test executor rather than contacting the public service.
-
-Twenty-one Node/Miniflare tests pass: eleven browser interchange checks exercise native-to-browser and browser-to-native authenticated encryption, wrong context/key/tamper handling, Unicode/CSV quoting, formula protection, semicolon/BOM, invalid scores/dates/duration and size bounds. Ten relay tests use real local D1/R2 bindings for creation/hashed capabilities/opaque payloads, role isolation, missing/incorrect authorization, one-shot receive, deletion, expiry/cleanup, origin/input/size limits, rate bounds and no-store/no-CORS headers. Run node --test web-test/*.test.mjs after core compilation. The default release builder runs the same checks before signing.
-
-The supported framework build succeeds with public assets and D1/R2 declarations. A managed-browser check verified the preserved landing page and transfer entry/error view. HTTP previews cannot use Web Crypto; no insecure-context workaround is added. The dev-only synthetic-watch helper exists for local HTTPS/secure-context testing and must not be present in the production bundle. Record any additional live HTTPS browser observations separately; headless storage tests alone are not a physical watch transfer pass.
-
-Additional physical acceptance:
-1. Update to v0.8 without uninstalling. Existing results, current score/Undo/timing and battery policy remain. Existing results have no invented opponent.
-2. Select No name, then add/select an opponent. Verify the red card and result use the chosen name. Test Speak name with spelling confirmation and the phone keyboard alternative.
-3. Rename a person and verify linked history. Delete their picker entry using red confirmation, verify results survive and remain filterable; restore on the phone if desired.
-4. Combine a person and inclusive date range, including Unnamed and a legacy untimed result. Verify export selection matches the chosen results.
-5. Open Results → Options → View results on phone and scan its QR. Download a CSV on the real phone. Prepare name edits and receive/apply them; verify the exact changed names shown in the watch preview. Cancel once and confirm it applies nothing.
-6. Reimport the CSV; duplicates must be skipped. Try an invalid/changed same-ID row; it must fail validation or show a skipped conflict, never overwrite the saved result/current match. Verify references/Undo/deletion after reopening.
-7. Check a ten-minute expired/ended link and a one-shot second send. A stale local catalog/new match requires a fresh session. Reopening/killing the activity requires a new QR, not a persistent credential.
-8. Check ordinary play retention, pause/finish battery policy and QR timeout. Transfer calls must occur only after explicit actions; no background receive polling is expected.
-
-No user report yet confirms v0.8 phone file picking, downloads, dictation availability, optical QR scanning, real transfer latency or physical battery use. DEVICE_TESTS.json remains historical aggregate evidence only.
-
-## v0.9 optional-name regression checks
-
-Ten additional Robolectric tests exercise person-row normal/pressed/disabled styling, icons and alignment; match/filter name-field roles; skipping names without inheriting the previous opponent; staging then confirming BO5 with a future named result; cancelling setup and replacement without altering the old score/person/session; returning from a cancelled picker; clearing a staged person; creating a new name during setup without assigning the old match; and starting from an empty directory without creating a person. Together there are 47 Android UI tests, 207 shared-core tests and 21 browser/relay tests (275 total).
-
-The user reported that v0.8 worked and requested this UI refinement; DEVICE_TESTS.json records only that general confirmation. Actual purple styling and optional setup on the physical OnePlus remain acceptance checks for v0.9. There is no new CSV/backend/schema change and no physical battery claim.
-
-## v0.10 statistics and timing regressions
-
-Fourteen core tests and seven Robolectric view tests were added. The latter open Statistics through the real root menu, verify match/set/point counts, signed balances and rounded win rate, preserve score/opponent/session state and result filters, exclude filtered-history scope from overall totals, recalculate after real deletion, and render compact same-day/overnight/legacy details. Same-day completed-detail text contains its date exactly once while duration, set scores and daily number remain. An empty history shows no percentage estimate. Opening an idle Statistics page starts no service.
-
-Current suite: 221 core + 54 Android UI + 21 browser/relay = 296 checks. Native physical OnePlus readability and the new screens remain acceptance checks; no new runtime dependencies, schemas, backend operations or battery claims are introduced.
-
-## v0.11 retirement, names and phone history checks
-
-Seventeen core regressions cover retired state/result validation, real scores and outcomes, timing, Undo/re-completion, tombstones, mixed schema-2 CSV, imports and three authentic B2 fixtures generated with the v0.10 implementation before changing its serializer. Existing B1/timing/counter tests still run under B3.
-
-Twelve new Robolectric checks cover Match-only End navigation, both cancellation stages, either player quitting, no phantom sets, power/session release, Undo without losing a rally, once-only B2 backup, catalog-only sync on the last completed match, strict explicit reassignment with highlighted preview, Browse on phone and snapshot scope/retirement metadata.
-
-Twelve new Node checks cover two-way native/browser retirement CSV, adding/restoring multiple names without match assignment, explicit reassignment/clearing, retirement-aware all-player and head-to-head totals including unnamed history, zero history, older-watch retirement gating, invalid CSV progression and non-mutating history sort. The existing crypto and D1/R2 relay suite remains. v0.11 total: 238 core + 66 Android UI + 33 browser/relay/state = 337 checks.
-
-Production HTTPS phone-page verification uses synthetic sessions only; never inspect real user transfer payloads or keys. Check additions leave the match selector unchanged; opt-in permits assignment; overall/per-opponent W/L and recent-form links are correct; opponent/date filters and older pages work; retired details show real scores. End test sessions afterwards. Native physical OnePlus layouts, optical QR and quitting during actual play remain separate device acceptance checks.
-
-## v0.12 keyboard-free manual entry
-
-Twenty-three new core tests cover entered totals without synthetic rally order, validation/deuce/max bounds, reset, BO3/BO5 progression, replacing only the current partial set, whole-summary versus genuine rally Undo, draft edits/format/date validation, independent history/CSV, honest missing timing, deleted-current protection, retirement mixtures and authentic B3 fixtures generated from the previous compiled app.
-
-Fourteen new real Android view tests exercise Match-only navigation, blue/red winner selectors, wheels with blocked descendant focus and hidden soft input, presets/+−/deuce preview, opponent-first winner with Me-first score order, cancellation at each stage, final-set completion/power release, whole-set Undo confirmation, independent historical save/opponent/date/current-session retention/idempotency, BO5 unnamed entry, date wheels/leap clamp/cancellation, B3 backup retention, full-draft cancellation, continuing live while preserving the manual-set save time and idle historical entry without a service.
-
-Total: 265 core + 100 Android UI + 35 browser/relay cases = 400 checks. No new CSV/relay schema or runtime dependency is required. Native OnePlus round-screen appearance, wheel gestures and comfort of the larger controls remain physical-device acceptance checks; no physical display test is claimed.
-
-## v0.12.1 manual-set start regression
-
-Four new core cases and the updated manual/live timing case verify: rejected scores leave an unset start untouched; accepted entry uses the injected clock and local zone; later entries/Undo/restart preserve an existing start and zone; authentic untimed B4 data from compiled v0.12 gains a start only on the next accepted entry; and new-match timestamps do not change saved results. The fixture book-v4-manual-untimed.txt was generated before editing MatchBook using build/0.12.0/classes.
-
-Two new Robolectric cases and the updated Continue test exercise the real confirmation/cancel/save controls, save-time bounds, persistence after reopening, prior untimed data, the missing-start hint and continued idle power behaviour. Historical whole-match times remain unknown in the existing suite. Total: 265 core + 100 Android UI + 35 browser/relay = 400 checks. Physical watch clock/display acceptance remains separate.
-
-## v0.13 navigation regressions
-
-Eighteen new MenuRevisionUiTest cases execute native buttons/dialogs with compiled resources: five root destinations and explicit colour roles; active/paused/complete match actions; staged Create/replacement/caller cancellation; button/system Back equivalence; SwipeDismiss callback routing; diagnostic QR return/flag release; filter/page/scroll retention through details/person/delete cancellation; bulk deletion placement; separate live-set versus past-result entry; contextual phone views/returns; late creation completion; light navigation rows with large targets; and Scoreboard shortcuts that preserve pause plus Statistics return context. Existing 82 tests were updated to use the new explicit paths and labels without dropping their data/power assertions.
-
-Two browser-state tests whitelist local launch tabs and reject unknown/untrusted values with the legacy Results fallback. Current suite: 265 core + 100 Android UI + 35 browser/relay = 400 checks. Native swipe callback execution validates wiring; optical QR, physical swipe recognition, round-screen comfort and battery measurements remain device acceptance.
-
-Headless visual QA also rendered eight real Android panels at 233 dp using Robolectric native graphics: Menu, Current match, Match options, New match, set entry, Results, Result options and Settings. The Results toolbar was tightened after inspection and re-rendered; its three touch targets remain at least 48 dp. This is separate from the 400-check release suite and from physical round-watch acceptance.
-
-## Website-only privacy/download review — 7 November 2026
-
-Rerun the existing 35 browser/crypto/relay tests. A separate synthetic Miniflare two-user probe creates two encrypted sessions, verifies each intended read, then rejects cross-session read/write/delete, wrong-key and wrong-context decryption; confirms the absence of a list endpoint and removes both fixtures. No real user transfer data is accessed. Check the landing page links only the current APK, the generic transfer link is absent, privacy/expiry/link-possession copy is visible and all 12 retained APKs, inventory/checksums and current update feed are unchanged. Android is not rebuilt for this copy change; its previously verified 400-check release remains v0.13.0.
+The GitHub import ran all 12 dependency-free phone-state checks, reviewed public-source metadata and verified 221 uploaded blob hashes against the prepared source. This documentation refresh passed checks for all 10 guides and 51 local links, exact guide/export parity, a complete 224-file sanitized source ZIP, all 12 retained APK hashes and all 12 phone-state cases. Application/runtime source, release metadata and historical device reports were verified unchanged. Export guards reject existing/checkout-local destinations, and repeated packaging is deterministic. The local frontend build could not run because its Vinext dependency cache is absent; Site publication therefore requires the supported remote build of the verified pushed source. The historical 400-case native release was not rerun and no physical watch/battery acceptance is claimed. The app remains v0.13.0/code 14.

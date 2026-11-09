@@ -1,5 +1,12 @@
 # Releases
 
+## Documentation and GitHub source — 2026-11-09 (watch v0.13.0/code 14 unchanged)
+
+- Publish the sanitized watch/site source, tests and documentation to andrew01ait/squash-tap after repository write authorization succeeds; verify all 221 imported file blobs.
+- Consolidate current user, architecture, build, test and maintenance guides; add phone installation and independent versioning/source-sync documentation. Retain historical release entries and actual device evidence.
+- Add documentation/link/release-identifier/parity checks and a repeatable sanitized public source export including website components and complete guides. Keep private artifact references, official hosting identity, signing keys, caches and generated APKs out of public source.
+- Keep current watch/runtime behavior, update feed and every retained APK byte unchanged. Verification of this maintenance change is distinct from the recorded 400-check native release.
+
 ## Website refresh — 2026-11-07 (app v0.13.0 unchanged)
 
 - Colour the landing-page headline’s “score.” blue while retaining red “playing.”

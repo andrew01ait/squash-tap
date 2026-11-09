@@ -1,38 +1,54 @@
-# GitHub source repository
+# Internal and GitHub source workflow
 
-This repository contains the Squash Tap Wear OS app, public website, encrypted temporary-transfer relay, tests and build documentation. The initial import is the v0.13.0 source (Android version code 14), based on source revision `285ce94dcf46b57f090d7e60839fe6cede58d2dc`.
+Public repository: <https://github.com/andrew01ait/squash-tap>. Official download/update site: <https://squash-tap-andrew.endruuu.chatgpt.site/>. Current watch release: **v0.13.0 / code 14**.
 
-The official app downloads remain at <https://squash-tap-andrew.endruuu.chatgpt.site/>. Publishing this source does not change the installed app or its update service.
+## Two copies and their responsibilities
 
-## Contents
+| Copy | Contains | Publication rule |
+| --- | --- | --- |
+| Internal Site source | Application/site code, docs, official hosting identity, retained APKs and private recovery references. Actual signing material remains outside Git. | Authoritative source for the current official deployment. Preserve its project, audience, release history and signing continuity. |
+| GitHub/source ZIP | Same reviewed application/site sources, tests, docs, fixtures, lockfiles and third-party notices. Sanitized hosting/signing metadata; no generated APKs/ZIPs or private artifact references. | Public source mirror with its own commit history. Review and synchronize explicitly; there is no automatic deployment or two-way merge. |
 
-- `android/src`, `android/res` and `android/AndroidManifest.xml`: native watch app.
-- `android/test`, `android/ui-test` and `android/test-fixtures`: shared-core, native UI and synthetic interchange tests.
-- `public/`: landing page, phone transfer UI and interchange modules.
-- `worker/`, `db/` and `drizzle/`: transfer relay and schema-only database migrations.
-- `scripts/`, `package.json` and `pnpm-lock.yaml`: pinned build tooling and dependencies.
-- `README.md`, `DEPLOYMENT.md`, `ARCHITECTURE.md`, `FLOW.md`, `TESTING.md` and `CHANGELOG.md`: user/developer documentation and release history.
+Both copies use the same Markdown documentation. Private artifact identifiers and the official hosting project ID are metadata differences, not separate feature implementations. `scripts/package_source.py` produces the reviewed public copy without changing the internal originals.
 
-## Local checks
+## Source map
 
-Use Node.js 22.13 or newer. These phone-transfer state tests do not need installed dependencies or an Android SDK:
+- `android/src`, `android/res`, `android/AndroidManifest.xml`: native Wear OS app.
+- `android/test`, `android/ui-test`, `android/test-fixtures`: core, native UI and synthetic compatibility tests.
+- `public/`: landing page, phone UI, diagnostics decoder and interchange modules.
+- `worker/`, `db/`, `drizzle/`: encrypted temporary relay and schema-only migrations.
+- `app/`, `components/`, `hooks/`, `lib/`, `vendor/`: website integration, shared assets and dependency notices.
+- `scripts/`, `package.json`, `pnpm-lock.yaml`, `android-dependencies.json`: reproducible build/test/source-export inputs.
+- The documentation index is in [README.md](README.md); automation constraints are in [AGENTS.md](AGENTS.md).
 
-```sh
-node --test web-test/transfer-state.test.mjs
-```
+## Preparing and checking a public update
 
-The full release pipeline uses Java 17, Python 3, Android Build Tools/platform 34, JUnit, Robolectric and the locked Node dependencies. See `DEPLOYMENT.md` and `TESTING.md` for the complete build/check procedure. The original release report records 265 core, 100 Android UI and 35 web/relay checks; those historical results are distinct from any checks run after cloning.
+1. Read the latest internal and GitHub heads before editing. Bring any incoming GitHub code changes into the internal source through a reviewed merge/cherry-pick/diff; never overwrite concurrent work.
+2. Make the final source/doc changes in the internal checkout. Retain its hosting/signing recovery metadata and release archive. Run checks appropriate to the change; a new APK needs the full release checks.
+3. Create an empty export directory and run:
 
-## Release and deployment prerequisites
+   ```sh
+   python3 scripts/check_docs.py
+   python3 scripts/package_source.py --github-dir /absolute/path/to/empty-public-source
+   python3 scripts/check_docs.py --compare /absolute/path/to/empty-public-source
+   ```
 
-This is a source repository. Generated APKs, source ZIP downloads, SDKs, dependency caches, credentials and release signing keys are not stored here. Retained official APK metadata and checksums remain in `public/builds.json` and `public/SHA256SUMS.txt`; an official release build requires restoring those retained APKs from the download site and verifying them against that metadata.
+4. Review the export/diff. The exporter strips private artifact references and the official hosting project ID, adds source-only ignore rules, includes required website components/docs and preserves file modes. Never copy the internal `.git` history, `.local` signing/cache directory, real user exports or generated APKs.
+5. Publish normal GitHub commits against the observed branch head; use a checked expected head and no force push. Keep unrelated existing files/changes. Verify the new head, file list and uploaded blob hashes against the reviewed export.
+6. Publish any matching official website/source-download changes through the existing Site source/version/deployment workflow. GitHub publication alone does not update the live app or website.
 
-The original signing key is held separately by the maintainer. `SIGNING_IDENTITY.json` contains only public certificate/identity information. The release builder intentionally refuses to replace a missing signing key, because doing so would break updates for existing installations. Building an independent fork requires a separate signing identity and appropriate package/update/deployment configuration; it must not impersonate the official update service.
+The GitHub connector/tool must actually have write authorization; a listed tool or repository-level account permission does not establish that a write succeeded. Report a rejected write honestly and recheck only after authorization changes. Use secure account authorization, not credentials pasted into chat or committed to files.
 
-The source copy retains the `DB`/`BUCKET` binding declarations but omits the managed hosting project ID and private artifact references. Configure your own hosting/storage for a fork. Preserve the existing deployment identity when maintaining the official site; publishing this repository does not migrate hosting to GitHub Pages. The relay needs a server runtime with D1/R2-compatible storage and is not a static-only website.
+## Building or contributing
 
-No project-wide open-source license has been selected for this initial publication. Third-party notices and individual dependency licenses remain included. A license decision is separate from publishing the source.
+See [DEPLOYMENT.md](DEPLOYMENT.md) for Linux build prerequisites and [TESTING.md](TESTING.md) for checks that can run without the official signing key. Keep dependency locks and migrations reviewed. Compare the final diff, tests, persistence/Undo behavior, privacy boundary and power policy before publishing changes.
 
-## Export filenames
+The official release pipeline additionally requires the private original signing key and retained APKs restored/verified from the download site. They are deliberately absent from GitHub. `SIGNING_IDENTITY.json` retains only public certificate information in exports. An independent fork must configure its own signing/package/update/hosting identity; do not weaken official update checks or point a fork at another project's deployment identity.
 
-Any future user-facing JSON export must use the local export date and application name: `YYYYMMDD_ApplicationName_Description.json`, for example `20261109_SquashTap_results.json`. The current results interchange remains CSV; this convention does not add a new JSON feature or rename internal configuration files.
+The relay needs a Worker/server with D1/R2-compatible storage. A static-only GitHub Pages publication cannot implement it. Configure your own hosting/storage and runtime settings for a fork; do not add secrets to source or the hosting manifest.
+
+## License and export naming
+
+No project-wide open-source license has been selected. Preserve third-party notices and individual dependency licenses; do not add/change licensing without the owner's choice.
+
+Future user-facing JSON filenames use the local export date and application name: `YYYYMMDD_ApplicationName_Description.json`, for example `20261109_SquashTap_results.json`. Current results interchange is CSV. This convention does not rename internal configuration files or add a JSON export feature.
