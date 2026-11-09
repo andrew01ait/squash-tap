@@ -1,0 +1,86 @@
+[
+  {
+    "versionCode": 3,
+    "versionName": "0.3.0",
+    "filename": "SquashTap-0.3.0.apk",
+    "sizeBytes": 2021380,
+    "sha256": "bbbc049109e5375d73476df4d68f926dc3bda2c5f673a6c69e8b918e43043e00"
+  },
+  {
+    "versionCode": 4,
+    "versionName": "0.4.0",
+    "filename": "SquashTap-0.4.0.apk",
+    "sizeBytes": 2021380,
+    "sha256": "7f5d17b676619eeccf02fc7d4fc97b6af3a5714e81425ecb19914f5f498c51cb"
+  },
+  {
+    "versionCode": 5,
+    "versionName": "0.5.0",
+    "filename": "SquashTap-0.5.0.apk",
+    "sizeBytes": 2025476,
+    "sha256": "fd3e64adc64fbc07b8e787fac469c24e28dae4e25bf159a35fb545909060205a"
+  },
+  {
+    "versionCode": 6,
+    "versionName": "0.6.0",
+    "filename": "SquashTap-0.6.0.apk",
+    "sizeBytes": 2025476,
+    "sha256": "603efecaffc14e820833a7405073efdbf357eaf2c4009a3aa203297ee5c91a0c"
+  },
+  {
+    "versionCode": 7,
+    "versionName": "0.7.0",
+    "filename": "SquashTap-0.7.0.apk",
+    "sizeBytes": 2025476,
+    "sha256": "fb248efc327854a9c7bf6ec56c286db388a80e19ee0fadee64a936700086facc"
+  },
+  {
+    "versionCode": 8,
+    "versionName": "0.8.0",
+    "filename": "SquashTap-0.8.0.apk",
+    "sizeBytes": 2050052,
+    "sha256": "a1ffdba83beddb02a122f8580018a109d73d35f0e80bdeb998b6f37b88061e22"
+  },
+  {
+    "versionCode": 9,
+    "versionName": "0.9.0",
+    "filename": "SquashTap-0.9.0.apk",
+    "sizeBytes": 2050124,
+    "sha256": "037b623fb0080b25efadce39084691e609ebc5276de3e1e601d15710b68b1dd2"
+  },
+  {
+    "versionCode": 10,
+    "versionName": "0.10.0",
+    "filename": "SquashTap-0.10.0.apk",
+    "sizeBytes": 2050124,
+    "sha256": "9b19cfa1183eb0ad782130a30434baa4082fa0a22268912ff6dd1c9544572322"
+  },
+  {
+    "versionCode": 11,
+    "versionName": "0.11.0",
+    "filename": "SquashTap-0.11.0.apk",
+    "sizeBytes": 2054220,
+    "sha256": "02bc3b2dca050507b58fbeb5c2f6f7ab03966ca7f2010bddfffb028c8fdf0421"
+  },
+  {
+    "versionCode": 12,
+    "versionName": "0.12.0",
+    "filename": "SquashTap-0.12.0.apk",
+    "sizeBytes": 2066508,
+    "sha256": "e5f6ecc4ca917f6a784b976f6e835a1e0dc033571e2844f9df62cb778763d8de"
+  },
+  {
+    "versionCode": 13,
+    "versionName": "0.12.1",
+    "filename": "SquashTap-0.12.1.apk",
+    "sizeBytes": 2066508,
+    "sha256": "c60905af2b15189c7232020dbd2bd3eedc3e861f39cab2a6e3c992effef77ace"
+  },
+  {
+    "versionCode": 14,
+    "versionName": "0.13.0",
+    "filename": "SquashTap-0.13.0.apk",
+    "sizeBytes": 2070686,
+    "sha256": "efa4ce1e396927fa36254464c45fa7232c9a134a0330e7ab1c0288b14430092c"
+  }
+]

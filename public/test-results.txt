@@ -1,0 +1,190 @@
+JUnit version 4.13.2
+.........................................................................................................................................................................................................................................................................
+Time: 0.339
+
+OK (265 tests)
+
+
+Android navigation/session/power checks (Robolectric, API 34, compiled AAPT resources):
+JUnit version 4.13.2
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+..Invalid ID 0x00000000.
+..Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+..Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+.Invalid ID 0x00000000.
+Invalid ID 0x00000000.
+
+Time: 14.967
+
+OK (100 tests)
+
+
+Browser interchange and relay/storage checks (Node Web Crypto and Miniflare D1/R2):
+✔ browser opens its golden vector and uses different random IVs (23.585327ms)
+✔ watch-generated encrypted payload is readable by browser (109.070787ms)
+✔ direction and session ID prevent replay (4.843398ms)
+✔ tampered and truncated envelopes fail authentication (3.60681ms)
+✔ CSV preserves names, quoting, times and scores (17.20858ms)
+✔ spreadsheet formula escapes roundtrip including apostrophes (2.703022ms)
+✔ semicolon files and empty template are accepted (0.319661ms)
+✔ malformed quotes, dates, scores and duration are rejected (1.072602ms)
+✔ names normalize, accept emoji and reject controls and broken surrogates (0.282054ms)
+✔ oversized plaintext is rejected before encryption (4.895266ms)
+✔ fixed UTC offsets roundtrip and filter by the recorded local day (1.023082ms)
+✔ native retirement CSV is readable in the browser without inventing sets (56.244315ms)
+✔ browser retirement CSV is accepted by native parser with the same outcomes and totals (52.27195ms)
+✔ creates opaque expiring payload, hashes tokens and exposes neither key nor data (378.304368ms)
+✔ phone can fetch outgoing content but cannot receive watch-side input (265.377537ms)
+✔ unknown and absent capabilities cannot read content (260.962773ms)
+✔ incoming changes are one-shot and owner receives exactly the encrypted data (285.175282ms)
+✔ watch can end and erase a transfer, phone cannot erase pending changes (287.259199ms)
+✔ expired sessions are inaccessible and expired objects are cleaned on traffic (296.680105ms)
+✔ untrusted origins and malformed envelopes are refused (265.979852ms)
+✔ oversized bodies are bounded before storage (273.47135ms)
+✔ creation rate is bounded without storing raw IP addresses (377.634086ms)
+✔ responses forbid caching and do not expose CORS access (281.751282ms)
+✔ phone launch intent selects only the supported local tabs (1.05821ms)
+✔ old links and untrusted phone launch values fall back to results (0.261783ms)
+✔ adding multiple names preserves the previous match assignment in the outgoing payload (1.881046ms)
+✔ adding to an unnamed match never silently names that match (0.222835ms)
+✔ restoring an existing name is a catalog edit and does not assign a match (0.138988ms)
+✔ explicit match reassignment and explicit clearing remain supported (0.109514ms)
+✔ retirement winner overrides set lead and partial sets are not counted (0.341863ms)
+✔ head-to-head groups by stable player identity including unnamed and removed names (0.300551ms)
+✔ empty overall history has zero totals without a made-up win percentage (0.169906ms)
+✔ retirement CSV is gated for older watches while ordinary CSV still works (1.13127ms)
+✔ schema-two retired history roundtrips and invalid partial set progression is rejected (2.447918ms)
+✔ all-match history sorts newest first without mutating the underlying snapshot (8.063187ms)
+ℹ tests 35
+ℹ suites 0
+ℹ pass 35
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3248.782363
+
+New release APK signature, manifest identity and ZIP alignment: verified. Retained APK hashes verified; public history starts at v0.3.0.
+Historical device report (2026-11-03, OnePlus Watch 2R, update 0.1.0 to 0.2.0). These checks are user-reported and are not rerun by this build.
+Confirmed: Initial installation from an Android phone using Wear Installer 2 over the phone hotspot
+Confirmed: App launches and is working on the watch
+Confirmed: Allow updates permission enabled on the watch
+Confirmed: In-app update completes and visible version changes to v0.2.0
+Confirmed: Existing score is retained after the in-place update
+Pending: Undo-history retention across the update
+Pending: Full gesture, deuce, lifecycle and menu regression on the device
+Pending: Real battery and keep-awake evaluation
+User report 2026-11-03 (v0.3.0): User confirmed v0.3 installation. Reported that match results were mixed with general Settings and the BO3/BO5 selector was hard to find. Idle/ambient retention and QR transfer remain unconfirmed.
+User report 2026-11-03 (v0.4.0): User confirmed v0.4 installation and successful diagnostic QR export to the phone. User reports the app has remained in the foreground since v0.3. Reported confusing Match menu naming and blue Settings navigation; requested neutral-grey Settings, red delete actions and distinct Back buttons. The supplied diagnostic report contained no recorded Java crash; installation-related exits and activity pause/resume events alone do not establish a failure. Raw diagnostic data is not published.
+User report 2026-11-03 (v0.5.0): User approved the cleaner navigation/design and requested match start/finish timestamps, duration and start-time result titles. This does not validate v0.6 timing on the device.
+User report 2026-11-04 (v0.8.0): After the v0.8 release the user reported that the workflow worked and requested distinct name styling plus optional opponent selection during new-match setup. This general confirmation does not identify every CSV/import, dictation or battery scenario as individually tested.
+No Wear OS emulator run is claimed. The user reports working foreground retention since v0.3 and successful v0.4 QR export. v0.13.0 appearance, speech availability, phone file picking/QR scan, detailed ambient transitions and real battery consumption require physical validation. Battery snapshots reflect the whole watch, not attributed app consumption.

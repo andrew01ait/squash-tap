@@ -1,0 +1,7 @@
+{
+  "package_name": "at.andrew.squashtap",
+  "certificate_sha256": "57f2fb958db2b908806a01d1ca03dc60f3c5faed06fbe6d848a7d0829ff0abab",
+  "restore_directory": ".local/signing",
+  "key_alias": "squash-tap",
+  "note": "Restore the existing private key before building. Never generate a new key for this app."
+}

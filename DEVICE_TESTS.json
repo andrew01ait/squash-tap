@@ -1,0 +1,44 @@
+{
+  "date": "2026-11-03",
+  "device": "OnePlus Watch 2R",
+  "wear_os": "5.0",
+  "evidence": "User-reported in the installation walkthrough; not an emulator run or an independently observed device session.",
+  "tested_update": {
+    "from": "0.1.0",
+    "to": "0.2.0"
+  },
+  "passed": [
+    "Initial installation from an Android phone using Wear Installer 2 over the phone hotspot",
+    "App launches and is working on the watch",
+    "Allow updates permission enabled on the watch",
+    "In-app update completes and visible version changes to v0.2.0",
+    "Existing score is retained after the in-place update"
+  ],
+  "pending": [
+    "Undo-history retention across the update",
+    "Full gesture, deuce, lifecycle and menu regression on the device",
+    "Real battery and keep-awake evaluation"
+  ],
+  "follow_up_reports": [
+    {
+      "date": "2026-11-03",
+      "version": "0.3.0",
+      "observation": "User confirmed v0.3 installation. Reported that match results were mixed with general Settings and the BO3/BO5 selector was hard to find. Idle/ambient retention and QR transfer remain unconfirmed."
+    },
+    {
+      "date": "2026-11-03",
+      "version": "0.4.0",
+      "observation": "User confirmed v0.4 installation and successful diagnostic QR export to the phone. User reports the app has remained in the foreground since v0.3. Reported confusing Match menu naming and blue Settings navigation; requested neutral-grey Settings, red delete actions and distinct Back buttons. The supplied diagnostic report contained no recorded Java crash; installation-related exits and activity pause/resume events alone do not establish a failure. Raw diagnostic data is not published."
+    },
+    {
+      "date": "2026-11-03",
+      "version": "0.5.0",
+      "observation": "User approved the cleaner navigation/design and requested match start/finish timestamps, duration and start-time result titles. This does not validate v0.6 timing on the device."
+    },
+    {
+      "date": "2026-11-04",
+      "version": "0.8.0",
+      "observation": "After the v0.8 release the user reported that the workflow worked and requested distinct name styling plus optional opponent selection during new-match setup. This general confirmation does not identify every CSV/import, dictation or battery scenario as individually tested."
+    }
+  ]
+}
