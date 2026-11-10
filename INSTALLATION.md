@@ -1,10 +1,10 @@
 # Install, update and diagnose
 
-[Official download page](https://squash-tap-andrew.endruuu.chatgpt.site/) · Current watch APK: **v0.14.0 / code 15**.
+[Official download page](https://squash-tap-andrew.endruuu.chatgpt.site/) · Current watch APK: **v0.15.0 / code 16**.
 
 The APK runs on the watch. Wear Installer 2 is a helper on the Android phone; no PC development tools are required. The app is currently distributed by APK through this site, not the watch app store.
 
-Choose a sport at launch, then create or resume a match. Players and Settings are shared. Existing squash history stays available after an update.
+Choose a sport at launch, then create or resume a match. Sport icons/colours identify your selection. An unfinished match locks other sports, even when paused; finish it or choose Current match → Cancel match → Discard match first. Players and Settings are shared. Existing squash history stays available after an update.
 
 ## Initial installation using an Android phone
 
@@ -42,6 +42,7 @@ An in-place update with the same package/signing key replaces the installed appl
 
 - Check BO3/BO5, optional names, scoring, Undo and explicit NEXT between sets.
 - Check Results, filters/pagination, manual set versus independent past-match entry, retirement and confirmed deletion.
+- Check explicit rule/mode/length lists and selected marks; cancelling a picker must keep its previous choice. Check that unfinished and paused matches lock other sports, and that confirmed cancellation saves no result.
 - Check named Back, hardware Back and the native swipe gesture from nested panels. Return from a result should retain its filtered page and scroll.
 - Check a QR transfer with synthetic data before important imports. Names added on the phone must not silently reassign a match.
 - During real play check availability/ambient behavior; after Pause/completion check that normal watch sleep returns. Record battery observations separately from automated test outcomes.

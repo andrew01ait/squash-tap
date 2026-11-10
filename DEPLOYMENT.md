@@ -1,6 +1,6 @@
 # Build and deployment
 
-Official watch release: **v0.14.0 / code 15**. User installation is in [INSTALLATION.md](INSTALLATION.md); release-number and compatibility rules are in [VERSIONING.md](VERSIONING.md).
+Official watch release: **v0.15.0 / code 16**. User installation is in [INSTALLATION.md](INSTALLATION.md); release-number and compatibility rules are in [VERSIONING.md](VERSIONING.md).
 
 ## Repositories and prerequisites
 
@@ -87,4 +87,4 @@ Transfers expire after ten minutes; physical cleanup of unused ciphertext occurs
 
 ## Multisport release
 
-The original package/signing identity remains unchanged. RULES.md documents formats and limitations. A native release must test all five sports, both badminton formats, padel deuce options, Undo across tennis game/set boundaries, service rotation, B4/B5 and O1/O2 migration, team identities, scope/filter/delete behavior, and native/browser CSV schema-3 parity. Preserve old CSV readers and all historical APK bytes.
+The original package/signing identity remains unchanged. RULES.md documents formats and limitations. A native release must test unfinished/paused/prepared sport locks, stale selection/create callbacks, confirmed discard versus retirement/deletion, contextual shared-screen Back/swipe, explicit choice lists, all five sports, both badminton formats, padel deuce options, Undo across tennis game/set boundaries, service rotation, B4/B5 and O1/O2 migration, team identities, scope/filter/delete behavior, and native/browser CSV schema-3 parity. Preserve old CSV readers and all historical APK bytes.

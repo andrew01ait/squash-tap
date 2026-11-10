@@ -1,6 +1,6 @@
 # Architecture
 
-Current watch release: **v0.14.0**, code **15**. This document describes the implemented system; release changes are in [CHANGELOG.md](CHANGELOG.md).
+Current watch release: **v0.15.0**, code **16**. This document describes the implemented system; release changes are in [CHANGELOG.md](CHANGELOG.md).
 
 ## Components and responsibilities
 
@@ -17,6 +17,12 @@ Current watch release: **v0.14.0**, code **15**. This document describes the imp
 | Release tooling | `scripts/build.py`, `androidx_deps.py`, `test_ui.py`, `package_source.py` | Pinned builds/tests, original release signing, retained-APK verification and sanitized source exports. |
 
 The website is a Vinext/Cloudflare Worker application with `DB` and `BUCKET` bindings. Canonical static assets are in `public/`; `dist/` is generated. GitHub Pages alone cannot run the transfer relay.
+
+## Sport navigation and discard
+
+MainActivity keeps the browsing scope separate from the one current match. An unfinished scored, timed, active, paused or explicitly prepared match locks every other sport. Selection/setup/create callbacks enforce the lock before mutation; completion or confirmed discard unlocks it. `match_ready_id` retains a created or explicitly started, unplayed match across restarts and foreground-session removal. It is not a result or active-service token. SportIcons supplies the same accent and vector mark to selectors, badges and ScoreView. Shared Players/Settings retain contextual return callbacks; rule/mode/length/display choices use ticked lists with options before help text and restored setup scroll.
+
+Discard clones the book and directory, calls `MatchBook.discardCurrent` and `OpponentDirectory.forgetMatch`, then commits both plus cleared active/pause/prepared preferences before swapping live references. It creates no result or daily reference. Saved history, counters, player catalog and historical roles stay intact; a fresh empty UUID prevents old Undo/resume/transfer callbacks from reviving the discarded match. Completed matches reject discard and retain the normal result-deletion path. New-match creation likewise commits related state before replacing live references. No persistence schema or relay change is needed.
 
 ## Local persistence and compatibility
 

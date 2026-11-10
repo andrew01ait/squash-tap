@@ -68,7 +68,7 @@ public class NewMatchOpponentUiTest {
         openNew();person(button("Opponent: No name (optional)"));click("Create match");assertTrue(contains("Opponent: No name"));click("Replace & create match");assertEquals("",directory().nameFor(book().current().id()));assertEquals("Alice",directory().nameFor("history"));assertEquals(1,book().count());idleNewMatch();
     }
     @Test public void choosingNameIsStagedThenCommittedToNewBestOfFiveAndFutureResult(){
-        String before=book().encode(),names=directory().encode();openNew();chooseMartin();assertEquals(before,book().encode());assertEquals(names,directory().encode());assertNotNull(button("Opponent: Martin (optional)"));click("Best of 5");click("Create match");assertEquals(before,book().encode());assertTrue(contains("Opponent: Martin"));click("Replace & create match");
+        String before=book().encode(),names=directory().encode();openNew();chooseMartin();assertEquals(before,book().encode());assertEquals(names,directory().encode());assertNotNull(button("Opponent: Martin (optional)"));click("Match length: Best of 3");click("Best of 5 · first to 3");click("Create match");assertEquals(before,book().encode());assertTrue(contains("Opponent: Martin"));click("Replace & create match");
         MatchBook next=book();assertEquals(5,next.current().bestOf());assertNotEquals("current",next.current().id());assertEquals("Martin",directory().nameFor(next.current().id()));assertEquals("Alice",directory().nameFor("history"));idleNewMatch();
         while(!next.current().complete()){for(int i=0;i<11;i++)next.add(0);if(!next.current().complete())next.nextGame();}
         boolean named=false;for(MatchCsv.Row row:MatchCsv.parse(MatchCsv.export(next.newestFirst(),directory())))if(row.result.id.equals(next.current().id())){assertEquals("Martin",row.name);named=true;}assertTrue(named);
@@ -83,7 +83,7 @@ public class NewMatchOpponentUiTest {
         String before=book().encode();openNew();chooseMartin();click("Opponent: Martin (optional)");click("Cancel");assertNotNull(button("Opponent: Martin (optional)"));assertEquals(before,book().encode());assertEquals("Alice",directory().nameFor("current"));
     }
     @Test public void chosenNameCanBeClearedBeforeStarting(){
-        openNew();chooseMartin();click("Opponent: Martin (optional)");click("No name");click("Best of 5");click("Create match");click("Replace & create match");assertEquals("",directory().nameFor(book().current().id()));assertEquals(5,book().current().bestOf());idleNewMatch();
+        openNew();chooseMartin();click("Opponent: Martin (optional)");click("No name");click("Match length: Best of 3");click("Best of 5 · first to 3");click("Create match");click("Replace & create match");assertEquals("",directory().nameFor(book().current().id()));assertEquals(5,book().current().bestOf());idleNewMatch();
     }
     @Test public void newNameCanBeAddedAndSelectedDuringSetupWithoutChangingOldOpponent(){
         String before=book().encode();openNew();click("Opponent: No name (optional)");click("Add player");for(View view:views())if(view instanceof EditText)((EditText)view).setText("Susi");click("Save name");assertNotNull(button("Opponent: Susi (optional)"));assertEquals(before,book().encode());assertEquals("Alice",directory().nameFor("current"));click("Create match");click("Replace & create match");assertEquals("Susi",directory().nameFor(book().current().id()));idleNewMatch();

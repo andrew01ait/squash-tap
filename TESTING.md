@@ -1,6 +1,6 @@
 # Testing and verification
 
-Current watch release: **v0.14.0 / code 15**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
+Current watch release: **v0.15.0 / code 16**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
 
 ## Recorded release evidence
 
@@ -52,14 +52,14 @@ After core classes exist, install locked Node dependencies and run the complete 
 node --test web-test/interchange.test.mjs web-test/transfer-state.test.mjs web-test/relay.test.mjs web-test/multisport.test.mjs
 ```
 
-Three interchange cases execute Java fixtures; the full command requires the compiled core tests. Relay cases require Miniflare from the project's locked Wrangler dependency. Do not silently skip missing prerequisites and claim all 35 ran.
+Native/browser interchange cases execute Java fixtures; the full command requires the compiled core tests. Relay cases require Miniflare from the project's locked Wrangler dependency. Do not silently skip missing prerequisites and claim all 43 ran.
 
 ## Full native release checks
 
 Follow [DEPLOYMENT.md](DEPLOYMENT.md) for SDK, locked runtime/UI dependencies, original signing key and verified retained APKs. The standard builder executes core/web tests, compiles real AAPT resources and runs native UI tests before D8/signing. UI tests can also be repeated once those resources/generated classes exist:
 
 ```sh
-python3 scripts/test_ui.py --version 0.14.0
+python3 scripts/test_ui.py --version 0.15.0
 ```
 
 Robolectric executes API 34 and uses its configured API 35 framework for resource parsing. Test tooling stays under ignored `.local/`; it is not bundled in the APK. A fresh export does not contain the maintainer's signing key, SDK or prior unsigned build, so the complete release pipeline is not a key-free out-of-box build.
@@ -94,8 +94,14 @@ The GitHub import ran all 12 dependency-free phone-state checks, reviewed public
 
 ## Multisport release verification — 2026-11-10
 
-The v0.14.0/code 15 release suite contains 294 core checks, 113 native UI checks and 43 web/crypto/relay checks (450 total). New tests cover five formats, old/new badminton and padel presets, nested game/set and deciding tie-break Undo, seven-game table tennis, service rotation including the deciding-game receiving switch, B4/B5/O1/O2 compatibility, team roles, derived badges after deletion/reopening, partial tennis retirement scores and native/browser CSV-3 parity.
+The historical v0.14.0/code 15 release suite contained 294 core checks, 113 native UI checks and 43 web/crypto/relay checks (450 total). New tests cover five formats, old/new badminton and padel presets, nested game/set and deciding tie-break Undo, seven-game table tennis, service rotation including the deciding-game receiving switch, B4/B5/O1/O2 compatibility, team roles, derived badges after deletion/reopening, partial tennis retirement scores and native/browser CSV-3 parity.
 
 Native Canvas renders inspect all five scoreboards, the sport selector and player badges on a round 233dp viewport. The phone preview uses synthetic data and checks separate sport history, scoped statistics, unknown point totals and shared player sport badges. Native UI tests preserve timing, manual entry, Back/swipe, session/power and transfer guards. These remain automated/desktop checks: installation, optical QR scanning, physical OnePlus touch/ambient behavior and battery acceptance require the user's watch. No new physical-device report is added.
 
 Build using the documented Java 17 toolchain. The environment's initial Java 21 compiler passed model/UI checks but generated an anonymous-class form that the pinned Android 34 D8 could not process. The official package uses a fresh Java 17 build and the original signer; no Android dependency lock or identity check is weakened.
+
+## Navigation release verification — 2026-11-10
+
+v0.15.0/code 16 passes **299 core + 130 native UI + 43 web/relay checks = 472** using the documented Java 17 release builder. The added checks cover discard without a result/reference, preservation of shared names/history/counters, all sport formats, finished-match protection, active/paused/prepared sport locks across restart and session removal, stale selection/create/discard callbacks, selected rule/mode/decider lists, picker cancellation/swipe and shared Players/Settings returns.
+
+Native Canvas inspection covers the five sport scoreboards, coloured sport menu, shared player badges, setup, scoring list, current controls, discard confirmation and locked sport selector at a round 233dp viewport. Selection options precede help text, confirmations omit the Scoreboard shortcut, and setup/options/settings/serving preserve scroll on picker return. The full builder also checks the original certificate/package/API/watch metadata, ZIP alignment and all retained release hashes. A local website build passes. Physical OnePlus installation, touch/swipe, ambient behavior and battery acceptance remain separate; no new device report is claimed.

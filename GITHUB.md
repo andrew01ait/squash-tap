@@ -1,6 +1,6 @@
 # Internal and GitHub source workflow
 
-Public repository: <https://github.com/andrew01ait/squash-tap>. Official download/update site: <https://squash-tap-andrew.endruuu.chatgpt.site/>. Current watch release: **v0.14.0 / code 15**.
+Public repository: <https://github.com/andrew01ait/squash-tap>. Official download/update site: <https://squash-tap-andrew.endruuu.chatgpt.site/>. Current watch release: **v0.15.0 / code 16**.
 
 ## Two copies and their responsibilities
 
@@ -38,6 +38,8 @@ Both copies use the same Markdown documentation. Private artifact identifiers an
 6. Publish any matching official website/source-download changes through the existing Site source/version/deployment workflow. GitHub publication alone does not update the live app or website.
 
 The GitHub connector/tool must actually have write authorization; a listed tool or repository-level account permission does not establish that a write succeeded. Report a rejected write honestly and recheck only after authorization changes. Use secure account authorization, not credentials pasted into chat or committed to files.
+
+The multisport/navigation work is reviewed in [draft PR #1](https://github.com/andrew01ait/squash-tap/pull/1) on `feature/multisport-v0.14.0`; main remains separate until an explicitly authorized merge. Keep the PR title/description and source export aligned with the latest release.
 
 ## Building or contributing
 

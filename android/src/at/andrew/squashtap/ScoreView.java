@@ -40,7 +40,7 @@ public final class ScoreView extends View {
     public void ambient(boolean value,boolean lowBit){ambient=value;this.lowBit=lowBit;pressed=TouchTargets.OUTSIDE;invalidate();}
     public void refresh() {
         setContentDescription("Squash Tap. "+match.format().name()+". "+(match.format().doubles?"Our team ":"Me ") + match.game().displayPoint(0)+", "+opponentLabel+" "+match.game().displayPoint(1)
-            +". Sets "+match.gamesWon(0)+" to "+match.gamesWon(1)+", best of "+match.bestOf()+". Bottom left Undo; bottom right "+(match.nextReady()?"Next set":"New match")+". Top opens Menu: Current match, Results, Statistics, Opponents and Settings.");
+            +". "+(match.format().nested()?"Sets ":"Games ")+match.gamesWon(0)+" to "+match.gamesWon(1)+", best of "+match.bestOf()+". Bottom left Undo; bottom right "+(match.nextReady()?"Next "+match.format().unit().toLowerCase(java.util.Locale.ROOT):"New match")+". Top opens the "+match.format().name()+" menu: Current match, Results, Statistics, Players and Settings.");
         invalidate();
     }
     @Override protected void onDraw(Canvas canvas) {
@@ -50,9 +50,9 @@ public final class ScoreView extends View {
         paint.setAntiAlias(!ambient||!lowBit);
         if(ambient){drawAmbient(canvas,w,h,s);return;}
         canvas.drawColor(Color.rgb(8, 13, 23));
-        text(canvas, (match.format().nested()?"SETS ":match.format().name().toUpperCase()+" · ")+match.gamesWon(0)+"–"+match.gamesWon(1)+" · BO"+match.bestOf(), w * .5f, h * .112f, s * .045f, 0xffe5ecf7, true);
-        text(canvas, (match.format().nested()?match.format().name().toUpperCase()+" · GAMES "+state.blue()+"–"+state.red():"GAME "+match.gameCount())+" · MENU"+(updateAvailable?" •":""),
-            w * .5f, h * .183f, s * .035f, updateAvailable ? 0xff94edb4 : 0xff9daec4, false);
+        sportHeading(canvas,w,h,s);
+        text(canvas,(match.format().nested()?"SETS ":"GAMES ")+match.gamesWon(0)+"–"+match.gamesWon(1)+" · BO"+match.bestOf()+(match.format().nested()?" · GAMES "+state.blue()+"–"+state.red():" · GAME "+match.gameCount())+(updateAvailable?" •":""),
+            w * .5f, h * .183f, s * .033f, updateAvailable ? 0xff94edb4 : 0xffcbd5e1, false);
         card(canvas, w * .075f, h * .245f, w * .48f, h * .67f, TouchTargets.BLUE,
             match.format().doubles?"OUR TEAM":"ME", state.displayPoint(0), 0xff1668cb, 0xff2489f5, s);
         card(canvas, w * .52f, h * .245f, w * .925f, h * .67f, TouchTargets.RED,
@@ -66,6 +66,11 @@ public final class ScoreView extends View {
             state.winner() == ScoreState.NONE ? 0xffa7b6c9 : 0xffd1f5df, true);
         button(canvas, w*.18f, h*.765f, w*.46f, h*.875f, "UNDO", TouchTargets.UNDO, match.hasPoints()||match.retired(), s);
         button(canvas, w*.54f, h*.765f, w*.82f, h*.875f, match.nextReady()?"NEXT":"NEW", TouchTargets.NEW, true, s);
+    }
+    private void sportHeading(Canvas c,float w,float h,float s){
+        String label=match.format().name().toUpperCase(java.util.Locale.ROOT)+" · MENU";float size=s*.039f;paint.setTextSize(size);paint.setTypeface(Typeface.create("sans-serif",Typeface.BOLD));float width=paint.measureText(label),iconSize=s*.052f,left=(w-width-iconSize-s*.018f)/2;
+        SportIcons icon=new SportIcons(match.format().sport,(int)iconSize);icon.setBounds((int)left,(int)(h*.108f-iconSize/2),(int)(left+iconSize),(int)(h*.108f+iconSize/2));icon.draw(c);
+        text(c,label,left+iconSize+s*.018f+width/2,h*.108f,size,SportIcons.accent(match.format().sport),true);
     }
     private void card(Canvas c, float l, float t, float r, float b, int target, String label, String value, int fill, int accent, float s) {
         ScoreState state=match.game();
@@ -94,7 +99,7 @@ public final class ScoreView extends View {
     private void drawAmbient(Canvas c,float w,float h,float s){
         c.drawColor(Color.BLACK);int shift=(int)((System.currentTimeMillis()/60000)%5)-2;c.save();c.translate(shift,-shift);
         text(c,java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")),w*.5f,h*.115f,s*.065f,0xffaaaaaa,false);
-        text(c,"SETS "+match.gamesWon(0)+"–"+match.gamesWon(1)+" · BO"+match.bestOf(),w*.5f,h*.23f,s*.04f,0xff999999,false);
+        text(c,match.format().name().toUpperCase(java.util.Locale.ROOT)+" · "+match.gamesWon(0)+"–"+match.gamesWon(1)+" · BO"+match.bestOf(),w*.5f,h*.23f,s*.035f,0xff999999,false);
         text(c,"ME",w*.27f,h*.36f,s*.04f,0xffaaaaaa,false);String label=opponentLabel.codePointCount(0,opponentLabel.length())>12?opponentLabel.substring(0,opponentLabel.offsetByCodePoints(0,11))+"…":opponentLabel;text(c,label,w*.73f,h*.36f,s*.04f,0xffaaaaaa,false);
         text(c,match.game().displayPoint(0),w*.27f,h*.51f,s*.20f,0xffbbbbbb,false);
         text(c,match.game().displayPoint(1),w*.73f,h*.51f,s*.20f,0xffbbbbbb,false);

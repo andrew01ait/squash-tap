@@ -1,4 +1,6 @@
-# Sports and scoring — v0.14.0
+# Sports and scoring — v0.15.0
+
+Choose scoring presets from explicit lists before creating a match. Each match keeps its chosen rules. An unfinished or paused match must be completed or cancelled before switching sports.
 
 Squash Tap records point winners. It does not record first/second service attempts, lets, strokes, faults or rally classifications. For a let, leave the score unchanged. For an awarded point, tap its recipient. Optional serving indicators are derived from recorded points and initial choices; Undo restores them. These presets are scorekeeping formats, not a claim to automate all tournament regulations.
 

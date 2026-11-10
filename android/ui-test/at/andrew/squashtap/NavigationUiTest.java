@@ -88,7 +88,7 @@ public class NavigationUiTest {
         button("Settings").performClick();ReflectionHelpers.setField(activity,"checking",true);button("Check for updates").performClick();assertTrue(hasText("App updates"));grey(button("Checking…"));grey(button("Phone install help"));outline(button("Back to Settings"));
     }
     @Test public void formatSelectorKeepsPointsThroughActualButtonNavigation(){
-        button("Current match").performClick();button("Match options").performClick();button("Match format: Best of 3").performClick();blue(button("Best of 5 · first to 3"));button("Best of 5 · first to 3").performClick();MatchBook book=saved();assertEquals(5,book.current().bestOf());assertEquals(2,book.current().game().blue());assertEquals(1,book.current().game().red());assertEquals(1,book.count());
+        button("Current match").performClick();button("Match options").performClick();button("Match length: Best of 3").performClick();blue(button("Best of 5 · first to 3"));button("Best of 5 · first to 3").performClick();MatchBook book=saved();assertEquals(5,book.current().bestOf());assertEquals(2,book.current().game().blue());assertEquals(1,book.current().game().red());assertEquals(1,book.count());
     }
     @Test public void singleDeleteAndConfirmationAreRedAndCancelKeepsResult(){
         openSavedResult();red(button("Delete this result"));button("Delete this result").performClick();red(button("Delete result"));outline(button("Cancel"));button("Cancel").performClick();assertEquals(1,saved().count());assertTrue(hasButton("Delete this result"));

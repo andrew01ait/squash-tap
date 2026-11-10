@@ -1,6 +1,6 @@
 # Versions and compatibility
 
-Current official watch release: **v0.14.0**; Android version code **15**; package **`at.andrew.squashtap`**. `public/release.properties` is the machine-readable update feed; `public/builds.json` and `SHA256SUMS.txt` record retained artifacts.
+Current official watch release: **v0.15.0**; Android version code **16**; package **`at.andrew.squashtap`**. `public/release.properties` is the machine-readable update feed; `public/builds.json` and `SHA256SUMS.txt` record retained artifacts.
 
 ## Independent version numbers
 
@@ -16,6 +16,8 @@ Current official watch release: **v0.14.0**; Android version code **15**; packag
 Read B1–B5 books. Preserve B4 for unchanged squash-only state; use B5 for multisport/explicit serving or extended results. Preserve old M1/M2/M3 squash encodings; M4 stores format/initial service data. O1 remains readable, O2 separates team roles, and both use the same stable player catalog. Retain once-only B1/B2/B3/B4/O1 backups. CSV schemas 1/2 remain squash-compatible; schema 3 adds explicit sport/mode/rules, seven-game results, team roles and known point/tie-break details. Schema 3 requires the updated watch. Phone encryption/session direction remains unchanged. See [RULES.md](RULES.md) for frozen rule presets.
 
 Older versions may not understand new preferences or retirement/manual CSV. Do not promise safe downgrades. For corrections, normally deliver a higher-version-code APK with compatible readers and the same package/key. Never fabricate legacy timing, rally order, winning sets or reused references during migration.
+
+Navigation v0.15 adds only the optional `match_ready_id` preference for created, unplayed matches; cancellation and menu changes preserve all existing book/name/CSV readers and formats. An unfinished match locks sport selection until completion or confirmed discard.
 
 ## Release retention
 

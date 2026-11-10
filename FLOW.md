@@ -1,12 +1,12 @@
-# Navigation and match flows — v0.14.0
+# Navigation and match flows — v0.15.0
 
 ## Sport entry and scope
 
-The launcher opens Choose sport: Squash, Tennis, Badminton, Padel, Table tennis, plus shared Players and Settings. Each sport remembers its new-match rules and length. The ongoing shortcut resumes the scoreboard. Change sport changes browsing scope without replacing the current match. A new match from another sport still confirms replacement of an unfinished score/session. There is one current match, not one running match per sport.
+The launcher opens Choose sport with distinct icons/colours for Squash, Tennis, Badminton, Padel and Table tennis, plus shared Players and Settings. An unfinished current match locks every other sport, including when paused or explicitly created but unplayed. The selector explains the lock and disables the other sport rows; stale selection/create callbacks also enforce it. Finish or cancel the match to unlock selection. A completed match permits another sport. Close app exits without silently opening another sport’s scoreboard. Each sport remembers its new-match rules and length.
 
 Results and Statistics use the chosen sport. Eligible sports offer All modes / Singles / Doubles. Result player filters include all team roles; date/player filters do not narrow Statistics. Delete all results deletes the selected sport only and preserves other sports, current state, daily counters and deletion markers. Phone Results/Statistics have their own shared sport/mode selectors; the Players catalog is global.
 
-New match stages sport-specific rules, length, optional opponent/partner/opponent-2 and optional first-server choices. Padel stays doubles; squash stays singles. Duplicate people in different slots are rejected. Tennis/padel games advance automatically; NEXT remains explicit between sets. Rules are locked to the match; changing new-match defaults does not reinterpret old results. [RULES.md](RULES.md) lists formats and service choices.
+New match opens explicit, ticked lists for mode, scoring system, deuce, deciding set and match length. Opening a picker, Cancel, hardware Back and swipe leave the draft unchanged. Selecting one option returns to the previous setup scroll position. Choices appear before help text, and selecting the current choice preserves serving data. New match stages sport-specific rules, length, optional opponent/partner/opponent-2 and optional first-server choices. Padel stays doubles; squash stays singles. Duplicate people in different slots are rejected. Tennis/padel games advance automatically; NEXT remains explicit between sets. Rules are locked to the match; changing new-match defaults does not reinterpret old results. [RULES.md](RULES.md) lists formats and service choices.
 
 Players shows small vector sport badges only for associated saved results as partner or opponent. No-result players have no badges. Delete/Undo, import and role reassignment are reflected on the next render. Names remain optional. Removing a player archives selection, and renaming follows their stable ID across sports.
 
@@ -24,24 +24,24 @@ The scoreboard stays focused on Me/Opponent scoring, Undo and Next/New. Its head
 | Scoring rules | Sport presets, service guidance and limits | Blue navigation row |
 | Settings | Version, updates, screen/notification options and diagnostics | Grey |
 
-Menu returns to the scoreboard. Every subpage has one named outlined Back/Cancel action. Hardware Back and native right-swipe dismissal invoke that same return. During active or resumable play, the header has a Scoreboard shortcut; it changes no session state. Dialog replacement, backgrounding and ambient transitions do not act as a user Back.
+The sport Menu returns to its own current scoreboard when available; an idle sport Menu returns to Choose sport. A sport icon/name badge identifies the scope. App-wide Players/Settings use an ALL SPORTS badge and return to their originating Menu or sport selector. Every subpage has one named outlined Back/Cancel action. Hardware Back and native right-swipe dismissal invoke that same return. During active or resumable play, compatible subpages have a Scoreboard shortcut for the actual match sport; it changes no session state. Dialog replacement, backgrounding and ambient transitions do not act as a user Back.
 
 ## Current match
 
 | State | First action | Other actions |
 | --- | --- | --- |
-| Fresh | Start match | Enter set score, Match details, Match options |
-| Playing | Pause match | Enter set score, Match details, Match options |
-| Paused / waiting to resume | Resume match | Enter set score, Match details, Match options |
+| Fresh | Start match | Enter set score, Match details, Match options, Cancel match |
+| Playing | Pause match | Enter set score, Match details, Match options, Cancel match |
+| Paused / waiting to resume | Resume match | Enter set score, Match details, Match options, Cancel match |
 | Completed | View result, when saved | Match details, New match |
 
-The summary shows opponent, sets and BO3/BO5. Match details lists actual set scores and known start timing. Match options holds Opponent, Match format, New match and End match early. These options never contain Settings. Completed matches hide inapplicable live/set/options controls. If result storage is full, the completed scoreboard stays available through Match details until a result can be saved.
+The summary shows opponent, sets and BO3/BO5. Match details lists actual set scores and known start timing. Match options groups Players/Opponent, Serving indicator and Match length under Setup & players, with New match and Save retirement result under Finish or replace. Cancel match is available directly in Current match and in Match options. The frozen scoring rules are summarised separately from adjustable match length. These options never contain Settings. Completed matches hide inapplicable live/set/options controls. If result storage is full, the completed scoreboard stays available through Match details until a result can be saved.
 
-Match format changes an unfinished current match in place, preserving UUID, points, sets, timing and Undo. BO5 → BO3 is rejected after either player already has two set wins. Changes return to Match options.
+Match format changes an unfinished current match in place, preserving UUID, points, sets, timing and Undo. BO5 → BO3 is rejected after either player already has two set wins. Changes return to Match options. Screen-on policy and history Singles/Doubles filters also use explicit lists rather than cycling through values. Confirmation questions omit the Scoreboard shortcut to keep the question and explicit confirm/cancel actions clear.
 
 ## New-match setup
 
-NEW, Match options → New match or a current result → New match opens a draft with No name and the last-used format. Opponent selection is optional and purple. BO3/BO5 selection changes only the draft. Create match commits a fresh UUID; if an unfinished score would be replaced, Replace & create match must be confirmed. Back to setup retains the draft; Cancel returns to its original caller. Old results remain. Preparing a match does not activate an ongoing session.
+NEW, Match options → New match or a current result → New match opens a draft with No name and the last-used format. Opponent selection is optional and purple. Match length and scoring selections change only the draft. Create match commits a fresh UUID; if an unfinished score would be replaced, Replace & create match must be confirmed. Back to setup retains the draft; Cancel returns to its original caller. Old results remain. Preparing a match does not activate an ongoing session.
 
 ## Live scoring, timing and saving
 
@@ -69,7 +69,12 @@ Statistics derives match W/L, game/set and known point totals from saved results
 
 ## Ending early
 
-Current match → Match options → End match early → I quit / Opponent quit → confirmation → save retirement result with actual scores → release the active session. Cancellation preserves the match. Undo retirement reopens all rallies and waits for Resume. Deletion must not revive the result.
+Current match → Match options → Save retirement result → I quit / Opponent quit → confirmation → save retirement result with actual scores → release the active session. Cancellation preserves the match. Undo retirement reopens all rallies and waits for Resume. Deletion must not revive the result.
+
+## Cancel without recording
+
+Current match → Cancel match → Discard match removes only the unfinished current match, without a result, retirement, win/loss, daily reference or statistics entry. Keep playing, hardware Back and swipe preserve the match/session. A successful discard commits a fresh empty current state, removes only the abandoned match’s role assignments, clears active/pause/prepared state, stops the service and returns to the sport Menu. Shared names, saved results, durable counters and historical identities remain. Undo cannot recover the discarded rallies. Other sports become selectable. Finished results use their existing confirmed deletion flow instead.
+
 
 ## Names
 

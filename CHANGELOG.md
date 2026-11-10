@@ -1,5 +1,15 @@
 # Releases
 
+## 0.15.0 — 2026-11-10
+
+- Identify each sport with its own vector mark and accent in the selector, menu badges and live scoreboard; retain blue/red scoring sides. Separate sport actions and app-wide controls, with shared purple Players, grey Settings, red discard/delete and contextual Back/Cancel.
+- Lock other sports while a match is unfinished, including paused and explicitly created unplayed matches. Finish or cancel first. Preserve the lock across restart and reject stale sport-selection/new-match callbacks. Completed or discarded matches unlock selection.
+- Add Current match → Cancel match → Discard match to quit without saving a result, retirement or win/loss. Commit the replacement state, abandoned role-link removal and cleared session/pause/prepared flags together; retain saved history, shared names and daily counters. Undo/resume cannot restore discarded rallies. Keep retirement as the separate Save retirement result action.
+- Replace cycling mode/scoring/deuce/decider/result-mode controls with explicit selected lists. Put match length in its own picker and provide explicit screen-policy choices. Back/swipe/cancellation and reselecting the same choice keep the draft and serving choices.
+- Return shared Players/Settings to the sport selector or sport Menu that opened them, prevent unrelated score shortcuts, and label tennis/padel’s next opposing server correctly. Make new-match replacement commits atomic before replacing the in-memory state.
+- Put choices before help text, preserve setup/options/settings/serving scroll on picker return, and omit the Scoreboard shortcut from confirmation questions. Verify 299 core + 130 native UI + 43 web checks = 472, inspect round-screen native renders, and retain original signer/package/API/alignment and historical APK hashes. Physical watch acceptance remains separate.
+
+
 ## 0.14.0 — 2026-11-10
 
 - Add the five-sport entry selector: squash, tennis, badminton, padel and table tennis. Keep one current match, explicit replacement confirmation, independent sport/mode history and statistics, and shared Players/Settings. Keep the original Squash Tap name, package and release signer.

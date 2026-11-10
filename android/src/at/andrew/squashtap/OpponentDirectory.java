@@ -30,6 +30,8 @@ public final class OpponentDirectory {
     public String nameFor(String matchId){Entry e=get(opponentId(matchId));return e==null?"":e.name;}
     public String roleId(String matchId,int slot){if(slot<0||slot>2)throw new IllegalArgumentException("Invalid player role");String[] team=teams.get(matchId);return slot==0?opponentId(matchId):team==null?"":team[slot-1];}
     public String roleName(String matchId,int slot){Entry e=get(roleId(matchId,slot));return e==null?"":e.name;}
+    /** Forget an abandoned match's role links, retaining the shared player catalog. */
+    public void forgetMatch(String matchId){validId(matchId);assignments.remove(matchId);teams.remove(matchId);}
     public void assignRole(String matchId,int slot,String id){String[] values={roleId(matchId,0),roleId(matchId,1),roleId(matchId,2)};if(slot<0||slot>2)throw new IllegalArgumentException("Invalid player role");values[slot]=id;assignTeam(matchId,values[0],values[1],values[2]);}
     public void assignTeam(String matchId,String opponent,String partner,String other){
         java.util.HashSet<String> unique=new java.util.HashSet<>();for(String id:new String[]{opponent,partner,other})if(id!=null&&!id.isEmpty()&&!unique.add(id))throw new IllegalArgumentException("Choose a different person for each position");

@@ -78,6 +78,11 @@ public final class MatchBook {
     }
     public boolean nextGame(){return current.nextGame();}
     public boolean changeBestOf(int value){return current.changeBestOf(value);}
+    /** Discard only an unfinished current match. No result or daily reference is created. */
+    public void discardCurrent(String replacementId){
+        if(current.complete())throw new IllegalStateException("Finished matches must be deleted from Results");
+        newMatch(replacementId,current.bestOf(),current.format());
+    }
     public void newMatch(String id,int bestOf){
         if(id.equals(current.id())||results.containsKey(id))throw new IllegalArgumentException("Match identifier already used");
         newMatch(id,bestOf,MatchFormat.squash());

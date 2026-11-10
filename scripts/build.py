@@ -6,8 +6,8 @@ import argparse, hashlib, json, os, secrets, shutil, subprocess, sys, zipfile
 ROOT=Path(__file__).resolve().parents[1]
 PKG='at.andrew.squashtap'
 SITE='https://squash-tap-andrew.endruuu.chatgpt.site'
-RELEASES=((15,'0.14.0'),)
-RELEASE_NOTES='Five sports: squash, tennis, badminton, padel and table tennis. Shared players with sport icons; separate histories and statistics. Singles/doubles, old/new rule presets, optional serving indicators, and compatible phone CSV transfers.'
+RELEASES=((16,'0.15.0'),)
+RELEASE_NOTES='Clearer sport menus with coloured icons, explicit scoring and mode selection lists, contextual Back navigation, and Cancel match to discard without saving a result. Shared players and separate sport histories remain compatible.'
 
 def run(args, env=None):
     result=subprocess.run([str(x) for x in args],cwd=ROOT,env=env,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
