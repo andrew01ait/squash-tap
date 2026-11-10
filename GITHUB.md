@@ -1,6 +1,6 @@
 # Internal and GitHub source workflow
 
-Public repository: <https://github.com/andrew01ait/squash-tap>. Official download/update site: <https://squash-tap-andrew.endruuu.chatgpt.site/>. Current watch release: **v0.13.0 / code 14**.
+Public repository: <https://github.com/andrew01ait/squash-tap>. Official download/update site: <https://squash-tap-andrew.endruuu.chatgpt.site/>. Current watch release: **v0.14.0 / code 15**.
 
 ## Two copies and their responsibilities
 

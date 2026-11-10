@@ -6,8 +6,8 @@ import argparse, hashlib, json, os, secrets, shutil, subprocess, sys, zipfile
 ROOT=Path(__file__).resolve().parents[1]
 PKG='at.andrew.squashtap'
 SITE='https://squash-tap-andrew.endruuu.chatgpt.site'
-RELEASES=((14,'0.13.0'),)
-RELEASE_NOTES='Clearer menus: Current match, Results, Statistics, Opponents and Settings. Live controls come first, past matches belong in Results, new matches use an explicit Create button, and Back/swipe returns to the right screen. Contextual phone QR links open results, names or CSV import.'
+RELEASES=((15,'0.14.0'),)
+RELEASE_NOTES='Five sports: squash, tennis, badminton, padel and table tennis. Shared players with sport icons; separate histories and statistics. Singles/doubles, old/new rule presets, optional serving indicators, and compatible phone CSV transfers.'
 
 def run(args, env=None):
     result=subprocess.run([str(x) for x in args],cwd=ROOT,env=env,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
@@ -25,7 +25,7 @@ def build(sdk,junit,hamcrest):
         if jvm.exists(): env['JAVA_HOME']=str(jvm)
     work=ROOT/'build';work.mkdir(exist_ok=True)
     test_classes=work/'test-classes';test_classes.mkdir(exist_ok=True)
-    core=[ROOT/'android/src/at/andrew/squashtap'/f'{name}.java' for name in ('ScoreState','TouchTargets','UpdatePolicy','VerifiedDownload','MatchState','MatchResult','MatchStatistics','ManualMatchEntry','MatchBook','MatchDisplayPolicy','DiagnosticTransfer','OpponentDirectory','ResultFilter','MatchCsv','TransferCrypto')]
+    core=[ROOT/'android/src/at/andrew/squashtap'/f'{name}.java' for name in ('ServiceOrder','MatchFormat','ScoreState','TouchTargets','UpdatePolicy','VerifiedDownload','MatchState','MatchResult','MatchStatistics','ManualMatchEntry','MatchBook','MatchDisplayPolicy','DiagnosticTransfer','OpponentDirectory','ResultFilter','MatchCsv','TransferCrypto')]
     tests=sorted((ROOT/'android/test').rglob('*Test.java'))
     cp=os.pathsep.join((str(junit),str(hamcrest)))
     print('Compiling and running local JUnit tests',flush=True)
@@ -33,7 +33,7 @@ def build(sdk,junit,hamcrest):
     result=run(['java','-cp',str(test_classes)+os.pathsep+cp,'org.junit.runner.JUnitCore',*('at.andrew.squashtap.'+t.stem for t in tests)],env)
     (work/'test-results.txt').write_text(result)
     print('Running browser interchange and relay/storage tests',flush=True)
-    web_result=run(['node','--test',ROOT/'web-test/interchange.test.mjs',ROOT/'web-test/transfer-state.test.mjs',ROOT/'web-test/relay.test.mjs'],env)
+    web_result=run(['node','--test',ROOT/'web-test/interchange.test.mjs',ROOT/'web-test/transfer-state.test.mjs',ROOT/'web-test/relay.test.mjs',ROOT/'web-test/multisport.test.mjs'],env)
     (work/'web-test-results.txt').write_text(web_result)
     signing=ROOT/'.local/signing';signing.mkdir(parents=True,exist_ok=True)
     key=signing/'squash-tap.p12';password=signing/'key.password'

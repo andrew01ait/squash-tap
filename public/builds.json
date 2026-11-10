@@ -82,5 +82,12 @@
     "filename": "SquashTap-0.13.0.apk",
     "sizeBytes": 2070686,
     "sha256": "efa4ce1e396927fa36254464c45fa7232c9a134a0330e7ab1c0288b14430092c"
+  },
+  {
+    "versionCode": 15,
+    "versionName": "0.14.0",
+    "filename": "SquashTap-0.14.0.apk",
+    "sizeBytes": 2091166,
+    "sha256": "148b3c7c2a78432eef4ee9a076528c5517e013ee03b1fae29065ffac89556112"
   }
 ]

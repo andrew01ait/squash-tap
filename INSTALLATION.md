@@ -1,8 +1,10 @@
 # Install, update and diagnose
 
-[Official download page](https://squash-tap-andrew.endruuu.chatgpt.site/) · Current watch APK: **v0.13.0 / code 14**.
+[Official download page](https://squash-tap-andrew.endruuu.chatgpt.site/) · Current watch APK: **v0.14.0 / code 15**.
 
 The APK runs on the watch. Wear Installer 2 is a helper on the Android phone; no PC development tools are required. The app is currently distributed by APK through this site, not the watch app store.
+
+Choose a sport at launch, then create or resume a match. Players and Settings are shared. Existing squash history stays available after an update.
 
 ## Initial installation using an Android phone
 

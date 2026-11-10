@@ -63,6 +63,10 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     private enum ButtonKind { MATCH, NAVIGATION, PERSON, SETTINGS, DELETE, BACK, SHORTCUT, SCORE_OPPONENT }
     private String newMatchOpponent="";
     private int newMatchBestOf=3,resultsPage;
+    private String selectedSport="squash",newMatchPartner="",newMatchOther="";
+    private MatchFormat newMatchFormat=MatchFormat.squash();
+    private int manualEditingIndex=-1;
+    private int filterMode=-1,newFirstServer=-1,newFirstReceiver=-1;
     private Runnable newMatchReturn=this::closePanel;
     private Runnable resultsReturn=this::showMenu;
     private String resultsReturnLabel="Back to Menu";
@@ -93,13 +97,17 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         }
         if(savedBook!=null&&savedBook.startsWith("B1:")&&!preferences.contains("match_book_v1_backup"))preferences.edit().putString("match_book_v1_backup",savedBook).commit();
         if(savedBook!=null&&savedBook.startsWith("B2:")&&!preferences.contains("match_book_v2_backup"))preferences.edit().putString("match_book_v2_backup",savedBook).commit();
+        if(savedBook!=null&&savedBook.startsWith("B4:")&&!preferences.contains("match_book_v4_backup"))preferences.edit().putString("match_book_v4_backup",savedBook).commit();
         if(savedBook!=null&&savedBook.startsWith("B3:")&&!preferences.contains("match_book_v3_backup"))preferences.edit().putString("match_book_v3_backup",savedBook).commit();
+        if(preferences.getString("opponent_book","").startsWith("O1:")&&!preferences.contains("opponent_book_v1_backup"))preferences.edit().putString("opponent_book_v1_backup",preferences.getString("opponent_book","")).commit();
         try{opponents=OpponentDirectory.decode(preferences.getString("opponent_book",null));}catch(Exception damaged){preferences.edit().putString("opponent_book_recovery",preferences.getString("opponent_book","")).putString("diagnostic","Saved opponent data could not be read. A recovery copy was retained.").commit();opponents=new OpponentDirectory();}
         persistScore();counter=new ScoreView(this,book.current(),this);setContentView(counter);
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_CREATE);
         AppDiagnostics.record(this,"Activity create");
         updater=new UpdateClient(this);
         updateStatus=preferences.getString("update_status",updateStatus);
+        selectedSport=preferences.getString("selected_sport",book.current().format().sport);if(!java.util.Arrays.asList(MatchFormat.SPORTS).contains(selectedSport))selectedSport="squash";
+        if(Intent.ACTION_MAIN.equals(getIntent().getAction()))showSports();
     }
     private void updateAmbientSession(boolean ongoing){
         if(!ongoing){
@@ -158,7 +166,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         boolean paused=preferences.getBoolean("match_paused",false);
         boolean ongoing=sessionOngoing();updateAmbientSession(ongoing);
         boolean awake=MatchDisplayPolicy.keepAwake(book.current(),preferences.getString(MatchDisplayPolicy.ACTIVE_MATCH,""),paused,preferences.getBoolean("match_keep_awake_v3",true),resumed,panel!=null,ambient);
-        counter.setKeepScreenOn(awake);counter.session(ongoing,needsResume());counter.opponent(opponents.nameFor(book.current().id()));
+        counter.setKeepScreenOn(awake);counter.session(ongoing,needsResume());counter.opponent(book.current().format().doubles?teamName(book.current().id(),1):opponents.nameFor(book.current().id()));counter.players(opponents.roleName(book.current().id(),1),opponents.roleName(book.current().id(),0),opponents.roleName(book.current().id(),2));
         if(awake)getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         if(!resumed&&panel!=null)panel.getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         Intent service=new Intent(this,MatchSessionService.class);
@@ -181,7 +189,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
             case TouchTargets.UNDO:undoPoint();break;
             case TouchTargets.NEW:
                 if(book.nextGame()){afterMatchChange();}else showNewMatch();break;
-            case TouchTargets.MENU:showMenu();break;
+            case TouchTargets.MENU:selectedSport=book.current().format().sport;showMenu();break;
             default:break;
         }
     }
@@ -193,18 +201,22 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     }
     private void showMenu(){
         LinearLayout menu=panel("Menu");
-        button(menu,"Current match",this::showMatchControls);
-        navigationButton(menu,"Results ("+book.count()+")",()->openResults(this::showMenu,"Back to Menu"));
+        paragraph(menu,MatchFormat.name(selectedSport));
+        if(book.current().format().sport.equals(selectedSport))button(menu,"Current match",this::showMatchControls);else{button(menu,"New "+MatchFormat.name(selectedSport)+" match",this::showNewMatch);if(!book.current().complete()&&book.current().hasPoints())navigationButton(menu,"Resume "+book.current().format().name(),this::showMatchControls);}
+        navigationButton(menu,"Results ("+sportResults(-1).size()+")",()->openResults(this::showMenu,"Back to Menu"));
         navigationButton(menu,"Statistics",this::showStatistics);
-        personButton(menu,"Opponents",()->showOpponents(0));
+        personButton(menu,"Players",()->showOpponents(0));
+        navigationButton(menu,"Change sport",this::showSports);
+        navigationButton(menu,"Scoring rules",this::showSportRules);
         settingsButton(menu,"Settings",this::showSettings);
         backButton(menu,"Back to score",this::closePanel);
     }
     private void showMatchControls(){
-        MatchState match=book.current();LinearLayout menu=panel("Current match");
+        MatchState match=book.current();selectedSport=match.format().sport;LinearLayout menu=panel("Current match");
         boolean ongoing=sessionOngoing();
         if(!match.complete())button(menu,ongoing?"Pause match":needsResume()?"Resume match":"Start match",()->{setSession(!ongoing,ongoing);closePanel();updateDisplay();});
         else if(book.result(match.id())!=null)button(menu,"View result",()->showResult(match.id(),resultsPage,this::showMatchControls,"Back to Current match"));
+        paragraph(menu,match.format().name()+" · "+match.format().description());
         paragraph(menu,(match.complete()?"Finished":ongoing?"Playing":needsResume()?"Paused / ready to resume":"Ready to play")+" · Best of "+match.bestOf()+"\nMe "+match.gamesWon(0)+"–"+match.gamesWon(1)+" "+opponentName(match.id()));
         if(!match.complete())navigationButton(menu,"Enter set score",this::enterCurrentSet);
         navigationButton(menu,"Match details",this::showCurrentMatch);
@@ -215,7 +227,8 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     private void showMatchOptions(){
         MatchState match=book.current();if(match.complete()){showMatchControls();return;}
         LinearLayout menu=panel("Match options");
-        personButton(menu,"Opponent: "+opponentName(match.id()),()->showOpponentPicker(match.id(),false,0,this::showMatchOptions));
+        if(match.format().doubles)personButton(menu,"Players",()->showTeam(match.id(),match.format(),this::showMatchOptions));else personButton(menu,"Opponent: "+opponentName(match.id()),()->showOpponentPicker(match.id(),false,0,this::showMatchOptions));
+        navigationButton(menu,"Serving indicator",this::showServing);
         navigationButton(menu,"Match format: Best of "+match.bestOf(),this::showMatchFormat);
         navigationButton(menu,"New match",()->showNewMatch(this::showMatchOptions));
         navigationButton(menu,"End match early",this::showEndMatch);
@@ -235,7 +248,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     private void showMatchFormat(){
         MatchState match=book.current();LinearLayout content=panel("Match format");
         paragraph(content,"Current: Best of "+match.bestOf());
-        for(int value:new int[]{3,5}){
+        for(int value:match.format().bestOptions()){
             final int choice=value;
             Button option=button(content,(value==match.bestOf()?"✓ ":"")+"Best of "+value+" · first to "+(value/2+1),()->{
                 if(book.changeBestOf(choice)){
@@ -266,8 +279,11 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         }else if(book.undo()&&afterMatchChange())closePanel();
     }
     private LinearLayout manualPanel(String title){LinearLayout content=panel(title);panel.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);return content;}
-    private void showAddPastMatch(){manualMatch=new ManualMatchEntry(LocalDate.now());showManualMatch();}
+    private void showAddPastMatch(){choosePastFormat();}
     private void chooseSetWinner(String title,String opponent,int oldMe,int oldOther,java.util.function.BiConsumer<Integer,Integer> apply,Runnable back){
+        MatchFormat f=manualMatch==null?book.current().format():manualMatch.format;int index=manualMatch==null?(book.current().nextReady()?book.current().gameCount():book.current().gameCount()-1):manualEditingIndex>=0?manualEditingIndex:manualMatch.size();
+        boolean tie=manualMatch==null?book.current().matchTie(index):manualMatch.matchTie(index);
+        if(!f.legacy()){chooseGenericScore(title,opponent,f,tie,oldMe,oldOther,apply,back);return;}
         LinearLayout content=manualPanel(title);paragraph(content,"Who won this set?");
         if(oldMe+oldOther>0)ManualEntryUi.score(content,"Score to enter",opponent,oldMe,oldOther,null);
         int loser=oldMe+oldOther==0?7:Math.min(oldMe,oldOther);
@@ -314,9 +330,10 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     private void showManualMatch(){
         final ManualMatchEntry draft=manualMatch;if(draft==null){showResults(resultsPage);return;}
         LinearLayout content=manualPanel("Add past match");paragraph(content,"Add a separate completed match to history.");
-        LinearLayout formats=ManualEntryUi.row(content);Button bo3=button(formats,"Best of 3",()->{draft.chooseFormat(3);showManualMatch();}),bo5=button(formats,"Best of 5",()->{draft.chooseFormat(5);showManualMatch();});ManualEntryUi.equal(bo3,bo5);bo3.setEnabled(draft.bestOf()!=3&&draft.canChooseFormat(3));bo5.setEnabled(draft.bestOf()!=5&&draft.canChooseFormat(5));
-        paragraph(content,"Best of "+draft.bestOf()+" · first to "+(draft.bestOf()/2+1)+" sets");
+        if(draft.format.legacy()){LinearLayout formats=ManualEntryUi.row(content);Button bo3=button(formats,"Best of 3",()->{draft.chooseFormat(3);showManualMatch();}),bo5=button(formats,"Best of 5",()->{draft.chooseFormat(5);showManualMatch();});ManualEntryUi.equal(bo3,bo5);bo3.setEnabled(draft.bestOf()!=3&&draft.canChooseFormat(3));bo5.setEnabled(draft.bestOf()!=5&&draft.canChooseFormat(5));}else for(int option:draft.format.bestOptions()){Button length=button(content,"Best of "+option,()->{draft.chooseFormat(option);showManualMatch();});length.setEnabled(option!=draft.bestOf()&&draft.canChooseFormat(option));}
+        paragraph(content,draft.format.name()+" · "+draft.format.description()+" · Best of "+draft.bestOf());
         personButton(content,"Opponent: "+(draft.opponentId().isEmpty()?"No name":manualOpponent(draft))+" (optional)",()->showManualOpponent(0));
+        if(draft.format.doubles){personButton(content,"Partner: "+playerName(draft.partnerId),()->pickPlayer("Partner",id->{draft.partnerId=id;showManualMatch();},this::showManualMatch,0));personButton(content,"Opponent 2: "+playerName(draft.otherId),()->pickPlayer("Opponent 2",id->{draft.otherId=id;showManualMatch();},this::showManualMatch,0));}
         button(content,"Date: "+draft.date().format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy")),()->{manualDate=draft.date();showManualDate();});
         for(int i=0;i<draft.size();i++){final int index=i;ManualEntryUi.score(content,"Set "+(i+1)+" · tap to edit",manualOpponent(draft),draft.points(i,0),draft.points(i,1),()->editManualSet(draft,index));}
         if(!draft.complete())button(content,"Add set "+(draft.size()+1),()->editManualSet(draft,draft.size()));
@@ -327,7 +344,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         backButton(content,"Cancel",()->{manualMatch=null;showResults(resultsPage);});
     }
     private void editManualSet(ManualMatchEntry draft,int index){
-        int me=index<draft.size()?draft.points(index,0):0,other=index<draft.size()?draft.points(index,1):0;
+        manualEditingIndex=index;int me=index<draft.size()?draft.points(index,0):0,other=index<draft.size()?draft.points(index,1):0;
         chooseSetWinner("Set "+(index+1)+" score",manualOpponent(draft),me,other,(a,b)->{if(manualMatch!=draft)return;try{draft.setScore(index,a,b);showManualMatch();}catch(Exception invalid){message("Check set order",safe(invalid),this::showManualMatch);}},this::showManualMatch);
     }
     private void showManualOpponent(int requestedPage){
@@ -352,7 +369,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         if(manualMatch!=draft)return;
         try{
             OpponentDirectory.Entry person=opponents.get(draft.opponentId());if(!draft.opponentId().isEmpty()&&(person==null||person.archived))throw new IllegalArgumentException("Choose an available saved opponent or No name");
-            MatchBook next=MatchBook.decode(book.encode());OpponentDirectory names=OpponentDirectory.decode(opponents.encode());MatchResult saved=next.importResult(draft.result(UUID.randomUUID().toString()));names.assign(saved.id,draft.opponentId());
+            MatchBook next=MatchBook.decode(book.encode());OpponentDirectory names=OpponentDirectory.decode(opponents.encode());MatchResult saved=next.importResult(draft.result(UUID.randomUUID().toString()));names.assignTeam(saved.id,draft.opponentId(),draft.partnerId,draft.otherId);
             if(!preferences.edit().putString("match_book",next.encode()).putString("opponent_book",names.encode()).commit())throw new IllegalStateException("The watch did not confirm saving. Your current match is kept.");
             book=next;opponents=names;manualMatch=null;counter.match(book.current());updateDisplay();showResult(saved.id,resultsPage);
         }catch(Exception invalid){message("Match not saved",safe(invalid),this::showManualMatch);}
@@ -360,7 +377,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     private void showEndMatch(){
         if(book.current().complete()){showMatchControls();return;}
         LinearLayout content=panel("End match early");paragraph(content,"Who is quitting? The other player wins by retirement. Scores already played are kept; no extra sets or points are awarded.");
-        button(content,"I quit",()->confirmRetirement(0));button(content,"Opponent quit",()->confirmRetirement(1));backButton(content,"Cancel",this::showMatchOptions);
+        button(content,book.current().format().doubles?"Our team retires":"I quit",()->confirmRetirement(0));button(content,book.current().format().doubles?"Opposing team retires":"Opponent quit",()->confirmRetirement(1));backButton(content,"Cancel",this::showMatchOptions);
     }
     private void confirmRetirement(int player){
         if(book.current().complete()){showMatchControls();return;}
@@ -377,22 +394,26 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         showNewMatch(this::closePanel);
     }
     private void showNewMatch(Runnable back){
-        newMatchReturn=back;newMatchBestOf=preferences.getInt("last_best_of",3);newMatchOpponent="";showNewMatchOptions();
+        newMatchReturn=back;try{newMatchFormat=MatchFormat.decode(preferences.getString("last_format_"+selectedSport,MatchFormat.defaults(selectedSport).encode()));if(!newMatchFormat.sport.equals(selectedSport))newMatchFormat=MatchFormat.defaults(selectedSport);}catch(Exception invalid){newMatchFormat=MatchFormat.defaults(selectedSport);}
+        newMatchBestOf=preferences.getInt("last_best_"+selectedSport,selectedSport.equals("squash")?preferences.getInt("last_best_of",book.current().format().sport.equals("squash")?book.current().bestOf():5):3);try{newMatchFormat.validateBest(newMatchBestOf);}catch(Exception invalid){newMatchBestOf=3;}
+        newMatchOpponent=newMatchPartner=newMatchOther="";newFirstServer=newFirstReceiver=-1;showNewMatchOptions();
     }
     private void showNewMatchOptions(){
         OpponentDirectory.Entry chosen=opponents.get(newMatchOpponent);if(chosen==null||chosen.archived)newMatchOpponent="";
         LinearLayout content=panel("New match");
         personButton(content,"Opponent: "+(newMatchOpponent.isEmpty()?"No name":chosen.name)+" (optional)",()->showOpponentPicker(null,false,0));
-        LinearLayout formats=ManualEntryUi.row(content);
-        Button bo3=button(formats,(newMatchBestOf==3?"✓ ":"")+"Best of 3",()->{newMatchBestOf=3;showNewMatchOptions();});
-        Button bo5=button(formats,(newMatchBestOf==5?"✓ ":"")+"Best of 5",()->{newMatchBestOf=5;showNewMatchOptions();});ManualEntryUi.equal(bo3,bo5);
-        paragraph(content,"First to "+(newMatchBestOf/2+1)+" sets · points to 11, win by two");
+        if(newMatchFormat.doubles){personButton(content,"Partner: "+playerName(newMatchPartner),()->pickPlayer("Partner",id->{newMatchPartner=id;showNewMatchOptions();},this::showNewMatchOptions,0));personButton(content,"Opponent 2: "+playerName(newMatchOther),()->pickPlayer("Opponent 2",id->{newMatchOther=id;showNewMatchOptions();},this::showNewMatchOptions,0));}
+        formatControls(content,newMatchFormat,f->{newMatchFormat=f;newFirstServer=newFirstReceiver=-1;if(!f.doubles){newMatchPartner=newMatchOther="";}showNewMatchOptions();});
+        for(int value:newMatchFormat.bestOptions())button(content,(newMatchBestOf==value?"✓ ":"")+"Best of "+value,()->{newMatchBestOf=value;showNewMatchOptions();});
+        paragraph(content,newMatchFormat.name()+" · "+newMatchFormat.description());
+        navigationButton(content,"First server: "+slotName(newFirstServer,null),()->chooseServer(newMatchFormat,newFirstServer,slot->{newFirstServer=slot;newFirstReceiver=-1;showNewMatchOptions();},this::showNewMatchOptions));
+        if(newMatchFormat.doubles&&newFirstServer>=0)navigationButton(content,"First receiver: "+slotName(newFirstReceiver,null),()->chooseReceiver(newMatchFormat,newFirstServer,slot->{newFirstReceiver=slot;showNewMatchOptions();},this::showNewMatchOptions));
         button(content,"Create match",()->confirmNewMatch(newMatchBestOf));
         paragraph(content,"Tap the first point to start play and timing.");backButton(content,"Cancel",newMatchReturn);
     }
     private void confirmNewMatch(int bestOf){
         final String selected=newMatchOpponent;
-        if(book.current().hasPoints()&&(!book.current().complete()||book.result(book.current().id())==null&&!book.currentDeleted())){
+        if((sessionOngoing()||book.current().hasPoints())&&(!book.current().complete()||book.result(book.current().id())==null&&!book.currentDeleted())){
             LinearLayout confirm=panel("Replace this match?");paragraph(confirm,"The current match will be cleared. Saved results stay in history.");
             OpponentDirectory.Entry entry=opponents.get(selected);paragraph(confirm,"Opponent: "+(entry==null?"No name":entry.name));
             button(confirm,"Replace & create match",()->startMatch(bestOf,selected));backButton(confirm,"Back to setup",this::showNewMatchOptions);
@@ -402,10 +423,10 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         MatchBook next;OpponentDirectory names;
         try{
             OpponentDirectory.Entry selected=opponents.get(opponentId);if(!opponentId.isEmpty()&&(selected==null||selected.archived))throw new IllegalArgumentException("Choose a saved opponent or No name");
-            next=MatchBook.decode(book.encode());names=OpponentDirectory.decode(opponents.encode());next.newMatch(UUID.randomUUID().toString(),bestOf);names.assign(next.current().id(),opponentId);
+            next=MatchBook.decode(book.encode());names=OpponentDirectory.decode(opponents.encode());next.newMatch(UUID.randomUUID().toString(),bestOf,newMatchFormat);names.assignTeam(next.current().id(),opponentId,newMatchPartner,newMatchOther);next.current().serving(newFirstServer,newFirstReceiver);
         }catch(Exception error){message("Match not started",safe(error),this::showNewMatchOptions);return;}
         book=next;opponents=names;
-        preferences.edit().putInt("last_best_of",bestOf).apply();setSession(false,false);
+        preferences.edit().putInt("last_best_of",bestOf).putInt("last_best_"+newMatchFormat.sport,bestOf).putString("last_format_"+newMatchFormat.sport,newMatchFormat.encode()).apply();setSession(false,false);
         if(afterMatchChange())closePanel();
     }
     private String currentGamesText(){
@@ -435,7 +456,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     private void openResults(Runnable back,String label){resultsReturn=back;resultsReturnLabel=label;showResults(0);}
     private void showResults(int requestedPage){
         List<MatchResult> items=filteredResults();int page=Math.max(0,Math.min(requestedPage,Math.max(0,(items.size()-1)/10)));
-        resultsPage=page;LinearLayout content=panel("Results","results:"+page+":"+filterOpponent+":"+filterFrom+":"+filterTo);
+        resultsPage=page;LinearLayout content=panel("Results","results:"+selectedSport+":"+filterMode+":"+page+":"+filterOpponent+":"+filterFrom+":"+filterTo);
         LinearLayout tools=ManualEntryUi.row(content);Button filters=navigationButton(tools,"Filters",this::showResultFilters),options=navigationButton(tools,"Options",this::showResultOptions),add=navigationButton(tools,"Add past match",this::showAddPastMatch);filters.setContentDescription("Filter results");options.setContentDescription("Result options");
         for(Button tool:new Button[]{filters,options,add}){tool.setCompoundDrawables(null,null,null,null);tool.setGravity(Gravity.CENTER);tool.setTextSize(11);tool.setPadding(dp(2),dp(4),dp(2),dp(4));tool.setMinWidth(0);tool.setMinimumWidth(0);LinearLayout.LayoutParams slot=new LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1);slot.bottomMargin=dp(4);tool.setLayoutParams(slot);}
         if(items.isEmpty())paragraph(content,book.count()==0?"No saved matches yet. Finished matches are saved here automatically.":"No matches fit these filters.");
@@ -454,7 +475,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         navigationButton(content,"View results on phone",()->openPhone("results",false,()->showResults(resultsPage),"Back to Results"));
         navigationButton(content,"Export CSV",this::showCsvExport);
         navigationButton(content,"Import CSV",()->openPhone("import",false,this::showResultOptions,"Back to Result options"));
-        if(book.count()>0)deleteButton(content,"Delete all results",()->confirmDeleteAll(resultsPage));
+        if(!sportResults(-1).isEmpty())deleteButton(content,"Delete all results",()->confirmDeleteAll(resultsPage));
         backButton(content,"Back to Results",()->showResults(resultsPage));
     }
     private void showCsvExport(){
@@ -465,14 +486,15 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         backButton(content,"Back to Result options",this::showResultOptions);
     }
     private void showStatistics(){
-        MatchStatistics totals=MatchStatistics.from(book.newestFirst());
+        MatchStatistics totals=MatchStatistics.from(sportResults(filterMode));
         LinearLayout content=panel("Statistics");
-        paragraph(content,"All saved completed matches. Totals are for Me; result filters do not apply.");
+        paragraph(content,MatchFormat.name(selectedSport)+" · "+modeLabel()+". Date/player filters do not apply.");if(!selectedSport.equals("squash")&&!selectedSport.equals("padel"))navigationButton(content,"Mode: "+modeLabel(),()->{filterMode=filterMode== -1?0:filterMode==0?1:-1;showStatistics();});
         if(totals.matchesPlayed()==0)paragraph(content,"No saved matches yet. Finish a match or import results to see your balance.");
         statisticsCard(content,"Matches","Played: "+totals.matchesPlayed()+"\nWon: "+totals.matchesWon+" · Lost: "+totals.matchesLost+"\nBalance: "+signed(totals.matchBalance())+"\nWin rate: "+(totals.matchesPlayed()==0?"—":Math.round(totals.matchWinRate())+"%"));
-        statisticsCard(content,"Sets (games)","Played: "+totals.setsPlayed()+"\nWon: "+totals.setsWon+" · Lost: "+totals.setsLost+"\nBalance: "+signed(totals.setBalance()));
+        statisticsCard(content,MatchFormat.defaults(selectedSport).nested()?"Sets":"Games","Played: "+totals.setsPlayed()+"\nWon: "+totals.setsWon+" · Lost: "+totals.setsLost+"\nBalance: "+signed(totals.setBalance()));
         statisticsCard(content,"Points","Played: "+totals.pointsPlayed()+"\nFor: "+totals.pointsFor+" · Against: "+totals.pointsAgainst+"\nBalance: "+signed(totals.pointBalance()));
-        navigationButton(content,"Results ("+book.count()+")",()->openResults(this::showStatistics,"Back to Statistics"));
+        if(MatchFormat.defaults(selectedSport).nested())statisticsCard(content,"Games",totals.gamesFor+" won · "+totals.gamesAgainst+" lost");if(totals.unknownPointMatches>0)paragraph(content,"Point totals exclude unknown points in "+totals.unknownPointMatches+" manually entered matches.");
+        navigationButton(content,"Results ("+sportResults(filterMode).size()+")",()->openResults(this::showStatistics,"Back to Statistics"));
         backButton(content,"Back to Menu",this::showMenu);
     }
     private static String signed(long value){return value>0?"+"+value:Long.toString(value);}
@@ -490,7 +512,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         MatchResult result=book.result(id);if(result==null){showResults(page);return;}
         Runnable again=()->showResult(id,page,back,backLabel);
         LinearLayout content=panel(result.heading());
-        personButton(content,"Opponent: "+opponentName(id),()->showOpponentPicker(id,false,0,again));
+        paragraph(content,result.format.name()+" · "+result.format.description());if(result.format.doubles)personButton(content,"Players",()->showTeam(id,result.format,again));else personButton(content,"Opponent: "+opponentName(id),()->showOpponentPicker(id,false,0,again));
         resultCard(content,result,null);paragraph(content,"Set scores: Me–Opponent");
         if(id.equals(book.current().id()))button(content,result.retired()?"Undo retirement":book.current().undoEnteredSet()?"Undo entered set":"Undo last point",()->undoPoint(again));
         if(id.equals(book.current().id()))button(content,"New match",()->showNewMatch(again));
@@ -506,13 +528,95 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         });backButton(content,"Cancel",back);
     }
     private void confirmDeleteAll(int page){
-        LinearLayout content=panel("Delete all results?");paragraph(content,"Delete "+book.count()+" saved results? This cannot be undone. Your active scoreboard is kept, and match numbers will not be reused.");
+        LinearLayout content=panel("Delete all results?");paragraph(content,"Delete "+sportResults(-1).size()+" "+MatchFormat.name(selectedSport)+" saved results? This cannot be undone. Your active scoreboard is kept, and match numbers will not be reused.");
         deleteButton(content,"Delete all",()->{
-            String before=book.encode();book.deleteAll();
+            String before=book.encode();for(MatchResult result:sportResults(-1))book.delete(result.id);
             if(persistScore())showResults(0);else{book=MatchBook.decode(before);showDeleteFailure(page);}
         });backButton(content,"Cancel",this::showResultOptions);
     }
     private void showDeleteFailure(int page){counter.match(book.current());LinearLayout content=panel("Delete was not saved");paragraph(content,"The watch could not save the deletion. Your results have been kept. Free storage and retry.");backButton(content,"Back to results",()->showResults(page));}
+    private void showSports(){
+        LinearLayout content=panel("Choose sport");
+        for(String sport:MatchFormat.SPORTS){Button choice=button(content,MatchFormat.name(sport),()->{selectedSport=sport;filterOpponent=null;filterFrom=filterTo=null;filterMode=-1;preferences.edit().putString("selected_sport",sport).apply();showMenu();});choice.setCompoundDrawablesWithIntrinsicBounds(new SportIcons(sport,dp(22)),null,null,null);choice.setCompoundDrawablePadding(dp(8));}
+        personButton(content,"Players",()->showOpponents(0));settingsButton(content,"Settings",this::showSettings);
+        if(book.current().hasPoints()&&!book.current().complete())navigationButton(content,"Resume "+book.current().format().name(),()->{selectedSport=book.current().format().sport;closePanel();});
+        backButton(content,"Back to score",this::closePanel);
+    }
+    private void showSportRules(){
+        LinearLayout content=panel(MatchFormat.name(selectedSport)+" rules");
+        String rules;
+        switch(selectedSport){
+            case "squash":rules="One point per rally. Games to 11, win by two, without a point cap. A match is normally best of 5 games; best of 3 is also permitted.\n\nThe rally winner serves next. A let replays the rally without a score change. A stroke or service fault awards a point to the appropriate player: tap that player's score.\n\nThe indicator shows who serves, not the service box. At hand-out the server chooses a box; while retaining service the boxes alternate. A let retains the same box.\n\nGame Ball / Match Ball is highlighted. Pause is available for interruptions; its duration is included in elapsed match time.\n\nThis is a scorekeeper. Injury allowances, conduct game/match awards and other referee decisions are not automated. Awarded/conceded games cannot be represented by inventing an 11-point score.\n\nWorld Squash singles rules, effective September 2025.";break;
+            case "badminton":rules="Singles or doubles. Best of 3 games. Choose 21-point games (win by two, cap 30) or 15-point games (win by two, cap 21).\n\nThe 15-point format applies internationally from 4 January 2027; specified Austrian competitions switch on 1 January 2027. Local competitions may differ. Both presets remain available.\n\nThe rally winner serves. For doubles, choose the initial server and receiver for each game to show the individual server. Otherwise the indicator can show the serving team.\n\nBWF Laws of Badminton 2025 / 2027.";break;
+            case "table-tennis":rules="Singles or doubles. Games to 11, win by two, no point cap. Choose best of 3, 5 or 7.\n\nService changes after two points, and after every point from 10–10. In doubles, the previous receiver becomes server; the previous server's partner receives. Receiving order changes at five points in the deciding game.\n\nChoose the initial server and, for doubles, receiver. A let has no score change. The tournament expedite system is not automated.\n\nITTF Laws of Table Tennis 2026.";break;
+            case "padel":rules="Doubles. Points: 0, 15, 30, 40. Sets to 6 games, win by two, tie-break at 6–6 to 7 points, win by two. Best of 3 sets.\n\nChoose Advantage, Golden Point (a deciding point at deuce), or Star Point (two advantage cycles, then a deciding point at the third deuce). Star Point entered FIP circuits in 2026.\n\nOptionally replace the deciding set with a match tie-break to 10, win by two. Choose the first server and next opposing server for service rotation; the pair may choose their order at a new set.\n\nFIP Rules of Padel 2026.";break;
+            default:rules="Singles or doubles. Points: 0, 15, 30, 40, advantage. Choose standard advantage or No-Ad (a deciding point at deuce).\n\nSets to 6 games, win by two, tie-break at 6–6 to 7, win by two. Best of 3 or 5 sets. Optionally replace the deciding set with a match tie-break to 10, win by two.\n\nService rotates after each game. In a tie-break the first server serves one point, then servers alternate for two points each. For doubles, choose the first and next opposing server; the pair may choose their order at a new set.\n\nOnly point winners are recorded, without first/second serve attempts.\n\nITF Rules of Tennis 2026.";
+        }
+        paragraph(content,rules);backButton(content,"Back to Menu",this::showMenu);
+    }
+    private void formatControls(LinearLayout content,MatchFormat f,java.util.function.Consumer<MatchFormat> apply){
+        if(!f.sport.equals("squash")&&!f.sport.equals("padel"))navigationButton(content,"Mode: "+f.mode(),()->apply.accept(f.mode(!f.doubles)));
+        if(f.sport.equals("badminton"))navigationButton(content,"Rules: "+f.target+" points · cap "+f.cap(),()->apply.accept(f.target(f.target==21?15:21)));
+        if(f.nested()){
+            navigationButton(content,"Deuce: "+(f.deuce.equals("star")?"Star Point":f.deuce.equals("no-ad")?f.sport.equals("padel")?"Golden Point":"No-Ad":"Advantage"),()->apply.accept(f.deuce(f.deuce.equals("advantage")?"no-ad":f.deuce.equals("no-ad")&&f.sport.equals("padel")?"star":"advantage")));
+            navigationButton(content,"Decider: "+(f.finalTie?"Match tie-break to 10":"Full set"),()->apply.accept(f.finalTie(!f.finalTie)));
+        }
+    }
+    private String playerName(String id){OpponentDirectory.Entry entry=opponents.get(id);return entry==null?"No name":entry.name;}
+    private String teamName(String id,int side){
+        String a=side==0?"Me":opponents.roleName(id,0),b=opponents.roleName(id,side==0?1:2);
+        return (a.isEmpty()?"Opponent 1":a)+" + "+(b.isEmpty()?side==0?"Partner":"Opponent 2":b);
+    }
+    private String slotName(int slot,String matchId){
+        if(slot<0)return "Not set";if(slot==4)return "Our team";if(slot==5)return "Opposing team";if(slot==0)return "Me";
+        String name=matchId==null?playerName(slot==1?newMatchOpponent:slot==2?newMatchPartner:newMatchOther):opponents.roleName(matchId,slot==1?0:slot==2?1:2);
+        return name.isEmpty()||name.equals("No name")?(slot==1?"Opponent 1":slot==2?"Partner":"Opponent 2"):name;
+    }
+    private void chooseServer(MatchFormat f,int selected,java.util.function.IntConsumer apply,Runnable back){
+        LinearLayout content=panel("First server");paragraph(content,f.nested()&&f.doubles?"Choose the first server for this set. Set the next opposing server in the following option.":"Choose the initial server for this game. The indicator follows recorded points; Undo restores it.");
+        navigationButton(content,"Not set",()->apply.accept(-1));for(int slot=0;slot<(f.doubles?4:2);slot++){final int choice=slot;personButton(content,(choice==selected?"✓ ":"")+(choice==0?"Me":choice==1?"Opponent 1":choice==2?"Partner":"Opponent 2"),()->apply.accept(choice));}backButton(content,"Cancel",back);
+    }
+    private void chooseReceiver(MatchFormat f,int server,java.util.function.IntConsumer apply,Runnable back){
+        LinearLayout content=panel(f.nested()?"Next opposing server":"First receiver");
+        for(int slot=0;slot<4;slot++)if(server<0||slot%2!=server%2){final int choice=slot;personButton(content,choice==0?"Me":choice==1?"Opponent 1":choice==2?"Partner":"Opponent 2",()->apply.accept(choice));}backButton(content,"Cancel",back);
+    }
+    private void showServing(){
+        MatchState match=book.current();int index=match.gameCount()-1;LinearLayout content=panel("Serving indicator");
+        paragraph(content,"Next serve: "+slotName(match.server(),match.id())+"\nInitial choices apply to "+match.format().unit().toLowerCase()+" "+(index+1)+". Correcting them preserves scores.");
+        navigationButton(content,"First server: "+slotName(match.firstServer(index),match.id()),()->chooseServer(match.format(),match.firstServer(index),slot->{match.serving(slot,-1);if(persistScore()){counter.refresh();showServing();}},this::showServing));
+        if(match.format().doubles&&match.firstServer(index)>=0)navigationButton(content,(match.format().nested()?"Next opposing server: ":"First receiver: ")+slotName(match.firstReceiver(index),match.id()),()->chooseReceiver(match.format(),match.firstServer(index),slot->{match.serving(match.firstServer(index),slot);if(persistScore()){counter.refresh();showServing();}},this::showServing));
+        backButton(content,"Back to Match options",this::showMatchOptions);
+    }
+    private void pickPlayer(String title,java.util.function.Consumer<String> choose,Runnable back,int requestedPage){
+        List<OpponentDirectory.Entry> entries=opponents.list(false);int page=Math.max(0,Math.min(requestedPage,Math.max(0,(entries.size()-1)/10)));LinearLayout content=panel(title);
+        personButton(content,"No name",()->choose.accept(""));for(int i=page*10;i<Math.min(entries.size(),page*10+10);i++){OpponentDirectory.Entry entry=entries.get(i);playerButton(content,entry,()->choose.accept(entry.id));}
+        if(page>0)navigationButton(content,"Previous names",()->pickPlayer(title,choose,back,page-1));if((page+1)*10<entries.size())navigationButton(content,"More names",()->pickPlayer(title,choose,back,page+1));
+        personButton(content,"Add player",()->showNameEditor(null,null,back,choose));backButton(content,"Cancel",back);
+    }
+    private void showTeam(String id,MatchFormat format,Runnable back){
+        LinearLayout content=panel("Players");paragraph(content,"Our team: "+teamName(id,0)+"\nOpposing team: "+teamName(id,1));
+        for(int slot=0;slot<3;slot++){final int role=slot;personButton(content,(slot==0?"Opponent 1":slot==1?"Partner":"Opponent 2")+": "+playerName(opponents.roleId(id,slot)),()->pickPlayer("Choose player",chosen->{String before=opponents.encode();try{String[] team={opponents.roleId(id,0),opponents.roleId(id,1),opponents.roleId(id,2)};team[role]=chosen;opponents.assignTeam(id,team[0],team[1],team[2]);if(!persistScore())throw new IllegalStateException("Save failed");updateDisplay();showTeam(id,format,back);}catch(Exception error){opponents=OpponentDirectory.decode(before);message("Player not saved",safe(error),()->showTeam(id,format,back));}},()->showTeam(id,format,back),0));}
+        backButton(content,"Back",back);
+    }
+    private String sportsText(String id){java.util.Set<String> sports=opponents.sportsFor(id,book.newestFirst());java.util.List<String> names=new java.util.ArrayList<>();for(String sport:MatchFormat.SPORTS)if(sports.contains(sport))names.add(MatchFormat.name(sport));return names.isEmpty()?"No saved results yet":"Results: "+android.text.TextUtils.join(", ",names);}
+    private Button playerButton(LinearLayout content,OpponentDirectory.Entry entry,Runnable action){
+        java.util.Set<String> sports=opponents.sportsFor(entry.id,book.newestFirst());StringBuilder label=new StringBuilder(entry.name);if(!sports.isEmpty()){label.append('\n');for(String sport:MatchFormat.SPORTS)if(sports.contains(sport))label.append("◦ ");}
+        android.text.SpannableString text=new android.text.SpannableString(label);int start=entry.name.length()+1;for(String sport:MatchFormat.SPORTS)if(sports.contains(sport)){SportIcons icon=new SportIcons(sport,dp(18));icon.setBounds(0,0,dp(18),dp(18));text.setSpan(new android.text.style.ImageSpan(icon,android.text.style.ImageSpan.ALIGN_BASELINE),start,start+1,android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);start+=2;}
+        Button button=personButton(content,entry.name,action);button.setText(text);button.setContentDescription(entry.name+". "+sportsText(entry.id));return button;
+    }
+    private void choosePastFormat(){
+        if(selectedSport.equals("squash")){manualMatch=new ManualMatchEntry(LocalDate.now());showManualMatch();return;}
+        MatchFormat f;try{f=MatchFormat.decode(preferences.getString("last_format_"+selectedSport,MatchFormat.defaults(selectedSport).encode()));}catch(Exception error){f=MatchFormat.defaults(selectedSport);}showPastFormat(f);
+    }
+    private void showPastFormat(MatchFormat f){LinearLayout content=panel("Past match rules");paragraph(content,f.name()+" · "+f.description());formatControls(content,f,this::showPastFormat);button(content,"Continue",()->{manualMatch=new ManualMatchEntry(LocalDate.now(),f);showManualMatch();});backButton(content,"Cancel",()->showResults(resultsPage));}
+    private void chooseGenericScore(String title,String opponent,MatchFormat f,boolean tie,int me,int other,java.util.function.BiConsumer<Integer,Integer> apply,Runnable back){
+        LinearLayout content=manualPanel(title);paragraph(content,f.name()+" · "+(tie?"Match tie-break to 10":f.description())+"\nChoose the winner, then the losing score.");
+        button(content,"Me / our team won",()->genericScoreWheel(title,opponent,f,tie,0,Math.min(me,other),apply,back));styledButton(content,"Opponent / other team won",()->genericScoreWheel(title,opponent,f,tie,1,Math.min(me,other),apply,back),ButtonKind.SCORE_OPPONENT);backButton(content,"Cancel",back);
+    }
+    private void genericScoreWheel(String title,String opponent,MatchFormat f,boolean tie,int winner,int initial,java.util.function.BiConsumer<Integer,Integer> apply,Runnable back){
+        LinearLayout content=manualPanel(title);int max=f.nested()&&!tie?6:Math.min(4999,tie?4999:f.cap()-1);NumberPicker wheel=ManualEntryUi.wheel(content,"Losing score",0,max,Math.min(max,initial));TextView preview=paragraph(content,"");Runnable refresh=()->{int low=wheel.getValue(),high=ManualMatchEntry.winningScore(f,tie,low);preview.setText((winner==0?"Me / our team ":"Opponent / other team ")+high+"–"+low);};wheel.setOnValueChangedListener((picker,a,b)->refresh.run());refresh.run();
+        button(content,"Use score",()->{int low=wheel.getValue(),high=ManualMatchEntry.winningScore(f,tie,low);apply.accept(winner==0?high:low,winner==0?low:high);});backButton(content,"Cancel",back);
+    }
     private String updateDescription(){
         String text="Installed: v"+BuildConfig.VERSION_NAME+"\n\n"+updateStatus;
         if(latest!=null&&latest.newerThan(BuildConfig.VERSION_CODE))text+="\n\nv"+latest.versionName+"\n"+latest.notes;
@@ -521,30 +625,34 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         return text;
     }
     private String opponentName(String matchId){String value=opponents.nameFor(matchId);return value.isEmpty()?"Opponent":value;}
-    private List<MatchResult> filteredResults(){return ResultFilter.select(book,opponents,filterOpponent,filterFrom,filterTo);}
+    private List<MatchResult> filteredResults(){List<MatchResult> out=new java.util.ArrayList<>();for(MatchResult result:ResultFilter.select(book,opponents,filterOpponent,filterFrom,filterTo))if(result.format.sport.equals(selectedSport)&&(filterMode<0||result.format.doubles==(filterMode==1)))out.add(result);return out;}
+    private List<MatchResult> sportResults(int mode){List<MatchResult> out=new java.util.ArrayList<>();for(MatchResult result:book.newestFirst())if(result.format.sport.equals(selectedSport)&&(mode<0||result.format.doubles==(mode==1)))out.add(result);return out;}
+    private String modeLabel(){return filterMode<0?"All modes":filterMode==0?"Singles":"Doubles";}
     private void message(String title,String text,Runnable back){LinearLayout content=panel(title);paragraph(content,text);backButton(content,"Back",back);}
     private void showOpponents(int requestedPage){
         List<OpponentDirectory.Entry> entries=opponents.list(false);int page=Math.max(0,Math.min(requestedPage,Math.max(0,(entries.size()-1)/10)));
-        LinearLayout content=panel("Opponents","opponents:"+page);button(content,"Add opponent",()->showNameEditor(null,null,()->showOpponents(page)));
-        navigationButton(content,"Edit names on phone",()->openPhone("opponents",false,()->showOpponents(page),"Back to Opponents"));
+        LinearLayout content=panel("Players","opponents:"+page);
         if(entries.isEmpty())paragraph(content,"No names saved. Names are optional; you can keep playing without one.");
-        for(int i=page*10;i<Math.min(entries.size(),page*10+10);i++){OpponentDirectory.Entry entry=entries.get(i);personButton(content,entry.name,()->showOpponent(entry.id,page));}
+        for(int i=page*10;i<Math.min(entries.size(),page*10+10);i++){OpponentDirectory.Entry entry=entries.get(i);playerButton(content,entry,()->showOpponent(entry.id,page));}
         if(page>0)button(content,"Previous names",()->showOpponents(page-1));if((page+1)*10<entries.size())button(content,"More names",()->showOpponents(page+1));
+        button(content,"Add player",()->showNameEditor(null,null,()->showOpponents(page)));
+        navigationButton(content,"Edit names on phone",()->openPhone("opponents",false,()->showOpponents(page),"Back to Players"));
+        TextView legend=paragraph(content,"Icons show sports in saved results.");legend.setTextSize(11);
         backButton(content,"Back to Menu",this::showMenu);
     }
     private void showOpponent(String id,int page){
-        OpponentDirectory.Entry entry=opponents.get(id);if(entry==null){showOpponents(page);return;}LinearLayout content=panel(entry.name);
+        OpponentDirectory.Entry entry=opponents.get(id);if(entry==null){showOpponents(page);return;}LinearLayout content=panel(entry.name);paragraph(content,sportsText(entry.id));
         button(content,"Rename",()->showNameEditor(id,null,()->showOpponent(id,page)));
-        deleteButton(content,"Remove from opponent list",()->{LinearLayout confirm=panel("Remove opponent?");paragraph(confirm,"Remove "+entry.name+" from future selection? Past match results keep this name and remain filterable.");deleteButton(confirm,"Remove name",()->{String before=opponents.encode();opponents.archive(id);if(persistScore())showOpponents(page);else{opponents=OpponentDirectory.decode(before);message("Save failed","The name was not removed.",()->showOpponent(id,page));}});backButton(confirm,"Cancel",()->showOpponent(id,page));});
-        backButton(content,"Back to Opponents",()->showOpponents(page));
+        deleteButton(content,"Remove from player list",()->{LinearLayout confirm=panel("Remove opponent?");paragraph(confirm,"Remove "+entry.name+" from future selection? Past match results keep this name and remain filterable.");deleteButton(confirm,"Remove name",()->{String before=opponents.encode();opponents.archive(id);if(persistScore())showOpponents(page);else{opponents=OpponentDirectory.decode(before);message("Save failed","The name was not removed.",()->showOpponent(id,page));}});backButton(confirm,"Cancel",()->showOpponent(id,page));});
+        backButton(content,"Back to Players",()->showOpponents(page));
     }
     private void showNameEditor(String id,String matchId,Runnable back){
         showNameEditor(id,matchId,back,null);
     }
     private void showNameEditor(String id,String matchId,Runnable back,java.util.function.Consumer<String> afterSave){
-        OpponentDirectory.Entry entry=id==null?null:opponents.get(id);LinearLayout content=panel(entry==null?"Add opponent":"Rename opponent");
-        nameInput=new EditText(this);nameInput.setSingleLine(true);nameInput.setTextColor(Color.WHITE);nameInput.setHintTextColor(0xffa7b6c9);nameInput.setHint("Opponent name");nameInput.setContentDescription("Opponent name");nameInput.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS);if(entry!=null)nameInput.setText(entry.name);content.addView(nameInput,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,dp(52)));final EditText input=nameInput;
-        button(content,"Speak name",()->{try{Intent voice=new Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH).putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL,android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM).putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT,"Opponent name");startActivityForResult(voice,81);}catch(Exception absent){input.setError("Speech input is unavailable. Type a name or use Edit names on phone.");}});
+        OpponentDirectory.Entry entry=id==null?null:opponents.get(id);LinearLayout content=panel(entry==null?"Add player":"Rename player");
+        nameInput=new EditText(this);nameInput.setSingleLine(true);nameInput.setTextColor(Color.WHITE);nameInput.setHintTextColor(0xffa7b6c9);nameInput.setHint("Player name");nameInput.setContentDescription("Player name");nameInput.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS);if(entry!=null)nameInput.setText(entry.name);content.addView(nameInput,new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,dp(52)));final EditText input=nameInput;
+        button(content,"Speak name",()->{try{Intent voice=new Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH).putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL,android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM).putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT,"Player name");startActivityForResult(voice,81);}catch(Exception absent){input.setError("Speech input is unavailable. Type a name or use Edit names on phone.");}});
         button(content,"Save name",()->{String before=opponents.encode();try{String selected=id;if(selected==null)selected=opponents.add(input.getText().toString());else opponents.rename(selected,input.getText().toString());if(matchId!=null)opponents.assign(matchId,selected);if(!persistScore())throw new IllegalStateException("The watch did not confirm saving");if(afterSave!=null)afterSave.accept(selected);updateDisplay();back.run();}catch(Exception error){opponents=OpponentDirectory.decode(before);input.setError(safe(error));}});
         paragraph(content,"You can also type names from Opponents → Edit names on phone.");backButton(content,"Cancel",back);
     }
@@ -560,20 +668,20 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         personButton(content,filtering?"Unnamed":"No name",()->{if(filtering){filterOpponent="";resultsPage=0;showResultFilters();}else if(starting){newMatchOpponent="";showNewMatchOptions();}else assignOpponent(matchId,"",back);});
         for(int i=page*10;i<Math.min(entries.size(),page*10+10);i++){OpponentDirectory.Entry e=entries.get(i);personButton(content,e.name+(e.archived?" (removed)":""),()->{if(filtering){filterOpponent=e.id;resultsPage=0;showResultFilters();}else if(starting){newMatchOpponent=e.id;showNewMatchOptions();}else assignOpponent(matchId,e.id,back);});}
         if(page>0)navigationButton(content,"Previous names",()->showOpponentPicker(matchId,filtering,page-1,back));if((page+1)*10<entries.size())navigationButton(content,"More names",()->showOpponentPicker(matchId,filtering,page+1,back));
-        if(starting)button(content,"Add opponent",()->showNameEditor(null,null,this::showNewMatchOptions,id->newMatchOpponent=id));
-        else if(!filtering){button(content,"Add opponent",()->showNameEditor(null,matchId,back));navigationButton(content,"Edit names on phone",()->openPhone("opponents",false,()->showOpponentPicker(matchId,false,page,back),"Back to Choose opponent"));}
+        if(starting)button(content,"Add player",()->showNameEditor(null,null,this::showNewMatchOptions,id->newMatchOpponent=id));
+        else if(!filtering){button(content,"Add player",()->showNameEditor(null,matchId,back));navigationButton(content,"Edit names on phone",()->openPhone("opponents",false,()->showOpponentPicker(matchId,false,page,back),"Back to Choose opponent"));}
         backButton(content,"Cancel",back);
     }
     private void assignOpponent(String matchId,String id,Runnable back){String before=opponents.encode();try{opponents.assign(matchId,id);if(!persistScore())throw new IllegalStateException("The watch did not confirm saving");updateDisplay();back.run();}catch(Exception error){opponents=OpponentDirectory.decode(before);message("Name not saved",safe(error),back);}}
     private void showResultFilters(){
-        LinearLayout content=panel("Result filters");OpponentDirectory.Entry e=filterOpponent==null?null:opponents.get(filterOpponent);
+        LinearLayout content=panel("Result filters");if(!selectedSport.equals("squash")&&!selectedSport.equals("padel"))navigationButton(content,"Mode: "+modeLabel(),()->{filterMode=filterMode== -1?0:filterMode==0?1:-1;showResultFilters();});OpponentDirectory.Entry e=filterOpponent==null?null:opponents.get(filterOpponent);
         personButton(content,"Opponent: "+(filterOpponent==null?"All":filterOpponent.isEmpty()?"Unnamed":e==null?"Unknown":e.name),()->showOpponentPicker(null,true,0));
         paragraph(content,"Dates: "+(filterFrom==null?"any":filterFrom.toString())+" to "+(filterTo==null?"any":filterTo.toString()));
         button(content,"Today",()->{filterFrom=LocalDate.now();filterTo=filterFrom;showResults(0);});
         button(content,"Last 7 days",()->{filterTo=LocalDate.now();filterFrom=filterTo.minusDays(6);showResults(0);});
         button(content,"This month",()->{filterTo=LocalDate.now();filterFrom=filterTo.withDayOfMonth(1);showResults(0);});
         button(content,"Custom date range",this::showDateRange);
-        button(content,"Clear all filters",()->{filterOpponent=null;filterFrom=null;filterTo=null;showResults(0);});
+        button(content,"Clear all filters",()->{filterOpponent=null;filterFrom=null;filterTo=null;filterMode=-1;showResults(0);});
         backButton(content,"Back to Results",()->showResults(resultsPage));
     }
     private void showDateRange(){
@@ -595,7 +703,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         final String saved=book.encode(),names=opponents.encode();final List<MatchResult> selected=filtered?new java.util.ArrayList<>(filteredResults()):ResultFilter.select(book,opponents,null,null,null);
         transferBusy=true;LinearLayout content=panel("Preparing phone link");paragraph(content,"Creating an encrypted ten-minute link. Both devices need internet.");backButton(content,transferReturnLabel,transferReturn);
         final Dialog waiting=panel;
-        tasks.execute(()->{try{TransferClient.Session created=TransferClient.create(MatchBook.decode(saved),OpponentDirectory.decode(names),selected);onUi(()->transferCreated(created,filtered,waiting));}catch(Exception error){onUi(()->{transferBusy=false;if(panel==waiting)message("Transfer unavailable",safe(error),transferReturn);});}});
+        tasks.execute(()->{try{TransferClient.Session created=TransferClient.create(MatchBook.decode(saved),OpponentDirectory.decode(names),selected,selectedSport);onUi(()->transferCreated(created,filtered,waiting));}catch(Exception error){onUi(()->{transferBusy=false;if(panel==waiting)message("Transfer unavailable",safe(error),transferReturn);});}});
     }
     private void transferCreated(TransferClient.Session created,boolean filtered,Dialog waiting){transferBusy=false;transfer=created;transferSnapshotFiltered=filtered;if(panel==waiting)showTransfer();}
     private String phoneTitle(){return transferView.equals("opponents")?"Edit names on phone":transferView.equals("import")?"Import CSV":"Results on phone";}
@@ -769,7 +877,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         scroll.addView(content,new ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT));
         LinearLayout header=ManualEntryUi.row(content);header.setGravity(Gravity.CENTER_VERTICAL);
         TextView heading=paragraph(header,title);heading.setTextSize(17);heading.setTextColor(0xffcdeaff);heading.setLayoutParams(new LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1));
-        if(!title.equals("Menu")&&(sessionOngoing()||needsResume())){
+        if(!title.equals("Menu")&&!title.equals("Choose sport")&&(sessionOngoing()||needsResume())){
             Button shortcut=styledButton(header,"Scoreboard",this::closePanel,ButtonKind.SHORTCUT);shortcut.setPadding(dp(4),dp(4),dp(4),dp(4));shortcut.setTextSize(11);shortcut.setLayoutParams(new LinearLayout.LayoutParams(dp(78),dp(48)));
         }
         panelScroll=scroll;panelScrollKey=scrollKey;
@@ -835,8 +943,8 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         card.setBackground(open==null?shape:new RippleDrawable(ColorStateList.valueOf(0x40ffffff),shape,null));
         TextView reference=null;
         if(open!=null){reference=paragraph(card,result.title());reference.setTextSize(11);reference.setTextColor(0xffedf4ff);}
-        paragraph(card,"vs "+opponentName(result.id));
-        TextView score=paragraph(card,result.summary().replace("Opponent",opponentName(result.id)));score.setTextSize(17);score.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);score.setTextColor(Color.WHITE);
+        paragraph(card,result.format.name()+" · "+result.format.mode()+"\n"+(result.format.doubles?teamName(result.id,0)+" vs "+teamName(result.id,1):"vs "+opponentName(result.id)));
+        TextView score=paragraph(card,result.format.doubles?"Our team "+result.gamesWon(0)+"–"+result.gamesWon(1)+" Opponents":result.summary().replace("Opponent",opponentName(result.id)));score.setTextSize(17);score.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);score.setTextColor(Color.WHITE);
         TextView details=paragraph(card,"Best of "+result.bestOf+" · "+result.outcomeText()+(open==null?"\n"+result.timingText():"")+"\nDuration: "+result.durationText()+"\nMatch "+result.number+(open==null?"\n\n"+result.gamesText():""));details.setTextSize(12);details.setTextColor(0xffedf4ff);
         if(open!=null){
             card.setFocusable(true);card.setClickable(true);card.setContentDescription(result.title()+". "+result.summary()+". Open match result.");

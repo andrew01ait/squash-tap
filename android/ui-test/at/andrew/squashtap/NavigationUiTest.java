@@ -60,9 +60,9 @@ public class NavigationUiTest {
     }
     private View root(){Dialog dialog=ShadowDialog.getLatestDialog();assertNotNull(dialog);assertTrue(dialog.isShowing());return dialog.getWindow().getDecorView();}
     private List<View> descendants(View view){List<View> all=new ArrayList<>();all.add(view);if(view instanceof ViewGroup)for(int i=0;i<((ViewGroup)view).getChildCount();i++)all.addAll(descendants(((ViewGroup)view).getChildAt(i)));return all;}
-    private Button button(String text){for(View view:descendants(root()))if(view instanceof Button&&((Button)view).getText().toString().equals(text))return (Button)view;throw new AssertionError("Missing button: "+text);}
-    private boolean hasButton(String text){for(View view:descendants(root()))if(view instanceof Button&&((Button)view).getText().toString().equals(text))return true;return false;}
-    private boolean hasText(String text){for(View view:descendants(root()))if(view instanceof TextView&&((TextView)view).getText().toString().equals(text))return true;return false;}
+    private Button button(String text){for(View view:descendants(root()))if(view instanceof Button&&((Button)view).getText().toString().split("\n",2)[0].equals(text))return (Button)view;throw new AssertionError("Missing button: "+text);}
+    private boolean hasButton(String text){for(View view:descendants(root()))if(view instanceof Button&&((Button)view).getText().toString().split("\n",2)[0].equals(text))return true;return false;}
+    private boolean hasText(String text){for(View view:descendants(root()))if(view instanceof TextView&&((TextView)view).getText().toString().split("\n",2)[0].equals(text))return true;return false;}
     private boolean textContains(String text){for(View view:descendants(root()))if(view instanceof TextView&&((TextView)view).getText().toString().contains(text))return true;return false;}
     private int colour(Button button){assertNotNull(button.getBackgroundTintList());return button.getBackgroundTintList().getColorForState(button.getDrawableState(),0);}
     private void grey(Button button){int c=colour(button);assertEquals(Color.red(c),Color.green(c));assertEquals(Color.green(c),Color.blue(c));assertTrue(Color.alpha(c)>0);}

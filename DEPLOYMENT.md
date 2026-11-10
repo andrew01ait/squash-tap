@@ -1,6 +1,6 @@
 # Build and deployment
 
-Official watch release: **v0.13.0 / code 14**. User installation is in [INSTALLATION.md](INSTALLATION.md); release-number and compatibility rules are in [VERSIONING.md](VERSIONING.md).
+Official watch release: **v0.14.0 / code 15**. User installation is in [INSTALLATION.md](INSTALLATION.md); release-number and compatibility rules are in [VERSIONING.md](VERSIONING.md).
 
 ## Repositories and prerequisites
 
@@ -84,3 +84,7 @@ A documentation-only publication may update the downloadable source ZIP and the 
 Preserved APKs enable recovery analysis but do not imply a safe Android downgrade. Newer preferences may be unreadable by old versions; a corrective release normally needs a higher version code and compatible readers. Website rollback must retain a compatible relay/CSV contract and source provenance. Never uninstall the watch app as a routine update step.
 
 Transfers expire after ten minutes; physical cleanup of unused ciphertext occurs on later API traffic. There is no independent timed erasure job or permanent history service. Health checks and complete transfer tests use synthetic sessions only. Application updates and transfers remain explicit actions, without background polling.
+
+## Multisport release
+
+The original package/signing identity remains unchanged. RULES.md documents formats and limitations. A native release must test all five sports, both badminton formats, padel deuce options, Undo across tennis game/set boundaries, service rotation, B4/B5 and O1/O2 migration, team identities, scope/filter/delete behavior, and native/browser CSV schema-3 parity. Preserve old CSV readers and all historical APK bytes.

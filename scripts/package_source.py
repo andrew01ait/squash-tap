@@ -9,7 +9,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 DOCS = ('README.md', 'INSTALLATION.md', 'FLOW.md', 'ARCHITECTURE.md',
         'DEPLOYMENT.md', 'TESTING.md', 'VERSIONING.md', 'GITHUB.md',
-        'AGENTS.md', 'CHANGELOG.md')
+        'AGENTS.md', 'CHANGELOG.md', 'RULES.md')
 ROOT_FILES = (*DOCS, '.gitignore', 'THIRD_PARTY_NOTICES.txt', 'DEVICE_TESTS.json',
               'SIGNING_IDENTITY.json', 'android-dependencies.json', 'components.json',
               'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig.json',

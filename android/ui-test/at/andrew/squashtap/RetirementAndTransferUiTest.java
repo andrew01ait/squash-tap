@@ -17,8 +17,8 @@ public class RetirementAndTransferUiTest {
     @After public void finish(){close();}
     private List<View> all(View v){List<View> out=new ArrayList<>();out.add(v);if(v instanceof ViewGroup)for(int i=0;i<((ViewGroup)v).getChildCount();i++)out.addAll(all(((ViewGroup)v).getChildAt(i)));return out;}
     private List<View> all(){return all(ShadowDialog.getLatestDialog().getWindow().getDecorView());}
-    private Button button(String text){for(View v:all())if(v instanceof Button&&((Button)v).getText().toString().equals(text))return (Button)v;throw new AssertionError("Missing button: "+text);}
-    private boolean hasButton(String text){for(View v:all())if(v instanceof Button&&((Button)v).getText().toString().equals(text))return true;return false;}
+    private Button button(String text){for(View v:all())if(v instanceof Button&&((Button)v).getText().toString().split("\n",2)[0].equals(text))return (Button)v;throw new AssertionError("Missing button: "+text);}
+    private boolean hasButton(String text){for(View v:all())if(v instanceof Button&&((Button)v).getText().toString().split("\n",2)[0].equals(text))return true;return false;}
     private boolean contains(String text){for(View v:all())if(v instanceof TextView&&((TextView)v).getText().toString().contains(text))return true;return false;}
     private void click(String text){button(text).performClick();}
     private MatchBook book(){return MatchBook.decode(preferences.getString("match_book",""));}

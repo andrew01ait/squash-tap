@@ -1,13 +1,13 @@
 # Architecture
 
-Current watch release: **v0.13.0**, code **14**. This document describes the implemented system; release changes are in [CHANGELOG.md](CHANGELOG.md).
+Current watch release: **v0.14.0**, code **15**. This document describes the implemented system; release changes are in [CHANGELOG.md](CHANGELOG.md).
 
 ## Components and responsibilities
 
 | Area | Implementation | Responsibility |
 | --- | --- | --- |
 | Watch UI | `android/src/at/andrew/squashtap/MainActivity.java`, `ScoreView`, `TouchTargets`, `ManualEntryUi` | Native round-screen scoring, dialogs, menus, input, contextual navigation and storage orchestration. |
-| Scoring/model | `ScoreState`, `MatchState`, `MatchResult`, `MatchBook` | PAR-11/deuce, BO3/BO5, rally/entered-set Undo, retirement, persistence, timing and result references. |
+| Scoring/model | `MatchFormat`, `ServiceOrder`, `ScoreState`, `MatchState`, `MatchResult`, `MatchBook` | PAR-11/deuce, BO3/BO5, rally/entered-set Undo, retirement, persistence, timing and result references. |
 | People/interchange | `OpponentDirectory`, `ResultFilter`, `MatchStatistics`, `MatchCsv`, `ManualMatchEntry` | Stable names, filters, derived totals, validated CSV and independent past-match drafts. |
 | Availability | `MatchDisplayPolicy`, `MatchSessionService`, AndroidX ambient/ongoing integration | Explicit active-session policy, quiet return shortcut and scoreboard screen flags. |
 | Updates | `UpdatePolicy`, `VerifiedDownload`, `UpdateClient`, `InstallReceiver` | Manual update checks, bounded verified download, package/signer checks and installation. |
@@ -24,19 +24,19 @@ The website is a Vinext/Cloudflare Worker application with `DB` and `BUCKET` bin
 
 | Format | Current contract |
 | --- | --- |
-| Match book | Write B4; read B1/B2/B3/B4. Current match, completed results, timing, durable daily counters and the deleted-current marker are one unit. |
-| Match/set encodings | Preserve M1 for ordinary matches and M2 for retirement-only state; M3 can carry entered set totals. `ScoreState` keeps real rallies or validated `2|me|opponent` completed totals. |
-| Opponents | O1 with stable IDs, NFC-normalized optional names up to 60 code points and archive flags. Commit related match/name edits together. |
-| CSV | Schema 1 for ordinary-only results; schema 2 appends `retired_player` for retired/mixed exports. Read both and gate unsupported old-watch imports. |
-| Migration/recovery | Retain once-only B1/B2/B3 backups, legacy score data and recovery copies of malformed data. Never fabricate old timestamps or rally order. |
+| Match book | Write B4 for unchanged squash-only state; B5 for explicit serving/multisport state or results. Read B1/B2/B3/B4/B5. Current match, completed results, timing, durable daily counters and the deleted-current marker are one unit. |
+| Match/set encodings | Preserve M1 for ordinary squash, M2 for retirement-only squash, and M3 for entered squash totals. M4 stores explicit formats plus initial service choices for each game/set. `ScoreState` keeps real rallies or validated `2|me|opponent` completed totals. |
+| Opponents | O1 or O2 with stable IDs (O2 adds separate partner/opponent-2 role maps; O1 stays readable), NFC-normalized optional names up to 60 code points and archive flags. Commit related match/name edits together. |
+| CSV | Schema 1 for ordinary squash; schema 2 appends `retired_player`; schema 3 adds exact format, mode, slots 6/7, point/tie-break/unfinished-game details and both extra team identities. Read all three and gate unsupported old-watch imports. |
+| Migration/recovery | Retain once-only B1/B2/B3/B4 and O1 backups, legacy score data and recovery copies of malformed data. Never fabricate old timestamps or rally order. |
 
 Duplicate/conflicting imported IDs, the active current ID and deleted-current tombstones must not overwrite or resurrect local state. Validate every CSV row first, preview against current data, then merge cloned books atomically. Imported matches allocate references beyond durable local counters; deleting results never resets those counters.
 
-History is bounded to 10,000 results; the decoded match-book string is bounded to 5,000,000 characters. A full book keeps the completed scoreboard while the user frees space and explicitly saves. Opponent identities are bounded to 1,000. CSV is bounded to 3 MiB, expanded transfer content to 4 MiB and compressed transfer content to 1 MiB; large histories need date-range exports before these limits.
+History is bounded to 10,000 results; the decoded match-book string is bounded to 5,000,000 characters. A full book keeps the completed scoreboard while the user frees space and explicitly saves. Player identities are bounded to 1,000; encoded directory data is bounded to 8,000,000 characters. O2 role maps are separate from primary assignments, avoiding ID collisions. CSV is bounded to 3 MiB, expanded transfer content to 4 MiB and compressed transfer content to 1 MiB; large histories need date-range exports before these limits.
 
 ## Scoring, retirement and timing
 
-Me is always first in scores. Sets use PAR-11/win by two. BO3/BO5 changes retain UUID, points, sets, timing and Undo, but reject completed matches and a BO5→BO3 change after either player already has two set wins.
+Me is always first in scores. Squash games use PAR-11/win by two. MatchFormat freezes each sport's validated rules; ScoreState handles rally games or nested tennis/padel sets. ServiceOrder derives next-server guidance from genuine scoring and initial choices. All presets and exclusions are in [RULES.md](RULES.md). BO3/BO5 changes retain UUID, points, sets, timing and Undo, but reject completed matches and a BO5→BO3 change after either player already has two set wins.
 
 A real final point or confirmed retirement completes/saves the match and stops its active session. Retirement preserves actual points/sets and determines the match winner independently of the set lead. Undo retirement restores the prior state before ordinary rally Undo. Undo/re-completion reuses its original reference and cannot revive a deliberately deleted result.
 
@@ -46,7 +46,7 @@ Duration includes pauses and set breaks. Recorded start zone controls display/fi
 
 ## Navigation and power
 
-Menus are Current match, Results, Statistics, Opponents and Settings. Results have 10 items per watch page; phone browsing has 25. Filters apply before pagination. Details/pickers/delete cancellation preserve list filter/page/scroll and the actual caller. Every named Back/Cancel, system Back and native swipe callback uses the same route. Late network callbacks cannot reopen an abandoned waiting panel.
+The entry is a five-sport selector, with shared Players/Settings. Within each sport: Current match (or new/resume), Results, Statistics, Change sport and Scoring rules. One current match remains global. Result mode/sport selection is separate from date/player filters; statistics ignore date/player filters. Global player icons derive involvement across all saved results, including partners. Results have 10 items per watch page; phone browsing has 25. Filters apply before pagination. Details/pickers/delete cancellation preserve list filter/page/scroll and the actual caller. Every named Back/Cancel, system Back and native swipe callback uses the same route. Late network callbacks cannot reopen an abandoned waiting panel.
 
 Roles are explicit: blue match/secondary navigation, purple people, grey Settings, red destructive actions and outlined Back/Cancel. Touch targets are at least 48dp. Score taps reject swipes, long presses and multi-touch. New-match setup stages format/name choices until explicit Create; replacement requires confirmation.
 

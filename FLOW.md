@@ -1,15 +1,27 @@
-# Navigation and match flows — v0.13.0
+# Navigation and match flows — v0.14.0
+
+## Sport entry and scope
+
+The launcher opens Choose sport: Squash, Tennis, Badminton, Padel, Table tennis, plus shared Players and Settings. Each sport remembers its new-match rules and length. The ongoing shortcut resumes the scoreboard. Change sport changes browsing scope without replacing the current match. A new match from another sport still confirms replacement of an unfinished score/session. There is one current match, not one running match per sport.
+
+Results and Statistics use the chosen sport. Eligible sports offer All modes / Singles / Doubles. Result player filters include all team roles; date/player filters do not narrow Statistics. Delete all results deletes the selected sport only and preserves other sports, current state, daily counters and deletion markers. Phone Results/Statistics have their own shared sport/mode selectors; the Players catalog is global.
+
+New match stages sport-specific rules, length, optional opponent/partner/opponent-2 and optional first-server choices. Padel stays doubles; squash stays singles. Duplicate people in different slots are rejected. Tennis/padel games advance automatically; NEXT remains explicit between sets. Rules are locked to the match; changing new-match defaults does not reinterpret old results. [RULES.md](RULES.md) lists formats and service choices.
+
+Players shows small vector sport badges only for associated saved results as partner or opponent. No-result players have no badges. Delete/Undo, import and role reassignment are reflected on the next render. Names remain optional. Removing a player archives selection, and renaming follows their stable ID across sports.
 
 ## Root and priorities
 
-The scoreboard stays focused on Me/Opponent scoring, Undo and Next/New. Its header opens Menu with five destinations:
+The scoreboard stays focused on Me/Opponent scoring, Undo and Next/New. Its header opens Menu within the selected sport:
 
 | Destination | Purpose | Style |
 | --- | --- | --- |
 | Current match | Live session, set entry and current scores | Filled blue |
 | Results | Saved history, filters, past matches, CSV and phone viewing | Blue navigation row |
 | Statistics | All-result match/set/point balances | Blue navigation row |
-| Opponents | Saved name catalog | Purple person control |
+| Players | Saved name catalog | Purple person control |
+| Change sport | Return to the five-sport selector | Blue navigation row |
+| Scoring rules | Sport presets, service guidance and limits | Blue navigation row |
 | Settings | Version, updates, screen/notification options and diagnostics | Grey |
 
 Menu returns to the scoreboard. Every subpage has one named outlined Back/Cancel action. Hardware Back and native right-swipe dismissal invoke that same return. During active or resumable play, the header has a Scoreboard shortcut; it changes no session state. Dialog replacement, backgrounding and ambient transitions do not act as a user Back.
@@ -45,7 +57,7 @@ After saving, Score next set live advances and activates/resumes play. Enter nex
 
 ## Record a separate past match
 
-Results → Add past match → choose BO3/BO5, optional saved name and Today/Yesterday/date wheels → enter/edit valid sets → Save match result. This appends independent history without replacing current score/person/timing/Undo/session. Date and score controls need no keyboard. Cancel adds nothing; repeated Save callbacks add only once. Historical start/finish stay unknown. B4/M3 score-only storage, B1/B2/B3 recovery backups, counters and deletion markers are preserved.
+Results → Add past match → choose BO3/BO5, optional saved name and Today/Yesterday/date wheels → enter/edit valid sets → Save match result. This appends independent history without replacing current score/person/timing/Undo/session. Date and score controls need no keyboard. Cancel adds nothing; repeated Save callbacks add only once. Historical start/finish stay unknown. B4/B5 and M3/M4 score-only storage, B1/B2/B3/B4 and O1 recovery backups, counters and deletion markers are preserved.
 
 ## Results and statistics
 
@@ -53,7 +65,7 @@ Results presents compact Filters/Options controls, Add past match and blue/red r
 
 Options contains View results on phone, Export CSV, Import CSV and red Delete all results. Export CSV explicitly chooses All results or Filtered results. A single result has a red Delete this result action and confirmation. Current-result correction retains Undo safeguards. Bulk deletion keeps the active scoreboard and durable number counters.
 
-Statistics derives match W/L, sets and points from every saved result, independently of list filters. Completed/imported/legacy results count; unfinished/deleted/Undo-reopened results do not. Retirement affects match W/L without inventing set wins or points. No aggregate counters or background job are stored.
+Statistics derives match W/L, game/set and known point totals from saved results for the selected sport/mode, independently of list filters. Completed/imported/legacy results count; unfinished/deleted/Undo-reopened results do not. Retirement affects match W/L without inventing set wins or points. No aggregate counters or background job are stored.
 
 ## Ending early
 
@@ -61,7 +73,7 @@ Current match → Match options → End match early → I quit / Opponent quit �
 
 ## Names
 
-Opponents centrally adds/renames/removes catalog entries. Remove from opponent list archives future selection while past results retain identity/filterability. Match options and result details open optional saved-name selection. Picker cancellation/save returns to its actual caller, including the current result page. NEW stages selection for the new UUID only. Phone catalog additions/restorations never automatically assign a match opponent; reassignment requires the existing separate explicit opt-in and review.
+Players centrally adds/renames/removes catalog entries. Remove from opponent list archives future selection while past results retain identity/filterability. Match options and result details open optional saved-name selection. Picker cancellation/save returns to its actual caller, including the current result page. NEW stages selection for the new UUID only. Phone catalog additions/restorations never automatically assign a match opponent; reassignment requires the existing separate explicit opt-in and review.
 
 ## Phone links, CSV and privacy
 

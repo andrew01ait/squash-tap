@@ -1,28 +1,35 @@
 # Squash Tap
 
-A standalone, offline squash scorekeeper for Wear OS. Current watch release: **v0.13.0**, Android version code **14**. No account is required; scores and saved history live on the watch.
+A standalone, offline racket-sport scorekeeper for Wear OS. Current watch release: **v0.14.0**, Android version code **15**. No account is required; scores and saved history live on the watch.
 
 [Download the watch app](https://squash-tap-andrew.endruuu.chatgpt.site/) · [GitHub source](https://github.com/andrew01ait/squash-tap) · [Install using your phone](INSTALLATION.md)
 
 ## Features
 
-- Tap blue **Me** or red **Opponent** to score a rally. PAR-11 scoring requires a two-point lead; Undo corrects mistakes.
-- Play best of three or five, keep every set score, and optionally choose a saved opponent. New-match choices stay in a draft until Create match.
+- Start with Squash, Tennis, Badminton, Padel or Table tennis. Results and statistics are separated by sport; eligible sports have singles/doubles filters.
+- Use one shared Players catalog for opponents and partners. Small sport icons indicate saved results in any role; renames keep stable identities, and deleting/reopening results updates the icons.
+- Keep two large scoring cards for singles or teams. Tennis/padel games advance automatically; select optional first-server choices for serving guidance. No first/second serve, let or stroke recording.
+- Choose both old/new badminton and padel formats. Each match retains its own rules. See [Sports and scoring](RULES.md) for exact presets, service guidance and scope.
+
+- Tap blue **Me** or red **Opponent** to score a rally. Squash PAR-11 requires a two-point lead; Undo corrects mistakes.
+- Choose the supported match length for each sport, keep every set score, and optionally choose a saved opponent. New-match choices stay in a draft until Create match.
 - Save completed matches automatically, or end a match early with a confirmed retirement. Results keep actual scores rather than fabricated winning sets.
 - Enter a completed set for the current match or add an independent past match using score wheels, large controls and saved names.
 - Browse history with combined opponent/date filters: **10 matches per watch page**, newest first. Returning from a result preserves the page, filters and scroll position.
-- See overall match wins/losses, sets and points. The phone view also provides per-opponent balances and recent W/L history.
+- See match wins/losses, game/set totals and known points for the selected sport/mode. The phone view also provides per-opponent balances and recent W/L history.
 - View results, edit names and import/export CSV through an optional encrypted, ten-minute QR session in a phone browser. Phone results use 25 matches per page.
 - Check for watch updates and export diagnostics from Settings. An explicit active match controls the ongoing session, ambient scoreboard and screen retention.
 
 ## Where to find things
+
+The launcher opens the five-sport selector. Change sport returns there; an ongoing shortcut returns directly to the current scoreboard. Browsing another sport preserves the current match; creating a replacement still needs confirmation. There is one current match across the app.
 
 | Menu | Purpose |
 | --- | --- |
 | Current match | Start/Pause/Resume, Enter set score, Match details and Match options. |
 | Results | Saved history, Filters, Add past match and Options for phone viewing, CSV and bulk deletion. |
 | Statistics | Overall results across all saved completed matches, independent of history filters. |
-| Opponents | Add, rename or remove names; optionally edit the catalog on the phone. |
+| Players | Add, rename or remove names; optionally edit the catalog on the phone. |
 | Settings | Version, updates, display/notification options and diagnostics. |
 
 Match controls are blue, saved people purple, Settings grey, deletion red and Back/Cancel outlined. Buttons, hardware Back and the native swipe-dismiss callback share the same parent destination. Full navigation is documented in [FLOW.md](FLOW.md).
@@ -35,7 +42,7 @@ A live winning point or confirmed retirement records the finish. A manually ente
 
 Choose **Current match → Enter set score** to change the current match. Choose **Results → Add past match** to append separate history without changing current points, opponent, timing or session. Entered totals do not invent rally order, and Undo of an entered set asks before removing the whole set.
 
-## Names, history and statistics
+## Players, history and statistics
 
 Names are optional. Adding a name on the phone never assigns it to the last/current match. Match reassignment needs a separate explicit opt-in and watch review. Renames follow stable opponent IDs. Removing a name archives it from future selection while retaining its identity in old results and filters.
 
@@ -47,7 +54,7 @@ On the watch, open **Results → Options → View results on phone → Show phon
 
 Each transfer has independent random secrets. The QR carries the decryption key in its URL fragment; the relay stores encrypted payloads and hashed access capabilities. Anyone holding the complete active link can open that transfer, so keep it private. There is no public history listing or permanent account-based cloud history.
 
-Access expires after ten minutes. Ending/applying requests deletion immediately; unused expired ciphertext is physically cleaned during later API traffic, not at a guaranteed scheduled erasure time. Downloaded CSV files remain on the phone until their owner removes them. CSV is a completed-results interchange, not a complete backup of active rallies, Undo or unused names. See [ARCHITECTURE.md](ARCHITECTURE.md) for limits and the data flow.
+Access expires after ten minutes. Ending/applying requests deletion immediately; unused expired ciphertext is physically cleaned during later API traffic, not at a guaranteed scheduled erasure time. Downloaded CSV files remain on the phone until their owner removes them. CSV schemas 1/2 remain readable as squash; schema 3 preserves sport, rules, team identities, seven-game histories and known point/tie-break details. Older watches must update before importing schema 3. CSV is a completed-results interchange, not a complete backup of active rallies, Undo or unused names. See [ARCHITECTURE.md](ARCHITECTURE.md) for limits and the data flow.
 
 ## Keeping a match available
 
@@ -60,6 +67,7 @@ Updates are requested manually in Settings. There is no background update pollin
 | Guide | Audience and contents |
 | --- | --- |
 | [INSTALLATION.md](INSTALLATION.md) | Phone-only installation, German OnePlus labels, direct updates and diagnostics. |
+| [RULES.md](RULES.md) | Sport presets, old/new rules, optional serving and scorekeeper limits. |
 | [FLOW.md](FLOW.md) | Current menu routes, staged choices, returns and user actions. |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Native components, data formats/migrations, power policy, relay and update verification. |
 | [DEPLOYMENT.md](DEPLOYMENT.md) | Maintainer build, signing, retained APKs, website publication and release procedure. |

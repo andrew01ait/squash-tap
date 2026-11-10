@@ -1,5 +1,15 @@
 # Releases
 
+## 0.14.0 — 2026-11-10
+
+- Add the five-sport entry selector: squash, tennis, badminton, padel and table tennis. Keep one current match, explicit replacement confirmation, independent sport/mode history and statistics, and shared Players/Settings. Keep the original Squash Tap name, package and release signer.
+- Support singles/doubles where applicable, two team scoring cards, shared optional opponent/partner identities and derived vector sport badges for every saved role. Removing/reopening results updates badges; bulk deletion is scoped to the selected sport.
+- Preserve squash PAR-11/BO3/BO5; add badminton 21/30 and 15/21, tennis advantage/No-Ad, padel Advantage/Golden/Star, and table tennis BO3/BO5/BO7. Add nested games/sets, standard tie-breaks, optional ten-point deciding match tie-breaks and Undo across boundaries. Freeze each match's rules.
+- Keep one-tap point scoring without first/second serve, let or stroke recording. Add optional server guidance, squash Game Ball/Match Ball cues and sport-specific rules/help. Do not infer missing initial service choices or automate conduct/injury rulings.
+- Add B5/M4 and separate O2 team-role metadata while reading legacy B1–B4/M1–M3/O1, retaining once-only B4/O1 recovery backups, counters, timing, UUIDs and deletion markers. Preserve true rally order and unknown manual timing.
+- Add CSV schema 3 with sport/mode/rules, extra participants, seven-game scores, known rally/tie-break and partial tennis retirement details. Keep schemas 1/2, reject unsupported old-watch imports, and extend phone filtering/statistics/partner records/player badges without changing relay encryption or expiry.
+- Verify 294 core + 113 native UI + 43 web checks = 450; inspect native round-screen Canvas renders and synthetic phone flows. Java 17 release build, original certificate/package/API/alignment and all retained APK hashes are checked. Physical OnePlus acceptance remains separate.
+
 ## Documentation and GitHub source — 2026-11-09 (watch v0.13.0/code 14 unchanged)
 
 - Publish the sanitized watch/site source, tests and documentation to andrew01ait/squash-tap after repository write authorization succeeds; verify all 221 imported file blobs.

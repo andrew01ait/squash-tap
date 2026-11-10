@@ -46,27 +46,27 @@ public class StatisticsAndTimingUiTest {
     @After public void finish(){close();}
     private List<View> views(View v){List<View> all=new ArrayList<>();all.add(v);if(v instanceof ViewGroup)for(int i=0;i<((ViewGroup)v).getChildCount();i++)all.addAll(views(((ViewGroup)v).getChildAt(i)));return all;}
     private List<View> views(){Dialog d=ShadowDialog.getLatestDialog();assertNotNull(d);assertTrue(d.isShowing());return views(d.getWindow().getDecorView());}
-    private Button button(String text){for(View v:views())if(v instanceof Button&&((Button)v).getText().toString().equals(text))return (Button)v;throw new AssertionError("Missing button: "+text);}
+    private Button button(String text){for(View v:views())if(v instanceof Button&&((Button)v).getText().toString().split("\n",2)[0].equals(text))return (Button)v;throw new AssertionError("Missing button: "+text);}
     private void click(String text){button(text).performClick();}
     private String text(){StringBuilder out=new StringBuilder();for(View v:views())if(v instanceof TextView)out.append(((TextView)v).getText()).append('\n');return out.toString();}
     private void stats(){activity.action(TouchTargets.MENU);click("Statistics");}
     private void openWon(String prefix){activity.action(TouchTargets.MENU);click("Results (2)");for(View v:views())if(v.isClickable()&&v.getContentDescription()!=null&&v.getContentDescription().toString().startsWith(prefix)){v.performClick();return;}throw new AssertionError("Missing saved result");}
     @Test public void statisticsShowOverallMatchesSetsAndPointsWithoutChangingTheMatch(){
         String saved=preferences.getString("match_book",""),names=preferences.getString("opponent_book","");shadowOf(RuntimeEnvironment.getApplication()).clearStartedServices();stats();String text=text();
-        assertTrue(text.contains("Won: 1 · Lost: 1"));assertTrue(text.contains("Win rate: 50%"));assertTrue(text.contains("Sets (games)"));assertTrue(text.contains("Won: 2 · Lost: 3"));assertTrue(text.contains("For: 27 · Against: 43"));assertTrue(text.contains("Balance: -16"));assertTrue(text.contains("Played: 70"));
+        assertTrue(text.contains("Won: 1 · Lost: 1"));assertTrue(text.contains("Win rate: 50%"));assertTrue(text.contains("Games"));assertTrue(text.contains("Won: 2 · Lost: 3"));assertTrue(text.contains("For: 27 · Against: 43"));assertTrue(text.contains("Balance: -16"));assertTrue(text.contains("Played: 70"));
         assertEquals(saved,preferences.getString("match_book",""));assertEquals(names,preferences.getString("opponent_book",""));assertFalse(preferences.contains(MatchDisplayPolicy.ACTIVE_MATCH));assertNull(shadowOf(RuntimeEnvironment.getApplication()).getNextStartedService());assertNull(button("Back to Menu").getBackgroundTintList());click("Scoreboard");assertFalse(ShadowDialog.getLatestDialog().isShowing());
     }
     @Test public void emptyStatisticsHaveHelpfulTextAndNoMisleadingWinRate(){
         close();save(new MatchBook(new MatchState("empty",3)));launch();stats();assertTrue(text().contains("No saved matches yet"));assertTrue(text().contains("Played: 0"));assertTrue(text().contains("Win rate: —"));assertFalse(text().contains("NaN"));
     }
     @Test public void existingResultFiltersDoNotNarrowOverallStatisticsOrGetReset(){
-        activity.action(TouchTargets.MENU);click("Results (2)");click("Filters");click("Opponent: All");click("Unnamed");click("Back to Results");assertTrue(text().contains("No matches fit"));click("Back to Menu");click("Statistics");assertTrue(text().contains("Played: 2"));assertTrue(text().contains("result filters do not apply"));click("Results (2)");assertTrue(text().contains("No matches fit"));
+        activity.action(TouchTargets.MENU);click("Results (2)");click("Filters");click("Opponent: All");click("Unnamed");click("Back to Results");assertTrue(text().contains("No matches fit"));click("Back to Menu");click("Statistics");assertTrue(text().contains("Played: 2"));assertTrue(text().contains("Date/player filters do not apply"));click("Results (2)");assertTrue(text().contains("No matches fit"));
     }
     @Test public void deletingAResultUpdatesTheNextStatisticsView(){
         openWon("07.11.2026 · 19:30");click("Delete this result");click("Delete result");click("Back to Menu");click("Statistics");assertTrue(text().contains("Won: 0 · Lost: 1"));assertTrue(text().contains("Win rate: 0%"));assertTrue(text().contains("For: 5 · Against: 33"));
     }
     @Test public void completedDetailDisplaysTheDateOnceAndKeepsTimesDurationAndScores(){
-        openWon("07.11.2026 · 19:30");String text=text();assertEquals(1,text.split("07\\.11\\.2026",-1).length-1);assertTrue(text.contains("Start: 19:30\nEnd: 20:15"));assertTrue(text.contains("Duration: 45 min 0 sec"));assertTrue(text.contains("Set 1: 11–4\nSet 2: 11–6"));assertTrue(text.contains("Match 1"));assertFalse(text.contains("CET"));
+        openWon("07.11.2026 · 19:30");String text=text();assertEquals(1,text.split("07\\.11\\.2026",-1).length-1);assertTrue(text.contains("Start: 19:30\nEnd: 20:15"));assertTrue(text.contains("Duration: 45 min 0 sec"));assertTrue(text.contains("Game 1: 11–4\nGame 2: 11–6"));assertTrue(text.contains("Match 1"));assertFalse(text.contains("CET"));
     }
     @Test public void overnightDetailDisplaysBothDatesWithoutRepeatingTheStartDate(){
         close();save(history(true));launch();openWon("07.11.2026 · 23:50");String text=text();assertEquals(1,text.split("07\\.11\\.2026",-1).length-1);assertTrue(text.contains("Start: 23:50\nEnd: 08.11.2026 · 00:20"));

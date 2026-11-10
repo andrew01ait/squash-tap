@@ -1,6 +1,6 @@
 # Testing and verification
 
-Current watch release: **v0.13.0 / code 14**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
+Current watch release: **v0.14.0 / code 15**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
 
 ## Recorded release evidence
 
@@ -30,7 +30,7 @@ from pathlib import Path
 import os, subprocess
 root = Path.cwd()
 folder = root / 'android/src/at/andrew/squashtap'
-names = ('ScoreState','TouchTargets','UpdatePolicy','VerifiedDownload','MatchState',
+names = ('MatchFormat','ServiceOrder','ScoreState','TouchTargets','UpdatePolicy','VerifiedDownload','MatchState',
          'MatchResult','MatchStatistics','ManualMatchEntry','MatchBook','MatchDisplayPolicy',
          'DiagnosticTransfer','OpponentDirectory','ResultFilter','MatchCsv','TransferCrypto')
 tests = sorted((root / 'android/test').rglob('*Test.java'))
@@ -49,7 +49,7 @@ PY
 After core classes exist, install locked Node dependencies and run the complete web suite:
 
 ```sh
-node --test web-test/interchange.test.mjs web-test/transfer-state.test.mjs web-test/relay.test.mjs
+node --test web-test/interchange.test.mjs web-test/transfer-state.test.mjs web-test/relay.test.mjs web-test/multisport.test.mjs
 ```
 
 Three interchange cases execute Java fixtures; the full command requires the compiled core tests. Relay cases require Miniflare from the project's locked Wrangler dependency. Do not silently skip missing prerequisites and claim all 35 ran.
@@ -59,7 +59,7 @@ Three interchange cases execute Java fixtures; the full command requires the com
 Follow [DEPLOYMENT.md](DEPLOYMENT.md) for SDK, locked runtime/UI dependencies, original signing key and verified retained APKs. The standard builder executes core/web tests, compiles real AAPT resources and runs native UI tests before D8/signing. UI tests can also be repeated once those resources/generated classes exist:
 
 ```sh
-python3 scripts/test_ui.py --version 0.13.0
+python3 scripts/test_ui.py --version 0.14.0
 ```
 
 Robolectric executes API 34 and uses its configured API 35 framework for resource parsing. Test tooling stays under ignored `.local/`; it is not bundled in the APK. A fresh export does not contain the maintainer's signing key, SDK or prior unsigned build, so the complete release pipeline is not a key-free out-of-box build.
@@ -91,3 +91,11 @@ Initial phone-only installation, v0.1→v0.2 update/score retention, later versi
 ## Documentation/publication verification — 2026-11-09
 
 The GitHub import ran all 12 dependency-free phone-state checks, reviewed public-source metadata and verified 221 uploaded blob hashes against the prepared source. This documentation refresh passed checks for all 10 guides and 51 local links, exact guide/export parity, a complete 224-file sanitized source ZIP, all 12 retained APK hashes and all 12 phone-state cases. Application/runtime source, release metadata and historical device reports were verified unchanged. Export guards reject existing/checkout-local destinations, and repeated packaging is deterministic. The local frontend build could not run because its Vinext dependency cache is absent; Site publication therefore requires the supported remote build of the verified pushed source. The historical 400-case native release was not rerun and no physical watch/battery acceptance is claimed. The app remains v0.13.0/code 14.
+
+## Multisport release verification — 2026-11-10
+
+The v0.14.0/code 15 release suite contains 294 core checks, 113 native UI checks and 43 web/crypto/relay checks (450 total). New tests cover five formats, old/new badminton and padel presets, nested game/set and deciding tie-break Undo, seven-game table tennis, service rotation including the deciding-game receiving switch, B4/B5/O1/O2 compatibility, team roles, derived badges after deletion/reopening, partial tennis retirement scores and native/browser CSV-3 parity.
+
+Native Canvas renders inspect all five scoreboards, the sport selector and player badges on a round 233dp viewport. The phone preview uses synthetic data and checks separate sport history, scoped statistics, unknown point totals and shared player sport badges. Native UI tests preserve timing, manual entry, Back/swipe, session/power and transfer guards. These remain automated/desktop checks: installation, optical QR scanning, physical OnePlus touch/ambient behavior and battery acceptance require the user's watch. No new physical-device report is added.
+
+Build using the documented Java 17 toolchain. The environment's initial Java 21 compiler passed model/UI checks but generated an anonymous-class form that the pinned Android 34 D8 could not process. The official package uses a fresh Java 17 build and the original signer; no Android dependency lock or identity check is weakened.

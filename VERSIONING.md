@@ -1,6 +1,6 @@
 # Versions and compatibility
 
-Current official watch release: **v0.13.0**; Android version code **14**; package **`at.andrew.squashtap`**. `public/release.properties` is the machine-readable update feed; `public/builds.json` and `SHA256SUMS.txt` record retained artifacts.
+Current official watch release: **v0.14.0**; Android version code **15**; package **`at.andrew.squashtap`**. `public/release.properties` is the machine-readable update feed; `public/builds.json` and `SHA256SUMS.txt` record retained artifacts.
 
 ## Independent version numbers
 
@@ -13,7 +13,7 @@ Current official watch release: **v0.13.0**; Android version code **14**; packag
 
 ## Current formats
 
-Write B4 match books and retain B1/B2/B3 readers/backups. O1 opponent metadata remains separate. M1 represents ordinary matches, M2 retirement-only state, and M3 entered-set summaries; entered scores must not be relabelled as old rally formats. CSV schema 1 remains ordinary-only compatible; schema 2 carries retirement. Preserve session/direction-bound encrypted transfer semantics and explicit phone launch-tab whitelisting.
+Read B1–B5 books. Preserve B4 for unchanged squash-only state; use B5 for multisport/explicit serving or extended results. Preserve old M1/M2/M3 squash encodings; M4 stores format/initial service data. O1 remains readable, O2 separates team roles, and both use the same stable player catalog. Retain once-only B1/B2/B3/B4/O1 backups. CSV schemas 1/2 remain squash-compatible; schema 3 adds explicit sport/mode/rules, seven-game results, team roles and known point/tie-break details. Schema 3 requires the updated watch. Phone encryption/session direction remains unchanged. See [RULES.md](RULES.md) for frozen rule presets.
 
 Older versions may not understand new preferences or retirement/manual CSV. Do not promise safe downgrades. For corrections, normally deliver a higher-version-code APK with compatible readers and the same package/key. Never fabricate legacy timing, rally order, winning sets or reused references during migration.
 
