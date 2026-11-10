@@ -1,6 +1,6 @@
 # Architecture
 
-Current watch release: **v0.15.0**, code **16**. This document describes the implemented system; release changes are in [CHANGELOG.md](CHANGELOG.md).
+Current watch release: **v0.15.1**, code **17**. This document describes the implemented system; release changes are in [CHANGELOG.md](CHANGELOG.md).
 
 ## Components and responsibilities
 
@@ -78,3 +78,9 @@ This is link-possession access, not identity-based authorization: anyone with a 
 Update metadata is untrusted. Validate schema/package/version/SDK, HTTPS origin, expected size and SHA-256. Streaming download enforces size/hash; the APK must match the package and installed signer before PackageInstaller confirmation. Settings initiates the request; no launch/scheduled polling exists. Keep the original package and release key for official in-place updates.
 
 See [TESTING.md](TESTING.md) for the recorded 400-check v0.13 release, separately recorded user reports and remaining physical-device acceptance. Source publishing and documentation checks do not establish physical screen, sensor, gesture or battery behavior.
+
+## Serving display and landing previews
+
+ScoreView reserves a separate high-contrast serving capsule and outline on the serving score card. Name labels fit actual measured card width with Unicode-safe truncation; the serving capsule uses fixed roles rather than variable-length names. Derive the service slot once per frame, retain known service in ambient text and expose complete server names in accessibility text. No scoring/service rule or storage change is made.
+
+The landing page keeps its canonical HTML in public/index.html with matching app/layout.tsx metadata. Native Canvas previews generated from synthetic fixtures are copied to public/watch-*.png and included in sanitized source exports. Native radio inputs and CSS switch the five hero previews without JavaScript, storage or network transfers.

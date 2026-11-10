@@ -1,5 +1,12 @@
 # Releases
 
+## 0.15.1 — 2026-11-10
+
+- Keep serving visible with a dedicated pale-gold badge and score-card outline. Fit names by measured pixel width; fixed doubles role labels keep the serve cue independent of long or missing names. Preserve known service in ambient and full names in accessibility text; hide serve cues after a game/match finishes.
+- Refresh the landing page around the five sports, native example previews, supported modes/rules, shared players/separate results, clearer navigation, installation/update guidance and transfer privacy. Preserve blue score/red playing branding and the single current APK version. Native radio/CSS preview switching needs no JavaScript. Update page metadata and export PNG source assets.
+- Verify 299 core + 135 native UI + 43 web/relay checks = 477, native renders across four sizes, original signing identity/package/API/alignment and all 15 retained APK hashes. Update documentation and the matching public source package.
+
+
 ## 0.15.0 — 2026-11-10
 
 - Identify each sport with its own vector mark and accent in the selector, menu badges and live scoreboard; retain blue/red scoring sides. Separate sport actions and app-wide controls, with shared purple Players, grey Settings, red discard/delete and contextual Back/Cancel.

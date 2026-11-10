@@ -1,6 +1,6 @@
 # Squash Tap
 
-A standalone, offline racket-sport scorekeeper for Wear OS. Current watch release: **v0.15.0**, Android version code **16**. No account is required; scores and saved history live on the watch.
+A standalone, offline racket-sport scorekeeper for Wear OS. Current watch release: **v0.15.1**, Android version code **17**. No account is required; scores and saved history live on the watch.
 
 [Download the watch app](https://squash-tap-andrew.endruuu.chatgpt.site/) · [GitHub source](https://github.com/andrew01ait/squash-tap) · [Install using your phone](INSTALLATION.md)
 
@@ -8,7 +8,7 @@ A standalone, offline racket-sport scorekeeper for Wear OS. Current watch releas
 
 - Start with Squash, Tennis, Badminton, Padel or Table tennis. Results and statistics are separated by sport; eligible sports have singles/doubles filters.
 - Use one shared Players catalog for opponents and partners. Small sport icons indicate saved results in any role; renames keep stable identities, and deleting/reopening results updates the icons.
-- Keep two large scoring cards for singles or teams. Tennis/padel games advance automatically; select optional first-server choices for serving guidance. No first/second serve, let or stroke recording.
+- Keep two large scoring cards for singles or teams. Tennis/padel games advance automatically; select optional first-server choices for serving guidance. A bright independent serving badge and score-card outline stay visible with missing or long names; doubles use stable role labels. No first/second serve, let or stroke recording.
 - Choose both old/new badminton and padel formats. Each match retains its own rules. See [Sports and scoring](RULES.md) for exact presets, service guidance and scope.
 
 - Tap blue **Me** or red **Opponent** to score a rally. Squash PAR-11 requires a two-point lead; Undo corrects mistakes.
@@ -77,6 +77,8 @@ Updates are requested manually in Settings. There is no background update pollin
 | [AGENTS.md](AGENTS.md) | Maintenance constraints for future coding work. |
 | [CHANGELOG.md](CHANGELOG.md) | Release and documentation history. |
 
-The current v0.15 release suite passes **299 core + 130 Android UI + 43 web/relay checks = 472**. The historical v0.13 release suite was **265 core + 100 Android UI + 35 web/relay checks = 400**. This is release evidence, not a claim that every documentation update reruns or physically validates the watch. See [TESTING.md](TESTING.md) for current verification.
+The current v0.15.1 release suite passes **299 core + 135 Android UI + 43 web/relay checks = 477**. The historical v0.13 release suite was **265 core + 100 Android UI + 35 web/relay checks = 400**. This is release evidence, not a claim that every documentation update reruns or physically validates the watch. See [TESTING.md](TESTING.md) for current verification.
 
 Future user-facing JSON exports use the local export date and application name: `YYYYMMDD_ApplicationName_Description.json`, for example `20261109_SquashTap_results.json`. Current match interchange is CSV; this naming rule does not add a JSON export feature.
+
+The landing page offers keyboard-accessible previews of all five scoreboards, supported formats, native menu/name examples, installation/update help and transfer privacy. Preview images use synthetic data, never real player exports.

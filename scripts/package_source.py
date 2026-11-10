@@ -42,7 +42,7 @@ def source_files():
     metadata = {'_headers', 'builds.json', 'release.properties', 'SHA256SUMS.txt',
                 'test-results.txt', 'THIRD_PARTY_NOTICES.txt'}
     files.update(p for p in public.iterdir() if p.is_file()
-                 and (p.suffix in ('.html', '.css', '.mjs', '.js', '.svg')
+                 and (p.suffix in ('.html', '.css', '.mjs', '.js', '.svg', '.png')
                       or p.name in metadata))
     return sorted(files)
 

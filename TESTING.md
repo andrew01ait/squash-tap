@@ -1,6 +1,6 @@
 # Testing and verification
 
-Current watch release: **v0.15.0 / code 16**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
+Current watch release: **v0.15.1 / code 17**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
 
 ## Recorded release evidence
 
@@ -105,3 +105,9 @@ Build using the documented Java 17 toolchain. The environment's initial Java 21 
 v0.15.0/code 16 passes **299 core + 130 native UI + 43 web/relay checks = 472** using the documented Java 17 release builder. The added checks cover discard without a result/reference, preservation of shared names/history/counters, all sport formats, finished-match protection, active/paused/prepared sport locks across restart and session removal, stale selection/create/discard callbacks, selected rule/mode/decider lists, picker cancellation/swipe and shared Players/Settings returns.
 
 Native Canvas inspection covers the five sport scoreboards, coloured sport menu, shared player badges, setup, scoring list, current controls, discard confirmation and locked sport selector at a round 233dp viewport. Selection options precede help text, confirmations omit the Scoreboard shortcut, and setup/options/settings/serving preserve scroll on picker return. The full builder also checks the original certificate/package/API/watch metadata, ZIP alignment and all retained release hashes. A local website build passes. Physical OnePlus installation, touch/swipe, ambient behavior and battery acceptance remain separate; no new device report is claimed.
+
+## Serving and landing release — 2026-11-10
+
+v0.15.1/code 17 passes 299 core + 135 native UI + 43 web/relay checks = 477. Five additional native rendering regressions cover empty/long names at 180/200/233/260dp equivalents, all four doubles service slots, unknown/completed state, side changes with Undo and ambient service text. Native Canvas previews show the actual synthetic app views; they do not establish physical-device acceptance. Original signing identity, metadata/alignment and all 15 retained APK hashes are verified. The website refresh is checked separately for preview switching, links, images and responsive layout.
+
+Landing-page browser QA verified five radio/CSS previews and keyboard arrow selection, all eight PNGs loaded, installation anchors and retirement/discard help. Desktop width 1363px and narrow CSS viewports 454px/340px have no horizontal overflow. Narrow checks use browser zoom/reflow, not a physical phone.

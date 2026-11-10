@@ -24,7 +24,7 @@ public final class ScoreView extends View {
     private boolean paused;
     private boolean sessionActive;
     private String opponentLabel="OPPONENT",partnerLabel="Partner",primaryLabel="Opponent 1",otherLabel="Opponent 2";
-    public void players(String partner,String primary,String other){partnerLabel=partner.isEmpty()?"Partner":partner;primaryLabel=primary.isEmpty()?"Opponent 1":primary;otherLabel=other.isEmpty()?"Opponent 2":other;invalidate();}
+    public void players(String partner,String primary,String other){partnerLabel=partner==null||partner.isEmpty()?"Partner":partner;primaryLabel=primary==null||primary.isEmpty()?"Opponent 1":primary;otherLabel=other==null||other.isEmpty()?"Opponent 2":other;refresh();}
 
     public ScoreView(Context context, MatchState match, Actions actions) {
         super(context);
@@ -40,7 +40,7 @@ public final class ScoreView extends View {
     public void ambient(boolean value,boolean lowBit){ambient=value;this.lowBit=lowBit;pressed=TouchTargets.OUTSIDE;invalidate();}
     public void refresh() {
         setContentDescription("Squash Tap. "+match.format().name()+". "+(match.format().doubles?"Our team ":"Me ") + match.game().displayPoint(0)+", "+opponentLabel+" "+match.game().displayPoint(1)
-            +". "+(match.format().nested()?"Sets ":"Games ")+match.gamesWon(0)+" to "+match.gamesWon(1)+", best of "+match.bestOf()+". Bottom left Undo; bottom right "+(match.nextReady()?"Next "+match.format().unit().toLowerCase(java.util.Locale.ROOT):"New match")+". Top opens the "+match.format().name()+" menu: Current match, Results, Statistics, Players and Settings.");
+            +". "+(match.format().nested()?"Sets ":"Games ")+match.gamesWon(0)+" to "+match.gamesWon(1)+", best of "+match.bestOf()+". "+serviceAnnouncement()+" Bottom left Undo; bottom right "+(match.nextReady()?"Next "+match.format().unit().toLowerCase(java.util.Locale.ROOT):"New match")+". Top opens the "+match.format().name()+" menu: Current match, Results, Statistics, Players and Settings.");
         invalidate();
     }
     @Override protected void onDraw(Canvas canvas) {
@@ -50,13 +50,14 @@ public final class ScoreView extends View {
         paint.setAntiAlias(!ambient||!lowBit);
         if(ambient){drawAmbient(canvas,w,h,s);return;}
         canvas.drawColor(Color.rgb(8, 13, 23));
+        int server=knownServer();
         sportHeading(canvas,w,h,s);
         text(canvas,(match.format().nested()?"SETS ":"GAMES ")+match.gamesWon(0)+"–"+match.gamesWon(1)+" · BO"+match.bestOf()+(match.format().nested()?" · GAMES "+state.blue()+"–"+state.red():" · GAME "+match.gameCount())+(updateAvailable?" •":""),
             w * .5f, h * .183f, s * .033f, updateAvailable ? 0xff94edb4 : 0xffcbd5e1, false);
         card(canvas, w * .075f, h * .245f, w * .48f, h * .67f, TouchTargets.BLUE,
-            match.format().doubles?"OUR TEAM":"ME", state.displayPoint(0), 0xff1668cb, 0xff2489f5, s);
+            match.format().doubles?"OUR TEAM":"ME", state.displayPoint(0), 0xff1668cb, 0xff2489f5, s,server);
         card(canvas, w * .52f, h * .245f, w * .925f, h * .67f, TouchTargets.RED,
-            opponentLabel, state.displayPoint(1), 0xffb82e4c, 0xfff34b65, s);
+            opponentLabel, state.displayPoint(1), 0xffb82e4c, 0xfff34b65, s,server);
         String status = paused?"PAUSED · TAP MENU":match.retired()?(match.winner()==0?"WON · RETIREMENT":"LOST · RETIREMENT"):match.complete()?(match.winner()==0?"MATCH WON":"MATCH LOST")
             :!sessionActive?"TAP +1 TO START"
             :state.winner() == ScoreState.BLUE ? "SET WON · NEXT TO PLAY"
@@ -72,37 +73,58 @@ public final class ScoreView extends View {
         SportIcons icon=new SportIcons(match.format().sport,(int)iconSize);icon.setBounds((int)left,(int)(h*.108f-iconSize/2),(int)(left+iconSize),(int)(h*.108f+iconSize/2));icon.draw(c);
         text(c,label,left+iconSize+s*.018f+width/2,h*.108f,size,SportIcons.accent(match.format().sport),true);
     }
-    private void card(Canvas c, float l, float t, float r, float b, int target, String label, String value, int fill, int accent, float s) {
+    private void card(Canvas c, float l, float t, float r, float b, int target, String label, String value, int fill, int accent, float s,int server) {
         ScoreState state=match.game();
         paint.setStyle(Paint.Style.FILL);
         paint.setColor(pressed == target ? accent : fill);
         c.drawRoundRect(new RectF(l,t,r,b), s*.07f, s*.07f, paint);
-        if ((match.retired()?match.winner():state.winner()) == target) {
+        if ((match.retired()?match.winner():state.winner()) == target||serverSide(server)==target) {
             paint.setStyle(Paint.Style.STROKE); paint.setStrokeWidth(s*.012f); paint.setColor(0xffebf8ef);
+            if(serverSide(server)==target){paint.setColor(0xfff6e7ab);paint.setStrokeWidth(s*.008f);}
             c.drawRoundRect(new RectF(l+s*.006f,t+s*.006f,r-s*.006f,b-s*.006f), s*.07f,s*.07f,paint);
             paint.setStyle(Paint.Style.FILL);
         }
-        String shown=label;while(shown.codePointCount(0,shown.length())>12)shown=shown.substring(0,shown.offsetByCodePoints(0,11))+"…";
+        String shown=fitLabel(label,r-l-s*.06f,s*.042f,true);
         text(c,shown,(l+r)/2,t+(b-t)*.20f,s*.042f,0xfff5f8ff,true);
-        text(c,value,(l+r)/2,t+(b-t)*.59f,
+        text(c,value,(l+r)/2,t+(b-t)*.56f,
             s*(value.length()<3?.225f:value.length()<4?.17f:.125f),Color.WHITE,true);
-        text(c,match.retired()?(match.retiredPlayer()==target?"RETIRED":"MATCH WINNER"):state.winner()==ScoreState.NONE?serveLabel(target):state.winner()==target?"WINNER":"GAME OVER",
-            (l+r)/2,t+(b-t)*.86f,s*.033f,0xffe4eafa,false);
+        if(serverSide(server)==target)serveBadge(c,l+s*.025f,r-s*.025f,t+(b-t)*.86f,s,server);
+        else{String footer=match.retired()?(match.retiredPlayer()==target?"RETIRED":"MATCH WINNER"):state.winner()==ScoreState.NONE?"TAP +1":state.winner()==target?"WINNER":"GAME OVER";
+            text(c,fitLabel(footer,r-l-s*.04f,s*.033f,false),(l+r)/2,t+(b-t)*.86f,s*.033f,0xffe4eafa,false);}
     }
-    private String serveLabel(int side){
-        int slot=match.server(),team=slot<0?-1:slot>=4?slot-4:slot%2;if(team!=side)return "TAP +1";
+    private int knownServer(){return match.complete()||match.game().winner()!=ScoreState.NONE?-1:match.server();}
+    private int serverSide(int slot){return slot<0?-1:slot>=4?slot-4:slot%2;}
+    private String serveLabel(int slot){
         if(!match.format().doubles||slot>=4)return "SERVING";
-        String label=slot==0?"Me":slot==1?primaryLabel:slot==2?partnerLabel:otherLabel;
-        if(label.codePointCount(0,label.length())>8)label=label.substring(0,label.offsetByCodePoints(0,7))+"…";
-        return "SERVE: "+label;
+        return "SERVE · "+(slot==0?"ME":slot==1?"OPP. 1":slot==2?"PARTNER":"OPP. 2");
+    }
+    private String serviceAnnouncement(){
+        if(match.complete()||match.game().winner()!=ScoreState.NONE)return "";
+        int slot=knownServer();if(slot<0)return "Serving not set.";
+        String name=slot==0?"Me":slot==1?match.format().doubles?primaryLabel:opponentLabel:slot==2?partnerLabel:slot==3?otherLabel:slot==4?"Our team":"Opposing team";
+        return "Serving: "+name+".";
+    }
+    private void serveBadge(Canvas c,float l,float r,float y,float s,int server){
+        String label=serveLabel(server);float font=s*.036f;paint.setTypeface(Typeface.create("sans-serif",Typeface.BOLD));paint.setTextSize(font);
+        float available=r-l-s*.045f;while(paint.measureText(label)>available){font-=s*.001f;paint.setTextSize(font);}
+        float width=paint.measureText(label)+s*.045f,center=(l+r)/2;
+        paint.setStyle(Paint.Style.FILL);paint.setColor(0xfff6e7ab);c.drawRoundRect(new RectF(center-width/2,y-s*.031f,center+width/2,y+s*.031f),s*.025f,s*.025f,paint);
+        text(c,label,center,y,font,0xff172031,true);
+    }
+    private String fitLabel(String value,float maxWidth,float size,boolean bold){
+        paint.setTextSize(size);paint.setTypeface(bold?Typeface.create("sans-serif",Typeface.BOLD):Typeface.create("sans-serif",Typeface.NORMAL));
+        if(paint.measureText(value)<=maxWidth)return value;
+        int end=value.length();while(end>0&&paint.measureText(value.substring(0,end)+"…")>maxWidth)end=value.offsetByCodePoints(end,-1);
+        return value.substring(0,end)+"…";
     }
     private void drawAmbient(Canvas c,float w,float h,float s){
         c.drawColor(Color.BLACK);int shift=(int)((System.currentTimeMillis()/60000)%5)-2;c.save();c.translate(shift,-shift);
         text(c,java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")),w*.5f,h*.115f,s*.065f,0xffaaaaaa,false);
         text(c,match.format().name().toUpperCase(java.util.Locale.ROOT)+" · "+match.gamesWon(0)+"–"+match.gamesWon(1)+" · BO"+match.bestOf(),w*.5f,h*.23f,s*.035f,0xff999999,false);
-        text(c,"ME",w*.27f,h*.36f,s*.04f,0xffaaaaaa,false);String label=opponentLabel.codePointCount(0,opponentLabel.length())>12?opponentLabel.substring(0,opponentLabel.offsetByCodePoints(0,11))+"…":opponentLabel;text(c,label,w*.73f,h*.36f,s*.04f,0xffaaaaaa,false);
+        text(c,"ME",w*.27f,h*.36f,s*.04f,0xffaaaaaa,false);String label=fitLabel(opponentLabel,w*.36f,s*.04f,false);text(c,label,w*.73f,h*.36f,s*.04f,0xffaaaaaa,false);
         text(c,match.game().displayPoint(0),w*.27f,h*.51f,s*.20f,0xffbbbbbb,false);
         text(c,match.game().displayPoint(1),w*.73f,h*.51f,s*.20f,0xffbbbbbb,false);
+        int server=knownServer();if(serverSide(server)>=0)text(c,serveLabel(server),w*(serverSide(server)==0?.27f:.73f),h*.63f,s*.031f,0xffbbbbbb,true);
         text(c,paused?"MATCH PAUSED":match.complete()?"MATCH COMPLETE":sessionActive?"MATCH IN PROGRESS":"READY TO PLAY",w*.5f,h*.72f,s*.037f,0xff999999,false);
         text(c,"Wake to score",w*.5f,h*.82f,s*.035f,0xff888888,false);c.restore();
     }

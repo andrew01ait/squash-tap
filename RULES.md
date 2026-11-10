@@ -1,4 +1,4 @@
-# Sports and scoring — v0.15.0
+# Sports and scoring — v0.15.1
 
 Choose scoring presets from explicit lists before creating a match. Each match keeps its chosen rules. An unfinished or paused match must be completed or cancelled before switching sports.
 
