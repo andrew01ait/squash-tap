@@ -9,6 +9,11 @@ function audienceScore(phase='playing'){
 }
 export async function preview(request,env){
  const url=new URL(request.url);
+ if(url.pathname.endsWith('/landing-layouts')){
+  const width=url.searchParams.get('narrow')==='1'?320:393,src=url.origin+'/index.html?landing-preview='+width+'#live-scores';
+  return new Response('<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Live streaming section layout QA</title><style>body{margin:16px;background:#253148;color:white;font:14px system-ui;display:flex;gap:18px}iframe{border:1px solid #63738a;border-radius:14px;display:block}h2{font-size:14px;margin:0 0 8px}</style><section><h2>Portrait · '+width+' × 852 CSS px</h2><iframe title="Portrait landing" width="'+width+'" height="852" src="'+src+'"></iframe></section><section><h2>Landscape · 852 × 393 CSS px</h2><iframe title="Landscape landing" width="852" height="393" src="'+src+'"></iframe></section>',{headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
+ }
+
  if(['/audience-discard','/audience-stop','/audience-finish','/audience-resume','/audience-expire'].some(p=>url.pathname.endsWith(p))){
   const id=url.searchParams.get('id');if(request.method!=='POST'||!/^[a-f0-9]{32}$/.test(id))return new Response('Invalid synthetic action',{status:400});
   if(url.pathname.endsWith('/audience-expire')){await env.DB.prepare('UPDATE live_games SET expires_at=? WHERE id=?').bind(Date.now()+5000,id).run();return new Response('Synthetic expiry set');}

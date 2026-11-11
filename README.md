@@ -23,7 +23,8 @@ A standalone, offline racket-sport scorekeeper for Wear OS. Current watch releas
 - Quickly rematch the last completed current match with the same rules and available players, retaining its result. Save up to 24 named favourite formats.
 - Choose Classic, Neon Lime or high-contrast Sunlight scoreboard colours from a preview list. Brightness follows watch system settings; the app has no light-sensor loop or forced brightness.
 - Choose point/milestone/off vibrations and optional non-blocking change-ends/interval prompts. Add a read-only match tile or score complication from the watch’s system pickers.
-- Download a complete local backup, share result-card PNGs or explicitly start an encrypted read-only live audience scoreboard when internet is available.
+- Download a complete local backup or share result-card PNGs.
+- Stream live results to a read-only audience website when internet is available, including matching-player head-to-head and the last meeting. See the [live score streaming guide and preview](https://squash-tap-andrew.endruuu.chatgpt.site/#live-scores).
 
 ## Where to find things
 
@@ -53,6 +54,14 @@ Choose **Current match → Enter set score** to change the current match. Choose
 Names are optional. Players → Your name sets your own display name (blank means Me), independently of the opponent catalog. Your name appears on the watch, private phone view, result-card image and live scoreboard. Adding a name on the phone never assigns it to the last/current match. Match reassignment needs a separate explicit opt-in and watch review. Renames follow stable opponent IDs. Removing a name archives it from future selection while retaining its identity in old results and filters.
 
 Deleting a result requires confirmation and never reuses its daily match number. Deleting all history keeps the current scoreboard. Undo/re-completion preserves the original reference and cannot revive a deliberately deleted current result. Retired players lose the match; actual sets/points alone enter their corresponding totals.
+
+## Live result streaming
+
+Open **Current match → Live scoreboard → Start live sharing** on the watch. Scan the audience QR with your phone and use the website's share icon to send the audience link. Spectators follow points, games/sets and serving cues in their browser without an account or additional app. The page supports portrait/landscape, colour choices and fullscreen.
+
+Matching saved opponents in the same sport/mode include a head-to-head balance and latest previous result. Doubles require the same partner and opposing pair. The link shares only the current match and this bounded summary, not your entire history. Anyone with the complete active audience link can view it.
+
+Internet is needed for audience updates; watch scoring remains offline. The latest score retries after reconnecting while the app process remains available. Live access lasts up to eight hours during play; completed results show the winner and actual game/set scores for ten minutes after completion. Stop sharing can close access earlier when the watch is online. Audience sharing is separate from phone transfers.
 
 ## Phone transfers and privacy
 
@@ -87,7 +96,7 @@ The current v0.16.4 release suite passes **331 core + 191 Android UI + 64 web/re
 
 Full backups use the local export date and application name: `YYYYMMDD_ApplicationName_Description.json`, for example `20261111_KeepScore_Backup.json`. Completed-result interchange remains CSV; full backup JSON also preserves current rallies and Undo.
 
-The landing page offers keyboard-accessible previews of all six scoreboards, supported formats, native menu/name examples, installation/update help and transfer privacy. Preview images use synthetic data, never real player exports.
+The landing page offers keyboard-accessible previews of all six scoreboards, supported formats, native menu/name examples, installation/update help and transfer privacy. Its dedicated Live scores section has a navigation/hero link, three setup steps and an illustrative audience scoreboard. Preview images and sample scores use synthetic data, never real player exports.
 
 ## Complete backup and live audience
 

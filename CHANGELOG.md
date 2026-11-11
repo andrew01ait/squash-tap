@@ -1,5 +1,10 @@
 # Releases
 
+## Live streaming feature section — 2026-11-11 (watch v0.16.4 unchanged)
+
+- Give live result streaming a dedicated landing-page section with navigation/hero links, watch-to-QR-to-share setup, an illustrative audience scoreboard, previous-meeting details and ten-minute final results. Explain connection and link-access requirements alongside the feature.
+- Add responsive portrait/landscape QA frames, check mobile layout and links, and refresh documentation/source artifacts. This website-only update preserves the watch release and retained APK bytes.
+
 ## Website explanations — 2026-11-11 (watch v0.16.4 unchanged)
 
 - Add result-filter reset and live-sharing instructions to the landing page. Align privacy wording with encrypted head-to-head/last-meeting summaries, the live window and ten-minute final results. Keep the current v0.16.4 download and all release bytes.

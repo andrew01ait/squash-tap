@@ -143,3 +143,9 @@ Native renders inspect the alphabetical selector and badges. Browser preview ver
 ## Website explanation audit — 2026-11-11
 
 The live landing page/update feed report v0.16.4/code 22; APK, source ZIP and checksum links return HTTP 200. The audit identified missing reset instructions and an outdated match-only/eight-hour privacy sentence. Updated feature/FAQ/privacy copy now matches the existing implementation. Documentation and sanitized-export parity, referenced local assets, current source/website build and unchanged release metadata/20 APK hashes are checked. This is a website-copy update: the recorded 586 native/web release checks and physical-device evidence remain unchanged and are not claimed as a fresh native rerun.
+
+## Dedicated live streaming feature section — 2026-11-11
+
+Browser QA inspects the new setup steps and illustrative scoreboard in 393×852 and 852×393 frames. A 320×852 frame checks the compact navigation and score cards; all three page widths have matching client/scroll widths without horizontal overflow. The two example score cards align and remain readable, with the sample clearly labelled. The development-only layout fixture uses the public landing HTML at `/index.html`; a cached service worker from an unrelated local preview served stale content at `/`, so that cached root was not used as feature evidence.
+
+Validate unique section/preview IDs, navigation/hero anchor targets, all referenced local files, matching HTML/framework descriptions, documentation/export parity, production fixture exclusion and the website build. Recheck all 20 retained APK hashes/sizes and byte-identical release metadata. This update changes website presentation and documentation only; the v0.16.4 release's recorded 586 checks are not a fresh native rerun, and physical-watch acceptance remains unchanged.
