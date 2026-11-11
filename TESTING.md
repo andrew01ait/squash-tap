@@ -1,6 +1,6 @@
 # Testing and verification
 
-Current watch release: **v0.16.2 / code 20**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
+Current watch release: **v0.16.3 / code 21**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
 
 ## Recorded release evidence
 
@@ -30,7 +30,7 @@ from pathlib import Path
 import os, subprocess
 root = Path.cwd()
 folder = root / 'android/src/at/andrew/squashtap'
-names = ('ScorePalette','BackupArchive','MatchPresets','MatchReminders','PickleballGame','MatchFormat','ServiceOrder','ScoreState','TouchTargets','UpdatePolicy','VerifiedDownload','MatchState',
+names = ('HeadToHead','ScorePalette','BackupArchive','MatchPresets','MatchReminders','PickleballGame','MatchFormat','ServiceOrder','ScoreState','TouchTargets','UpdatePolicy','VerifiedDownload','MatchState',
          'MatchResult','MatchStatistics','ManualMatchEntry','MatchBook','MatchDisplayPolicy',
          'DiagnosticTransfer','OpponentDirectory','ResultFilter','MatchCsv','TransferCrypto')
 tests = sorted((root / 'android/test').rglob('*Test.java'))
@@ -59,7 +59,7 @@ Native/browser interchange cases execute Java fixtures; the full command require
 Follow [DEPLOYMENT.md](DEPLOYMENT.md) for SDK, locked runtime/UI dependencies, original signing key and verified retained APKs. The standard builder executes core/web tests, compiles real AAPT resources and runs native UI tests before D8/signing. UI tests can also be repeated once those resources/generated classes exist:
 
 ```sh
-python3 scripts/test_ui.py --version 0.16.2
+python3 scripts/test_ui.py --version 0.16.3
 ```
 
 Robolectric executes API 34 and uses its configured API 35 framework for resource parsing. Test tooling stays under ignored `.local/`; it is not bundled in the APK. A fresh export does not contain the maintainer's signing key, SDK or prior unsigned build, so the complete release pipeline is not a key-free out-of-box build.
@@ -129,3 +129,9 @@ The patch suite includes 325 core + 185 native UI + 58 web/relay cases (568). Ne
 ## Shared menu branding — v0.16.2, 2026-11-11
 
 The full release suite passes 325 core + 185 native UI + 58 web/relay cases (568). The existing shared-navigation regression checks Keep Score on the sport selector, Players, Settings and a nested settings selector, absence of ALL SPORTS identity text, and return to the sport selector. Existing sport-context tests retain the actual sport name/icon/accent. Native Canvas renders cover updated shared headers and sport menus. Original signer/package/SDK/alignment, immutable retained APK hashes, documentation/export parity and a matching local website build are verified. Physical watch acceptance remains pending.
+
+## Audience history and final results — v0.16.3, 2026-11-11
+
+331 core + 190 native UI + 64 web/relay checks pass (585). Added coverage includes stable/archived/renamed identities, exact doubles teams with swapped opposing roles, unknown identity exclusion, backfilled result dates, current/deleted result exclusion, retirement winners, native summary privacy, stable completion metadata, Undo and queued final retries after rematch/task dismissal. API tests cover fixed ten-minute completion deadlines, the live cutoff, delayed offline completion, legacy rows, invalid markers, read-only roles and revision ordering. The alphabetical selector and browser/native fixture tests verify all six sports without positional sport assumptions.
+
+Native renders inspect the alphabetical selector and badges. Browser preview verifies portrait 393×852 and landscape 852×393 frames, aligned current/final scores, long doubles names, head-to-head/last meeting, winner/score breakdown, remaining availability and labelled share/copy icons without horizontal overflow. Browser-driven transition controls could not be verified because the test iframe hit the browser URL policy; the API/native transition regressions pass. Physical OnePlus acceptance remains pending. Original signer/package/SDK/alignment, all retained hashes, documentation/export parity and the local site build are checked separately.

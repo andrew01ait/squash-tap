@@ -1,4 +1,4 @@
-import {participants} from './sports.mjs?v=0.16.0';
+import {participants} from './sports.mjs?v=0.16.3';
 import {name,statistics} from './interchange.mjs?v=0.16.0';
 export function initialView(value){return ['results','statistics','opponents','import','backup'].includes(value)?value:'results';}
 /** Catalog edits never select a match opponent. Match reassignment is a separate opt-in. */

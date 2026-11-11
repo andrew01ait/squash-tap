@@ -1,5 +1,5 @@
 import {downloadResultCard,shareResultCard} from './result-card.mjs?v=0.16.0';
-import {sportName,rowSport,rowMode,rowRules,scorePairs,finalScore,details} from './sports.mjs?v=0.16.0';
+import {sportName,rowSport,rowMode,rowRules,scorePairs,finalScore,details} from './sports.mjs?v=0.16.3';
 import {localDate,localMoment,rowWinner,rowOutcome,statistics} from './interchange.mjs?v=0.16.0';
 import {opponentStatistics} from './transfer-state.mjs?v=0.16.0';
 const $=id=>document.getElementById(id);

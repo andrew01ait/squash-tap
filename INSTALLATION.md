@@ -1,6 +1,6 @@
 # Install, update and diagnose
 
-[Official download page](https://squash-tap-andrew.endruuu.chatgpt.site/) · Current watch APK: **v0.16.2 / code 20**.
+[Official download page](https://squash-tap-andrew.endruuu.chatgpt.site/) · Current watch APK: **v0.16.3 / code 21**.
 
 The APK runs on the watch. Wear Installer 2 is a helper on the Android phone; no PC development tools are required. The app is currently distributed by APK through this site, not the watch app store.
 
@@ -59,7 +59,7 @@ If the app returns to the watch face, record the version/time and export diagnos
 
 Players → Your name sets your display name, including from a reviewed phone edit. Settings → Colour scheme offers Classic, Neon Lime and Sunlight with previews. Use Sunlight for black scores on bright backgrounds; actual outdoor visibility also depends on watch brightness/reflections. Settings → Brightness: watch system opens Display settings, where Auto/Adaptive brightness is controlled by the watch. The app does not force maximum brightness or add a light-sensor loop.
 
-Settings → Backup & restore creates a complete private JSON backup through the phone browser; restoring replaces all local data after explicit watch review and keeps a downloadable previous-data copy. Test restore with synthetic data first. Current match → Live scoreboard is separate optional audience sharing, needing internet to start. The watch keeps scoring offline and catches up the latest score on reconnect. Read-only audience links expire after eight hours; protect private phone QR links separately.
+Settings → Backup & restore creates a complete private JSON backup through the phone browser; restoring replaces all local data after explicit watch review and keeps a downloadable previous-data copy. Test restore with synthetic data first. Current match → Live scoreboard is separate optional audience sharing, needing internet to start. The watch keeps scoring offline and catches up the latest score on reconnect. Read-only audience links last up to eight hours during play and ten minutes after completion; protect private phone QR links separately.
 
 Use the watch’s tile picker to add Keep Score. On a compatible watch face, add Keep Score · Match score as a complication. These open the current match without automatically resuming it. Choose vibrations/reminders in Settings. After a finished current match, Quick rematch starts a fresh match with its rules and available players. Save/Share a result-card image through a private phone result view.
 
@@ -68,3 +68,5 @@ Physical acceptance for v0.16 also needs outdoor colour/brightness checks, actua
 After installing v0.16.1, refresh any already-open audience webpage once. Start live sharing now opens its QR automatically; selectors in Settings stay open after a choice and use Back to Settings. Discarding a shared match shows Match discarded after the notice reaches the service; a disconnected watch retries on reconnect while the app process remains available.
 
 In v0.16.2, shared menus such as Players, Settings and their subpages show Keep Score. Sport-specific menus still show the selected sport. Use Settings → Check for updates to install the correction over your existing app.
+
+Update to v0.16.3 and start a fresh broadcast to share the head-to-head summary and use the ten-minute final window. Refresh an already-open audience page once for the new layout and share icons. Head-to-head requires matching saved players; doubles requires the same partner and both opponents. Sports are listed alphabetically on the watch and phone.

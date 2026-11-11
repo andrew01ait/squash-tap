@@ -1,4 +1,4 @@
-# Navigation and match flows — v0.16.2
+# Navigation and match flows — v0.16.3
 
 ## Sport entry and scope
 
@@ -111,7 +111,7 @@ Settings → Colour scheme opens an explicit list with both card colours preview
 
 Settings → Backup & restore → Create or restore backup → phone QR → download or select JSON → send → watch Receive changes → Restore this backup? → Replace data & restore. Preview/cancel changes nothing; stale/expired previews cannot apply. The replacement is atomic and unfinished restores are paused. Download previous data copy exports the pre-restore recovery snapshot through a fresh backup link. End an existing transfer before changing its snapshot purpose.
 
-Current match → Live scoreboard → Start live sharing → audience QR opens automatically when ready. Reopen it later with Show audience QR. A separate read-only link shares this match only for up to eight hours. Stop sharing revokes it if online; offline status explains expiry. Offline scoring continues and queues the latest score. A completed result → Share result card opens the private phone result view with Save/Share image actions.
+Current match → Live scoreboard → Start live sharing → audience QR opens automatically when ready. Reopen it later with Show audience QR. A separate read-only link shares this match only for up to eight hours during play, then ten minutes for the final result. Stop sharing revokes it if online; offline status explains expiry. Offline scoring continues and queues the latest score. A completed result → Share result card opens the private phone result view with Save/Share image actions.
 
 Add Keep Score from the watch’s tile picker or the watch face’s complication picker. Tapping opens Current match or sport selection without scoring or resuming. These are optional read-only entry points.
 
@@ -128,3 +128,11 @@ A committed Cancel match → Discard match sends an encrypted anonymous discard 
 ## v0.16.2 menu identity
 
 Shared screens use the Keep Score app name, including Players, Settings and their selectors. The sport selector and app-wide section headings use the same name. Sport-specific pages retain their sport name/icon; Back and swipe routes retain their caller.
+
+## v0.16.3 sport order and audience results
+
+Choose sport lists Badminton, Padel, Pickleball, Squash, Table tennis, Tennis; phone sport selectors and player sport badges use the same order. Existing selected/current sports retain their identities and locks.
+
+The audience dashboard shows previous head-to-head wins/losses plus the last meeting date, overall result and game/set scores when the same saved opponent or complete doubles teams played in this sport/mode. It omits unknown players and the current match. These are previous meetings, including on the final screen. The share and copy actions are accessible icons with titles; unsupported native sharing falls back to copying.
+
+Completion shows the winner and final games/sets, preserves actual partial scores for retirement, and displays the remaining final window. The link expires ten minutes after completion, with repeated updates retaining the deadline. A delayed offline completion uses its completion timestamp; new-match/task dismissal can retry the final snapshot without revoking the completed link. Undo before expiry returns to play using the original live deadline. Stop sharing can still revoke access sooner. Expiry/discard removes current names, scores and previous-meeting details.

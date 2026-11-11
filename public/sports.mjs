@@ -1,4 +1,4 @@
-export const SPORTS=['squash','tennis','badminton','padel','table-tennis','pickleball'];
+export const SPORTS=['badminton','padel','pickleball','squash','table-tennis','tennis'];
 export const sportName=s=>({'squash':'Squash','tennis':'Tennis','badminton':'Badminton','padel':'Padel','table-tennis':'Table tennis','pickleball':'Pickleball'}[s]||s);
 export const sportIcon=s=>({'squash':'◉','tennis':'🎾','badminton':'🏸','padel':'▦','table-tennis':'🏓'}[s]||'');
 export const rowSport=r=>r[0]==='3'?r[24]:'squash';

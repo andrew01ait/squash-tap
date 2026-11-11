@@ -1,0 +1,1 @@
+ALTER TABLE `live_games` ADD `active_expires_at` integer;

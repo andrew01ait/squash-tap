@@ -6,8 +6,8 @@ import argparse, hashlib, json, os, secrets, shutil, subprocess, sys, zipfile
 ROOT=Path(__file__).resolve().parents[1]
 PKG='at.andrew.squashtap'
 SITE='https://squash-tap-andrew.endruuu.chatgpt.site'
-RELEASES=((20,'0.16.2'),)
-RELEASE_NOTES='Shared menus now show Keep Score instead of All Sports. Sport-specific menus keep their sport names. Includes the Settings navigation and live audience discard fixes from v0.16.1.'
+RELEASES=((21,'0.16.3'),)
+RELEASE_NOTES='Sports are alphabetical. Live scoreboards show head-to-head and the last meeting for matching saved players or teams, icon sharing, and a final-result view available for ten minutes after completion.'
 
 def run(args, env=None):
     result=subprocess.run([str(x) for x in args],cwd=ROOT,env=env,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
@@ -25,7 +25,7 @@ def build(sdk,junit,hamcrest):
         if jvm.exists(): env['JAVA_HOME']=str(jvm)
     work=ROOT/'build';work.mkdir(exist_ok=True)
     test_classes=work/'test-classes';test_classes.mkdir(exist_ok=True)
-    core=[ROOT/'android/src/at/andrew/squashtap'/f'{name}.java' for name in ('ScorePalette','BackupArchive','MatchPresets','MatchReminders','PickleballGame','ServiceOrder','MatchFormat','ScoreState','TouchTargets','UpdatePolicy','VerifiedDownload','MatchState','MatchResult','MatchStatistics','ManualMatchEntry','MatchBook','MatchDisplayPolicy','DiagnosticTransfer','OpponentDirectory','ResultFilter','MatchCsv','TransferCrypto')]
+    core=[ROOT/'android/src/at/andrew/squashtap'/f'{name}.java' for name in ('HeadToHead','ScorePalette','BackupArchive','MatchPresets','MatchReminders','PickleballGame','ServiceOrder','MatchFormat','ScoreState','TouchTargets','UpdatePolicy','VerifiedDownload','MatchState','MatchResult','MatchStatistics','ManualMatchEntry','MatchBook','MatchDisplayPolicy','DiagnosticTransfer','OpponentDirectory','ResultFilter','MatchCsv','TransferCrypto')]
     tests=sorted((ROOT/'android/test').rglob('*Test.java'))
     cp=os.pathsep.join((str(junit),str(hamcrest)))
     print('Compiling and running local JUnit tests',flush=True)

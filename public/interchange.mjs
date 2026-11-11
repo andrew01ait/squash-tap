@@ -1,4 +1,4 @@
-import {rowRules,scorePairs,finalScore,details} from './sports.mjs?v=0.16.0';
+import {rowRules,scorePairs,finalScore,details} from './sports.mjs?v=0.16.3';
 export const HEADER='schema,match_id,date,match_number,opponent_id,opponent_name,best_of,started_at,finished_at,time_zone,duration_seconds,me_sets,opponent_sets,set_1_me,set_1_opponent,set_2_me,set_2_opponent,set_3_me,set_3_opponent,set_4_me,set_4_opponent,set_5_me,set_5_opponent';
 export const RETIREMENT_HEADER=HEADER+',retired_player';
 export const MULTISPORT_HEADER=RETIREMENT_HEADER+',sport,mode,rules,set_6_me,set_6_opponent,set_7_me,set_7_opponent,score_details,partner_id,partner_name,opponent_2_id,opponent_2_name';

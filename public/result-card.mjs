@@ -1,4 +1,4 @@
-import {sportName,rowRules,scorePairs} from './sports.mjs?v=0.16.0';
+import {sportName,rowRules,scorePairs} from './sports.mjs?v=0.16.3';
 import {rowWinner,localDate} from './interchange.mjs?v=0.16.0';
 import {datedFile} from './backup.mjs?v=0.16.0';
 function lines(ctx,text,width){const out=[];let line='';for(const char of [...text]){if(line&&ctx.measureText(line+char).width>width){out.push(line.trim());line=char;}else line+=char;}if(line)out.push(line.trim());return out;}

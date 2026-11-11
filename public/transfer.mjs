@@ -1,5 +1,5 @@
 import {validateBackup,datedFile} from './backup.mjs?v=0.16.0';
-import {SPORTS,sportName,sportIcon,sportMarkup,rowSport,rowMode,sportRows,participants} from './sports.mjs?v=0.16.0';
+import {SPORTS,sportName,sportIcon,sportMarkup,rowSport,rowMode,sportRows,participants} from './sports.mjs?v=0.16.3';
 import {open,seal,name,parseCsv,writeCsv,HEADER,localDate,localMoment} from './interchange.mjs?v=0.16.0';
 import {addName,incomingPayload,checkRetirementSupport,initialView} from './transfer-state.mjs?v=0.16.0';
 import {newest,resultCard,shortRecord,renderStatistics} from './transfer-view.mjs?v=0.16.0';

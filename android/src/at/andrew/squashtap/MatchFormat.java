@@ -2,7 +2,7 @@ package at.andrew.squashtap;
 
 /** Immutable rules saved with every match; default changes never reinterpret history. */
 public final class MatchFormat {
-    public static final String[] SPORTS={"squash","tennis","badminton","padel","table-tennis","pickleball"};
+    public static final String[] SPORTS={"badminton","padel","pickleball","squash","table-tennis","tennis"};
     public final String sport,deuce;
     public final boolean doubles,finalTie;
     public final int target;

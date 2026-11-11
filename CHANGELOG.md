@@ -1,5 +1,13 @@
 # Releases
 
+## 0.16.3 — 2026-11-11
+
+- Sort sport choices and badges alphabetically on watch and phone. Preserve selected/current sport IDs and unfinished-match locks.
+- Share previous head-to-head and the latest meeting date/result for the same saved opponent or complete doubles teams in this sport/mode. Exclude the current match and unknown identities; keep aggregates and one result encrypted without publishing unrelated history or player IDs.
+- Replace audience link controls with accessible share/copy icons. Show a final winner, game/set score breakdown, retirement outcome and remaining availability in portrait/landscape layouts.
+- Expire final links ten minutes after completion, including delayed offline completion. Repeated updates never extend the final deadline; Undo restores the original live deadline. Preserve and retry final results across rematch/task dismissal while the process survives. Add a compatible live-deadline column migration.
+- Verify 331 core + 190 native UI + 64 web/relay cases (585), native renders, browser layout previews, original signer/package/SDK/alignment and all retained APK hashes. Physical watch acceptance remains separate.
+
 ## 0.16.2 — 2026-11-11
 
 - Use Keep Score as the identity on shared menus, Players, Settings and their subpages, replacing the misleading All Sports badge. Use the same app name on the sport selector and app section headings; sport-specific screens retain their sport name/icon/accent and contextual Back/swipe.
