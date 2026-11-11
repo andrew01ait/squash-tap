@@ -1,5 +1,10 @@
 # Releases
 
+## Website explanations — 2026-11-11 (watch v0.16.4 unchanged)
+
+- Add result-filter reset and live-sharing instructions to the landing page. Align privacy wording with encrypted head-to-head/last-meeting summaries, the live window and ten-minute final results. Keep the current v0.16.4 download and all release bytes.
+- Validate documentation/export parity, landing-page links and a fresh website build; native release checks are not rerun for this copy-only change.
+
 ## 0.16.4 — 2026-11-11
 
 - Make Reset all filters the first watch filter action and show a direct reset row in filtered/empty Results. Clear player/date/mode, retain the sport and return to page one/top despite remembered scrolling.

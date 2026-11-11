@@ -139,3 +139,7 @@ Native renders inspect the alphabetical selector and badges. Browser preview ver
 ## Result filter reset — v0.16.4, 2026-11-11
 
 331 core + 191 native UI + 64 web/relay checks pass (586). The native regression combines mode, opponent and date filters, resets from page two, checks page one/top despite an earlier remembered scroll, retains Tennis, and verifies byte-identical match/name books and the active session. It also checks the first filter action and recovery from an empty result list. Browser QA applies Doubles, a named player and both dates, then verifies All modes/All players/empty dates, the same Tennis scope, restored results and the success message. Documentation/export parity, original signer/package/SDK/alignment, all retained APK hashes and the website build are verified. No new physical-watch acceptance is claimed.
+
+## Website explanation audit — 2026-11-11
+
+The live landing page/update feed report v0.16.4/code 22; APK, source ZIP and checksum links return HTTP 200. The audit identified missing reset instructions and an outdated match-only/eight-hour privacy sentence. Updated feature/FAQ/privacy copy now matches the existing implementation. Documentation and sanitized-export parity, referenced local assets, current source/website build and unchanged release metadata/20 APK hashes are checked. This is a website-copy update: the recorded 586 native/web release checks and physical-device evidence remain unchanged and are not claimed as a fresh native rerun.
