@@ -16,7 +16,7 @@ public class VisualMultisportUiTest {
   try{
    for(String sport:MatchFormat.SPORTS){MatchState m=new MatchState("visual-"+sport,3,MatchFormat.defaults(sport));m.serving(0,m.format().doubles?1:-1);if(m.format().nested()){for(int i=0;i<3;i++)m.add(0);for(int i=0;i<3;i++)m.add(1);m.add(1);}else{for(int i=0;i<9;i++){m.add(0);m.add(1);}m.add(0);}ScoreView view=new ScoreView(activity,m,t->{});view.opponent(m.format().doubles?"Pat + Jane":"Jane");view.players("Partner","Pat","Jane");view.session(true,false);save(view,"score-"+sport);}
    ReflectionHelpers.callInstanceMethod(activity,"showSports");savePanel("sports");click("Players");savePanel("players");click("Back to sports");click("Tennis");savePanel("sport-menu");click("New Tennis match");savePanel("new-match");click("Deuce: Advantage");savePanel("scoring-list");
-   activity.action(TouchTargets.BLUE);activity.action(TouchTargets.MENU);click("Current match");savePanel("current-match");click("Cancel match");savePanel("cancel-match");click("Keep playing");click("Back to Menu");click("Change sport");savePanel("sports-locked");
+   activity.action(TouchTargets.BLUE);activity.action(TouchTargets.MENU);click("Current match");savePanel("current-match");click("Cancel match");savePanel("cancel-match");click("Keep playing");click("Back to Menu");click("Change sport");savePanel("sports-locked");click("Settings");savePanel("settings");click("Vibrations: Points and milestones");savePanel("vibrations");click("Off");savePanel("vibrations-selected");click("Back to Settings");click("Court and interval reminders: Off");savePanel("reminders");
   }finally{Dialog d=ShadowDialog.getLatestDialog();if(d!=null)d.dismiss();controller.pause().stop().destroy();}
  }
 }

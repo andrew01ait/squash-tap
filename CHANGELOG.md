@@ -1,5 +1,13 @@
 # Releases
 
+## 0.16.1 — 2026-11-11
+
+- Group Settings by purpose. Keep vibration/reminder/display/palette selectors open after saving, with selected ticks, scroll retention and explicit Back to Settings. Reselecting an active option no longer implicitly goes Back. Preserve contextual hardware/swipe navigation and score/session data.
+- Automatically reconcile live-sharing controls and open Audience QR when ready from the visible waiting page. Restore Start after failure; ignore late callbacks on other/background screens. Preserve one-minute QR screen retention.
+- After a committed discard, replace the shared match with an encrypted anonymous notice containing no names/scores, retry it on reconnect and show Match discarded to viewers. Stop refreshing terminal views. Revoked/expired links also clear stale Playing scores. Cancelling discard preserves the match/broadcast. No scoring or storage schema changes.
+- Verify 325 core + 185 native UI + 58 web/relay cases (568), original package/signer/SDK/alignment and retained APKs. Update native patch, viewer cache versions, release/source artifacts and all current guides. Physical device acceptance remains separate.
+
+
 ## 0.16.0 — 2026-11-11
 
 - Rename the app display and current downloads to Keep Score while preserving package, preferences, original signer, existing data, repository/site URLs and all historical APK bytes. Add optional Your name in Players and reviewed phone editing, used on watch/live/result images without creating an opponent identity.

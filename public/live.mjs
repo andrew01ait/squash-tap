@@ -1,9 +1,14 @@
-import {open} from './interchange.mjs?v=0.16.0';
-import {sportName,sportMarkup} from './sports.mjs?v=0.16.0';
-import {validateLive} from './live-data.mjs?v=0.16.0';
+import {open} from './interchange.mjs?v=0.16.1';
+import {sportName,sportMarkup} from './sports.mjs?v=0.16.1';
+import {validateLive} from './live-data.mjs?v=0.16.1';
 const $=id=>document.getElementById(id),params=new URLSearchParams(location.hash.slice(1));
 const link={id:params.get('id'),token:params.get('p'),key:params.get('k')};let timer,controller,fetching=false,ended=false,last,updated=0;
 function status(s,error=false){$('connection').textContent=s;$('connection').classList.toggle('error',error);}
+function showEnded(title,detail){
+ ended=true;clearTimeout(timer);last=null;$('scoreboard').hidden=true;$('ended').hidden=false;$('ended-title').textContent=title;$('ended-detail').textContent=detail;
+ for(const id of ['name-0','name-1','score-0','score-1','score-unit','score-call','rules','freshness','set-scores'])$(id).replaceChildren();
+ $('phase').textContent='Ended';for(let i=0;i<2;i++){$('side-'+i).classList.remove('serving');$('serve-'+i).hidden=true;$('serve-'+i).textContent='';}status(title);
+}
 function render(d){
  $('scoreboard').hidden=false;$('sport').replaceChildren();const mark=document.createElement('span');mark.innerHTML=sportMarkup(d.sport);$('sport').append(mark,document.createTextNode(' '+sportName(d.sport)+' · '+d.mode));$('phase').textContent=({ready:'Ready to play',playing:'Playing',paused:'Paused',interval:'Between games',finished:'Finished'})[d.phase];
  const nested=['tennis','padel'].includes(d.sport),final=d.phase==='finished';
@@ -13,7 +18,7 @@ function render(d){
  $('freshness').textContent='Last score update '+new Date(updated).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'})+'. Updates arrive after a rally or match action.';
 }
 async function poll(){clearTimeout(timer);if(fetching||ended||document.hidden)return;fetching=true;controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),10000);
- try{const r=await fetch('/api/live/'+link.id,{cache:'no-store',credentials:'omit',redirect:'error',headers:{Authorization:'Bearer '+link.token},signal:controller.signal});if([401,403,404].includes(r.status)){ended=true;status('This audience link has ended or expired.',true);return;}if(!r.ok)throw Error('Live score service unavailable');const data=await r.json();if(!Number.isFinite(data.updatedAt)||!Number.isFinite(data.expiresAt)||Date.now()>=data.expiresAt)throw Error('Live link expired');const score=validateLive(JSON.parse(await open(link.id,'out',link.key,data.cipher)));last=score;updated=data.updatedAt;render(score);status('Connected · following this match');}
+ try{const r=await fetch('/api/live/'+link.id,{cache:'no-store',credentials:'omit',redirect:'error',headers:{Authorization:'Bearer '+link.token},signal:controller.signal});if([401,403,404].includes(r.status)){showEnded('Broadcast ended','This match is no longer available on this audience link. Sharing has stopped or the link has expired.');return;}if(!r.ok)throw Error('Live score service unavailable');const data=await r.json();if(!Number.isFinite(data.updatedAt)||!Number.isFinite(data.expiresAt)||Date.now()>=data.expiresAt)throw Error('Live link expired');const score=validateLive(JSON.parse(await open(link.id,'out',link.key,data.cipher)));if(score.phase==='discarded'){showEnded('Match discarded','The scoring watch discarded this match. No result was saved.');return;}last=score;updated=data.updatedAt;render(score);status('Connected · following this match');}
  catch(e){if(!document.hidden)status(last?'Connection interrupted · showing the last received score':'Could not connect · retrying shortly',true);}
  finally{clearTimeout(timeout);fetching=false;controller=null;if(!ended&&!document.hidden)timer=setTimeout(poll,last?.phase==='finished'?10000:3000);}
 }

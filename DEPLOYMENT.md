@@ -1,6 +1,6 @@
 # Build and deployment
 
-Official watch release: **v0.16.0 / code 18**. User installation is in [INSTALLATION.md](INSTALLATION.md); release-number and compatibility rules are in [VERSIONING.md](VERSIONING.md).
+Official watch release: **v0.16.1 / code 19**. User installation is in [INSTALLATION.md](INSTALLATION.md); release-number and compatibility rules are in [VERSIONING.md](VERSIONING.md).
 
 ## Repositories and prerequisites
 
@@ -95,4 +95,6 @@ The Android runtime lock now includes Tiles 1.2.0 and watchface complication dat
 
 `drizzle/0001_breezy_rawhide_kid.sql` adds only `live_games` and its expiry index; migration 0000 remains immutable. Apply pending migrations to the local preview in order using Wrangler’s local `d1 execute DB` with `dist/server/wrangler.json` and `.wrangler/state`. Sites applies hosted migrations during publication. Do not initialize tables in request handlers or seed real player data.
 
-The v0.16 source package is `public/KeepScore-source.zip`; the APK is `public/apks/KeepScore-0.16.0.apk`. Preserve earlier APK names/hashes. Verify the landing page’s six PNG sport previews plus the three colour schemes and all currently referenced downloads before publication. Full backup envelope 2 and live schema 1 are separate from the original envelope-1 transfer; keep both reader contracts and access roles.
+The v0.16 source package is `public/KeepScore-source.zip`; the APK is `public/apks/KeepScore-0.16.1.apk`. Preserve earlier APK names/hashes. Verify the landing page’s six PNG sport previews plus the three colour schemes and all currently referenced downloads before publication. Full backup envelope 2 and live schema 1 are separate from the original envelope-1 transfer; keep both reader contracts and access roles.
+
+For v0.16.1 the live relay/schema are unchanged. Terminal notices use the existing encrypted owner PUT protocol; only the native client/viewer and navigation change. Preserve the v0.16.0/code 18 APK byte-for-byte while adding code 19.

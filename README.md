@@ -1,6 +1,6 @@
 # Keep Score
 
-A standalone, offline racket-sport scorekeeper for Wear OS. Current watch release: **v0.16.0**, Android version code **18**. No account is required; scores and saved history live on the watch.
+A standalone, offline racket-sport scorekeeper for Wear OS. Current watch release: **v0.16.1**, Android version code **19**. No account is required; scores and saved history live on the watch.
 
 [Download the watch app](https://squash-tap-andrew.endruuu.chatgpt.site/) · [GitHub source](https://github.com/andrew01ait/squash-tap) · [Install using your phone](INSTALLATION.md)
 
@@ -83,7 +83,7 @@ Updates are requested manually in Settings. There is no background update pollin
 | [AGENTS.md](AGENTS.md) | Maintenance constraints for future coding work. |
 | [CHANGELOG.md](CHANGELOG.md) | Release and documentation history. |
 
-The current v0.16.0 release suite passes **325 core + 170 Android UI + 56 web/relay checks = 551**. The historical v0.13 release suite was **265 core + 100 Android UI + 35 web/relay checks = 400**. This is release evidence, not a claim that every documentation update reruns or physically validates the watch. See [TESTING.md](TESTING.md) for current verification.
+The current v0.16.1 release suite passes **325 core + 185 Android UI + 58 web/relay checks = 568**. The historical v0.13 release suite was **265 core + 100 Android UI + 35 web/relay checks = 400**. This is release evidence, not a claim that every documentation update reruns or physically validates the watch. See [TESTING.md](TESTING.md) for current verification.
 
 Full backups use the local export date and application name: `YYYYMMDD_ApplicationName_Description.json`, for example `20261111_KeepScore_Backup.json`. Completed-result interchange remains CSV; full backup JSON also preserves current rallies and Undo.
 
@@ -93,8 +93,10 @@ The landing page offers keyboard-accessible previews of all six scoreboards, sup
 
 Settings → Backup & restore → Create or restore backup opens an encrypted ten-minute phone link. Download `YYYYMMDD_KeepScore_Backup.json` or choose a saved backup and send it. Receive changes on the watch, review, then explicitly Replace data & restore. This replaces all sport history, players, own name, favourites, colour/settings and the current match including Undo. It keeps the previous data as a downloadable recovery copy; restored unfinished matches are paused. Network keys, permissions and diagnostic logs are excluded. JSON backups are private user files and must be kept safely.
 
-Current match → Live scoreboard → Start live sharing creates a separate read-only audience QR link for only this match’s score, names, rules and serving cue. Share the complete audience link; the phone-transfer link is private. A live link lasts eight hours. The watch pushes score/session changes and retries the latest queued score after connectivity returns; scoring never waits for internet. Visible audience pages refresh every three seconds (ten after completion) and pause requests when hidden. Stop sharing revokes access when online; offline revocation can fail and the link remains until expiry. Completion remains viewable, while replacement of an unfinished match or discard revokes it. Task dismissal stops sharing. Expired live rows are physically cleaned on later link creation, not by an exact-time erasure job.
+Current match → Live scoreboard → Start live sharing creates a separate read-only audience QR link for only this match’s score, names, rules and serving cue. Share the complete audience link; the phone-transfer link is private. A live link lasts eight hours. The watch pushes score/session changes and retries the latest queued score after connectivity returns; scoring never waits for internet. Visible audience pages refresh every three seconds (ten after completion) and pause requests when hidden. Stop sharing revokes access when online; offline revocation can fail and the link remains until expiry. Completion remains viewable; replacement of an unfinished match revokes sharing. A confirmed discard replaces the shared score/names with an anonymous “Match discarded” notice until link expiry, with no saved watch result. If offline, that notice is queued in memory and retried on reconnect. Task dismissal stops sharing. Expired live rows are physically cleaned on later link creation, not by an exact-time erasure job.
 
 A completed result offers Share result card, opening the private phone view with Save/Share result-card image actions. PNGs contain only the selected match. Wear OS tile/face displays are event updated, with no periodic watch polling; tapping opens the match and preserves pause.
 
 The audience page adapts to portrait phones and short landscape screens. Portrait keeps two large aligned cards; landscape places match details and controls alongside them. Full team names wrap, serving has its own badge, and viewers independently choose Classic/Neon Lime/Sunlight. Browser QA covers actual 393×852 and 852×393 CSS viewports with synthetic doubles names, aligned scores, all controls reachable and no horizontal overflow. These are browser layout checks, not physical phone acceptance.
+
+Settings groups Display, Feedback, Data, Watch shortcuts and App controls. Vibration, reminder, screen and palette selectors save in place and show the selected tick until Back to Settings; button, hardware Back and swipe share that route. Selecting an already selected option does not navigate. Live sharing opens its audience QR automatically when ready while the waiting page remains visible; moving elsewhere prevents a late QR interruption.

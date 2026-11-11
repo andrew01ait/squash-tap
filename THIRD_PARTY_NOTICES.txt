@@ -1,4 +1,4 @@
-Keep Score — third-party notices (v0.16.0)
+Keep Score — third-party notices (v0.16.1)
 
 The following pinned components are distributed in or used to compile this APK.
 AndroidX: Android Open Source Project and AndroidX contributors.

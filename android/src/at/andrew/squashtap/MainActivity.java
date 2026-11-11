@@ -52,7 +52,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     private boolean transferBusy;
     private ScoreView counter;
     private UpdateClient updater;
-    private LiveScoreClient live;private TextView liveText;
+    private LiveScoreClient live;private TextView liveText;private String livePanelState="";
     private UpdatePolicy latest;
     private final ExecutorService tasks=Executors.newSingleThreadExecutor();
     private boolean checking,downloading;
@@ -92,7 +92,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
 
     @Override public void onCreate(Bundle saved){
         super.onCreate(saved);
-        preferences=getSharedPreferences("squash",MODE_PRIVATE);live=LiveScoreClient.get(this);live.listener(value->{if(liveText!=null&&panelPage.equals("Live scoreboard"))liveText.setText(value);});
+        preferences=getSharedPreferences("squash",MODE_PRIVATE);live=LiveScoreClient.get(this);live.listener(this::onLiveStatusChanged);
         String savedBook=preferences.getString("match_book",null);
         try{book=savedBook==null?MatchBook.migrateLegacy(UUID.randomUUID().toString(),preferences.getString("score","1|")):MatchBook.decode(savedBook);}
         catch(Exception damaged){
@@ -149,6 +149,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     @Override protected void onResume(){
         super.onResume();resumed=true;lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_RESUME);updateDisplay();
         if(updatePanel)showUpdates();
+        if(panelPage.equals("Live scoreboard"))onLiveStatusChanged(live.status());
         AppDiagnostics.record(this,"Activity resume; ambient="+ambient+" paused="+preferences.getBoolean("match_paused",false));
         requestMatchNotification();
     }
@@ -273,36 +274,41 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     }
     private void showSettings(){
         LinearLayout menu=panel("Settings","settings");paragraph(menu,"Keep Score v"+BuildConfig.VERSION_NAME);
-        settingsButton(menu,"Backup & restore",this::showBackup);
+        section(menu,"Display");
         settingsButton(menu,"Colour scheme: "+ScorePalette.get(preferences.getString("score_palette","classic")).name,this::choosePalette);
         settingsButton(menu,"Brightness: watch system",this::showBrightness);
-        settingsButton(menu,"Check for updates",()->{showUpdates();checkUpdates();});
-        boolean awake=preferences.getBoolean("match_keep_awake_v3",true);
-        settingsButton(menu,"Keep screen on: "+(awake?"ON":"OFF"),this::chooseScreenPolicy);
+        settingsButton(menu,"Keep screen on: "+(preferences.getBoolean("match_keep_awake_v3",true)?"ON":"OFF"),this::chooseScreenPolicy);
+        section(menu,"Feedback");
+        settingsButton(menu,"Vibrations: "+vibrationLabels()[vibrationIndex()],this::chooseVibrations);
+        settingsButton(menu,"Court and interval reminders: "+(preferences.getBoolean("match_reminders",false)?"On":"Off"),this::chooseReminders);
+        section(menu,"Data");settingsButton(menu,"Backup & restore",this::showBackup);
+        section(menu,"Watch shortcuts");
+        settingsButton(menu,"Watch tile & face score",()->{LinearLayout c=panel("Quick access");paragraph(c,"Add the Keep Score tile from your watch’s tile picker. On a compatible watch face, add Keep Score · Match score as a complication. Tapping either opens the match without changing its score or pause state.");backButton(c,"Back to Settings",this::showSettings);});
         if(Build.VERSION.SDK_INT>=33&&checkSelfPermission("android.permission.POST_NOTIFICATIONS")!=PackageManager.PERMISSION_GRANTED)
             settingsButton(menu,"Enable match shortcut",()->requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"},71));
-        settingsButton(menu,"Watch tile & face score",()->message("Quick access","Add the Keep Score tile from your watch’s tile picker. On a compatible watch face, add Keep Score · Match score as a complication. Tapping either opens the match without changing its score or pause state.",this::showSettings));
-        settingsButton(menu,"Vibrations",()->selectOption("Vibrations","Distinct patterns identify points, games, sets and match completion.",new String[]{"Off","Point confirmation","Points and milestones"},preferences.getString("haptic_mode","milestones").equals("off")?0:preferences.getString("haptic_mode","milestones").equals("points")?1:2,v->{preferences.edit().putString("haptic_mode",new String[]{"off","points","milestones"}[v]).commit();showSettings();},this::showSettings));
-        settingsButton(menu,"Court and interval reminders",()->selectOption("Match reminders","Brief non-blocking reminders. Players remain responsible for court changes and breaks.",new String[]{"Off","On"},preferences.getBoolean("match_reminders",false)?1:0,v->{preferences.edit().putBoolean("match_reminders",v==1).commit();showSettings();},this::showSettings));
+        section(menu,"App");settingsButton(menu,"Check for updates",()->{showUpdates();checkUpdates();});
         settingsButton(menu,"Diagnostics",this::showDiagnostics);backButton(menu,settingsReturnLabel,settingsReturn);
+    }
+    private String[] vibrationLabels(){return new String[]{"Off","Point confirmation","Points and milestones"};}
+    private int vibrationIndex(){String value=preferences.getString("haptic_mode","milestones");return value.equals("off")?0:value.equals("points")?1:2;}
+    private void chooseVibrations(){settingChoices("Vibrations","Distinct patterns identify points, games, sets and match completion.",vibrationLabels(),vibrationIndex(),v->preferences.edit().putString("haptic_mode",new String[]{"off","points","milestones"}[v]).commit());}
+    private void chooseReminders(){settingChoices("Match reminders","Brief non-blocking reminders. Players remain responsible for court changes and breaks.",new String[]{"Off","On"},preferences.getBoolean("match_reminders",false)?1:0,v->preferences.edit().putBoolean("match_reminders",v==1).commit());}
+    private void settingChoices(String title,String help,String[] labels,int selected,java.util.function.IntPredicate save){
+        LinearLayout c=panel(title,"settings:"+title);
+        for(int i=0;i<labels.length;i++){final int value=i;choiceButton(c,labels[i],value==selected,()->{if(value==selected)return;if(save.test(value)){updateDisplay();settingChoices(title,help,labels,value,save);}else message("Setting not saved","The watch could not save this change.",()->settingChoices(title,help,labels,selected,save));});}
+        paragraph(c,help+"\n\nChanges save immediately.");backButton(c,"Back to Settings",this::showSettings);
     }
     private void openSettings(Runnable back,String label){sharedArea=true;settingsReturn=back;settingsReturnLabel=label;showSettings();}
     private void openPlayers(Runnable back,String label){sharedArea=true;playersReturn=back;playersReturnLabel=label;showOpponents(0);}
-    private void chooseScreenPolicy(){
-        LinearLayout content=panel("Screen during play");boolean awake=preferences.getBoolean("match_keep_awake_v3",true);
-        paragraph(content,"Applies only to the visible scoreboard during active play. Menus and paused matches allow normal sleep.");
-        choiceButton(content,"Keep screen on",awake,()->saveScreenPolicy(true));choiceButton(content,"Allow screen to sleep",!awake,()->saveScreenPolicy(false));
-        backButton(content,"Cancel",this::showSettings);
-    }
+    private void chooseScreenPolicy(){settingChoices("Screen during play","Applies only to the visible scoreboard during active play. Menus and paused matches allow normal sleep.",new String[]{"Keep screen on","Allow screen to sleep"},preferences.getBoolean("match_keep_awake_v3",true)?0:1,v->preferences.edit().putBoolean("match_keep_awake_v3",v==0).commit());}
     private void choosePalette(){
         LinearLayout c=panel("Colour scheme","palette");String selected=preferences.getString("score_palette","classic");
-        for(String id:ScorePalette.IDS){ScorePalette p=ScorePalette.get(id);choiceButton(c,p.name,id.equals(selected),()->{if(preferences.edit().putString("score_palette",id).commit()){updateDisplay();showSettings();}else message("Colour not saved","Try choosing the scheme again.",this::choosePalette);});
+        for(String id:ScorePalette.IDS){ScorePalette p=ScorePalette.get(id);choiceButton(c,p.name,id.equals(selected),()->{if(id.equals(selected))return;if(preferences.edit().putString("score_palette",id).commit()){updateDisplay();choosePalette();}else message("Colour not saved","Try choosing the scheme again.",this::choosePalette);});
             LinearLayout row=new LinearLayout(this);row.setOrientation(LinearLayout.HORIZONTAL);row.setPadding(0,0,0,dp(8));for(int side=0;side<2;side++){TextView sample=new TextView(this);sample.setText(side==0?"Me 9":"Opponent 10");sample.setTextSize(14);sample.setGravity(Gravity.CENTER);sample.setTextColor(side==0?p.leftInk:p.rightInk);sample.setBackgroundColor(side==0?p.left:p.right);sample.setPadding(dp(4),dp(10),dp(4),dp(10));row.addView(sample,new LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1));}row.setContentDescription(p.name+" preview");c.addView(row);paragraph(c,p.help);
         }
-        paragraph(c,"Scoreboard colours apply to every sport. Left stays you or your team. Serving keeps its own badge and outline. Ambient stays dim and monochrome.");backButton(c,"Cancel",this::showSettings);
+        paragraph(c,"Scoreboard colours apply to every sport. Left stays you or your team. Serving keeps its own badge and outline. Ambient stays dim and monochrome. Changes save immediately.");backButton(c,"Back to Settings",this::showSettings);
     }
     private void showBrightness(){LinearLayout c=panel("Watch brightness");paragraph(c,"Keep Score follows your watch’s system brightness. Enable Auto brightness or Adaptive brightness in the watch’s Display settings if available. Sunlight colours increase score contrast; the system controls the screen’s brightness.");button(c,"Open watch display settings",()->{try{startActivity(new Intent(android.provider.Settings.ACTION_DISPLAY_SETTINGS));}catch(android.content.ActivityNotFoundException unavailable){message("Open watch Settings","On the watch, open Settings → Display → Brightness. Names may vary by watch.",this::showBrightness);}});backButton(c,"Back to Settings",this::showSettings);}
-    private void saveScreenPolicy(boolean value){preferences.edit().putBoolean("match_keep_awake_v3",value).commit();updateDisplay();showSettings();}
     private void showMatchFormat(){
         MatchState match=book.current();LinearLayout content=panel("Match length");
         paragraph(content,"Current: Best of "+match.bestOf());
@@ -451,7 +457,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
                 MatchBook next=MatchBook.decode(before);OpponentDirectory names=OpponentDirectory.decode(namesBefore);String old=next.current().id();
                 next.discardCurrent(UUID.randomUUID().toString());names.forgetMatch(old);
                 if(!preferences.edit().putString("match_book",next.encode()).putString("opponent_book",names.encode()).remove(MatchDisplayPolicy.ACTIVE_MATCH).remove("match_ready_id").putBoolean("match_paused",false).commit())throw new IllegalStateException("The watch did not confirm saving. Your match is kept.");
-                if(live!=null)live.stop(true);book=next;opponents=names;manualMatch=null;scoreMenu=false;counter.match(book.current());updateDisplay();showMenu();
+                if(live!=null)live.discard();book=next;opponents=names;manualMatch=null;scoreMenu=false;counter.match(book.current());updateDisplay();showMenu();
             }catch(Exception error){message("Match not cancelled",safe(error),this::showMatchControls);}
         });
         backButton(content,"Keep playing",this::showMatchControls);
@@ -680,7 +686,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     }
     private void selectOption(String title,String help,String[] labels,int selected,java.util.function.IntConsumer apply,Runnable back){
         LinearLayout content=panel(title);
-        for(int i=0;i<labels.length;i++){final int value=i;choiceButton(content,labels[i],i==selected,()->{if(value==selected)back.run();else apply.accept(value);});}
+        for(int i=0;i<labels.length;i++){final int value=i;choiceButton(content,labels[i],i==selected,()->{if(value!=selected)apply.accept(value);});}
         paragraph(content,help);
         backButton(content,"Cancel",back);
     }
@@ -831,10 +837,19 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         MatchState m=book.current();String phase=m.complete()?"finished":m.nextReady()?"interval":needsResume()?"paused":sessionOngoing()?"playing":"ready";org.json.JSONArray scores=new org.json.JSONArray();for(int i=0;i<m.gameCount();i++)scores.put(new org.json.JSONObject().put("a",m.game(i).blue()).put("b",m.game(i).red()).put("matchTie",m.matchTie(i)));
         int server=m.complete()||m.game().winner()>=0?-1:m.server();return new org.json.JSONObject().put("schema",1).put("matchId",m.id()).put("sport",m.format().sport).put("mode",m.format().doubles?"doubles":"singles").put("rules",m.format().description()).put("names",new org.json.JSONArray().put(m.format().doubles?teamName(m.id(),0):ownName()).put(m.format().doubles?teamName(m.id(),1):opponentName(m.id()))).put("points",new org.json.JSONArray().put(m.game().displayPoint(0)).put(m.game().displayPoint(1))).put("sets",new org.json.JSONArray().put(m.gamesWon(0)).put(m.gamesWon(1))).put("setScores",scores).put("bestOf",m.bestOf()).put("server",server).put("serveName",slotName(server,m.id())).put("scoreCall",m.format().pickleball()?m.game().pickleCall():"").put("phase",phase).put("winner",m.winner()).put("startedAt",book.currentStartedAt());
     }
+    private String liveState(LiveScoreClient.Session s){return s==null?"none":s.id+(s.ready?":ready":":creating");}
+    private void onLiveStatusChanged(String ignored){
+        if(!resumed||ambient||isFinishing()||isDestroyed()||panel==null||!panel.isShowing()||!panelPage.equals("Live scoreboard"))return;
+        LiveScoreClient.Session s=live.session();String state=liveState(s);
+        if(!state.equals(livePanelState)){
+            if(s!=null&&s.ready&&livePanelState.equals(s.id+":creating"))showAudienceQr(s);else showLive();
+        }else if(liveText!=null)liveText.setText(live.status());
+    }
+    private void showAudienceQr(LiveScoreClient.Session s){if(s!=live.session()||!s.ready||!s.matchId.equals(book.current().id()))return;showQr(s.link(),"Scan to follow live",this::showLive,"Back to Live scoreboard");}
     private void showLive(){
-        LinearLayout c=panel("Live scoreboard");liveText=paragraph(c,live.status());LiveScoreClient.Session s=live.session();
-        if(s!=null){if(s.ready){button(c,"Show audience QR",()->showQr(s.link(),"Scan to follow live",this::showLive,"Back to Live scoreboard"));paragraph(c,"Anyone with this link can view this match’s score and names. The link expires after eight hours. Audience members cannot change the score.");}else paragraph(c,"Creating your audience link…");button(c,"Refresh sharing status",this::showLive);deleteButton(c,"Stop sharing",()->{live.stop(true);showLive();});}
-        else{paragraph(c,"Share this match’s score and names with an audience. Start with an internet connection, then share the QR link. Scores stay on the watch if connectivity drops; the latest score is sent when sharing reconnects.");button(c,"Start live sharing",()->{try{live.start(liveSnapshot());showLive();}catch(Exception e){message("Cannot share",safe(e),this::showLive);}});}
+        LinearLayout c=panel("Live scoreboard","live");liveText=paragraph(c,live.status());LiveScoreClient.Session s=live.session();livePanelState=liveState(s);
+        if(s!=null){if(s.ready){button(c,"Show audience QR",()->showAudienceQr(s));paragraph(c,"Anyone with this link can view this match’s score and names. The link expires after eight hours. Audience members cannot change the score.");}else paragraph(c,"Creating your audience link… The QR will open when it is ready.");deleteButton(c,"Stop sharing",()->{live.stop(true);showLive();});}
+        else{paragraph(c,"Share this match’s score and names with an audience. Start with an internet connection, then share the QR link. Scores stay on the watch if connectivity drops; the latest score is sent when sharing reconnects.");button(c,"Start live sharing",()->{try{live.start(liveSnapshot());LiveScoreClient.Session started=live.session();if(started!=null&&started.ready)showAudienceQr(started);else showLive();}catch(Exception e){message("Cannot share",safe(e),this::showLive);}});}
         backButton(c,"Back to Current match",this::showMatchControls);
     }
     private java.util.Map<String,String> backupSettings(){java.util.Map<String,String> out=new java.util.TreeMap<>();for(java.util.Map.Entry<String,?> e:preferences.getAll().entrySet())if(BackupArchive.settingKey(e.getKey()))out.put(e.getKey(),String.valueOf(e.getValue()));return out;}
@@ -1030,7 +1045,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
                 }
                 @Override public boolean onTouchEvent(android.view.MotionEvent event){if(event.getAction()==android.view.MotionEvent.ACTION_UP&&event.getY()>getHeight()*.83f)back.run();return true;}
             };
-            panelPage=backLabel.equals("Back to Diagnostics")?"Diagnostic QR":"Phone QR";panel.setContentView(swipeContainer(qr,panel));panel.show();panel.getWindow().setBackgroundDrawable(new ColorDrawable(Color.BLACK));panel.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT);panel.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);trackPanelDismiss();bindBack(back);updateDisplay();
+            panelPage=backLabel.equals("Back to Diagnostics")?"Diagnostic QR":backLabel.equals("Back to Live scoreboard")?"Audience QR":"Phone QR";panel.setContentView(swipeContainer(qr,panel));panel.show();panel.getWindow().setBackgroundDrawable(new ColorDrawable(Color.BLACK));panel.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT);panel.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);trackPanelDismiss();bindBack(back);updateDisplay();
             final Window qrWindow=panel.getWindow();qr.postDelayed(()->qrWindow.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON),60000L);
         }catch(Exception error){message("QR unavailable",safe(error),back);}
     }

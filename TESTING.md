@@ -1,6 +1,6 @@
 # Testing and verification
 
-Current watch release: **v0.16.0 / code 18**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
+Current watch release: **v0.16.1 / code 19**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
 
 ## Recorded release evidence
 
@@ -59,7 +59,7 @@ Native/browser interchange cases execute Java fixtures; the full command require
 Follow [DEPLOYMENT.md](DEPLOYMENT.md) for SDK, locked runtime/UI dependencies, original signing key and verified retained APKs. The standard builder executes core/web tests, compiles real AAPT resources and runs native UI tests before D8/signing. UI tests can also be repeated once those resources/generated classes exist:
 
 ```sh
-python3 scripts/test_ui.py --version 0.16.0
+python3 scripts/test_ui.py --version 0.16.1
 ```
 
 Robolectric executes API 34 and uses its configured API 35 framework for resource parsing. Test tooling stays under ignored `.local/`; it is not bundled in the APK. A fresh export does not contain the maintainer's signing key, SDK or prior unsigned build, so the complete release pipeline is not a key-free out-of-box build.
@@ -121,3 +121,7 @@ API-34 native Canvas renders cover six sport scoreboards and nine profiles: roun
 The live API suite checks audience read-only roles, encrypted content, no listing/CORS/cache, ordered/parallel revisions, expiry/revocation, field/body bounds and hashed-IP rate limits. Browser QA uses only local synthetic fixtures, separately from production sessions. Physical OnePlus sunlight/brightness/reflection, vibration feel, tile/complication system rendering, touch/swipe/ambient, optical QR, phone file sharing and watch-network reconnect/battery acceptance remain to be performed; DEVICE_TESTS.json is unchanged.
 
 The audience page adapts to portrait phones and short landscape screens. Portrait keeps two large aligned cards; landscape places match details and controls alongside them. Full team names wrap, serving has its own badge, and viewers independently choose Classic/Neon Lime/Sunlight. Browser QA covers actual 393×852 and 852×393 CSS viewports with synthetic doubles names, aligned scores, all controls reachable and no horizontal overflow. These are browser layout checks, not physical phone acceptance.
+
+## Navigation and live corrections — v0.16.1, 2026-11-11
+
+The patch suite includes 325 core + 185 native UI + 58 web/relay cases (568). New native checks cover persistent Settings ticks, selected-option taps, contextual Back/swipe, auto QR readiness/failure/background/late response behavior, bounded QR retention, discard confirmation versus cancellation, anonymous terminal payloads, offline reconnect and starting another broadcast. Web checks reject names/scores in discard notices and verify replacement ciphertext with audience read-only access. Old release evidence remains historical. Physical watch and live-network acceptance remain pending.

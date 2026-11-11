@@ -1,6 +1,6 @@
 # Internal and GitHub source workflow
 
-Public repository: <https://github.com/andrew01ait/squash-tap>. Official download/update site: <https://squash-tap-andrew.endruuu.chatgpt.site/>. Current watch release: **v0.16.0 / code 18**.
+Public repository: <https://github.com/andrew01ait/squash-tap>. Official download/update site: <https://squash-tap-andrew.endruuu.chatgpt.site/>. Current watch release: **v0.16.1 / code 19**.
 
 ## Two copies and their responsibilities
 
@@ -56,3 +56,5 @@ No project-wide open-source license has been selected. Preserve third-party noti
 Future user-facing JSON filenames use the local export date and application name: `YYYYMMDD_ApplicationName_Description.json`, for example `20261111_KeepScore_Backup.json`. Current results interchange is CSV. Complete backup JSON uses this naming convention; internal configuration filenames remain unchanged.
 
 The v0.16 mirror includes Keep Score branding, six sports including pickleball, own name, palettes, full backup/restore, live audience viewer/API, tiles/complication, result cards and their tests/docs. Continue using the existing draft PR #1 until merge is explicitly authorized; changing the app display name does not rename the repository.
+
+The v0.16.1 patch adds in-place Settings selection, guarded automatic audience QR presentation, encrypted anonymous discard notices/reconnect retry and ended-view clearing, with native/web regressions. Sync this patch into the existing draft PR without merging main.

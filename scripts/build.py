@@ -6,8 +6,8 @@ import argparse, hashlib, json, os, secrets, shutil, subprocess, sys, zipfile
 ROOT=Path(__file__).resolve().parents[1]
 PKG='at.andrew.squashtap'
 SITE='https://squash-tap-andrew.endruuu.chatgpt.site'
-RELEASES=((18,'0.16.0'),)
-RELEASE_NOTES='Keep Score: Classic, Neon Lime and Sunlight colour schemes, adaptive menus and text, your name, six racket sports including pickleball with traditional and 2025/2026 rally scoring, full backups, quick rematch, favourites, haptics, optional court reminders, watch tile/score complication, result cards and optional encrypted live audience scoreboards.'
+RELEASES=((19,'0.16.1'),)
+RELEASE_NOTES='Settings choices stay open with selected marks and consistent Back navigation. Live sharing opens the audience QR automatically when ready. Discarded matches replace the audience score with an anonymous notice, with reconnect retry; ended broadcasts clear stale scores.'
 
 def run(args, env=None):
     result=subprocess.run([str(x) for x in args],cwd=ROOT,env=env,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)

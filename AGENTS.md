@@ -1,6 +1,6 @@
 # Maintenance instructions
 
-Read [README.md](README.md), [ARCHITECTURE.md](ARCHITECTURE.md), [FLOW.md](FLOW.md), [DEPLOYMENT.md](DEPLOYMENT.md), [TESTING.md](TESTING.md), [VERSIONING.md](VERSIONING.md) and [GITHUB.md](GITHUB.md) before changing the corresponding behavior. Current release is v0.16.0/code 18; older release-specific decisions remain in Git history and [CHANGELOG.md](CHANGELOG.md).
+Read [README.md](README.md), [ARCHITECTURE.md](ARCHITECTURE.md), [FLOW.md](FLOW.md), [DEPLOYMENT.md](DEPLOYMENT.md), [TESTING.md](TESTING.md), [VERSIONING.md](VERSIONING.md) and [GITHUB.md](GITHUB.md) before changing the corresponding behavior. Current release is v0.16.1/code 19; older release-specific decisions remain in Git history and [CHANGELOG.md](CHANGELOG.md).
 
 ## Scope, identity and publication
 
@@ -59,3 +59,5 @@ Read [RULES.md](RULES.md). Keep badminton 21/30 and 15/21 and all padel deuce op
 - Full backup schema 1 must include all sport/current Undo/name/favourite/palette settings within bounds, exclude secrets/diagnostics/active tokens, validate entirely before replace, guard stale confirmation and commit atomically. Keep a downloadable pre-restore recovery copy; unfinished restored matches wait paused. Preserve envelope 1 limits; envelope 2 is separately bounded and AAD-bound.
 - Live audience sharing is opt-in and separate from private phone transfer. Publish only the current match snapshot, with independent owner/viewer roles, random memory-only keys, revision guards and eight-hour access expiry. Offline scoring must never block. Retry only score events/reconnects; no watch polling/heartbeat. Browser polling is visible-only and stops when hidden/ended. Report offline-revocation limits accurately. No public history/listing or permanent cloud database of plaintext scores. Expired rows are cleaned on later creation; never promise scheduled physical erasure.
 - Tiles/complications are read-only, event updated with update interval zero; opening must preserve pause and score. Haptics and court reminders are optional and do not govern play or add periodic work. Keep native size/shape/font renders and browser/live/backup tests synthetic; physical outdoor brightness, battery, vibration and system tile acceptance remain unclaimed until reported.
+
+Settings selectors must save in place, update their tick and leave only by explicit Back/shortcut/swipe; selected-option taps never navigate. Live readiness may open Audience QR only from its visible current waiting page, never from another panel or background. A committed discard replaces shared scores with an encrypted anonymous terminal notice and retries on reconnect, without saving a result. Ended/revoked audience links must clear stale Playing scores.

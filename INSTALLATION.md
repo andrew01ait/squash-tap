@@ -1,6 +1,6 @@
 # Install, update and diagnose
 
-[Official download page](https://squash-tap-andrew.endruuu.chatgpt.site/) · Current watch APK: **v0.16.0 / code 18**.
+[Official download page](https://squash-tap-andrew.endruuu.chatgpt.site/) · Current watch APK: **v0.16.1 / code 19**.
 
 The APK runs on the watch. Wear Installer 2 is a helper on the Android phone; no PC development tools are required. The app is currently distributed by APK through this site, not the watch app store.
 
@@ -64,3 +64,5 @@ Settings → Backup & restore creates a complete private JSON backup through the
 Use the watch’s tile picker to add Keep Score. On a compatible watch face, add Keep Score · Match score as a complication. These open the current match without automatically resuming it. Choose vibrations/reminders in Settings. After a finished current match, Quick rematch starts a fresh match with its rules and available players. Save/Share a result-card image through a private phone result view.
 
 Physical acceptance for v0.16 also needs outdoor colour/brightness checks, actual tile/complication picker/rendering, vibration feel, optical QR scans, backup file picking/restore and real watch→website reconnect behavior. Desktop/native automation does not establish these device results.
+
+After installing v0.16.1, refresh any already-open audience webpage once. Start live sharing now opens its QR automatically; selectors in Settings stay open after a choice and use Back to Settings. Discarding a shared match shows Match discarded after the notice reaches the service; a disconnected watch retries on reconnect while the app process remains available.

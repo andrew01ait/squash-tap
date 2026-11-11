@@ -1,4 +1,4 @@
-# Navigation and match flows — v0.16.0
+# Navigation and match flows — v0.16.1
 
 ## Sport entry and scope
 
@@ -107,12 +107,20 @@ The serving side has a pale-gold outline and dedicated badge, independent of the
 
 Players → Your name → Save your name (blank means Me) changes your display name independently of saved opponents. Phone editing also requires receive/review/apply. New match → Save as favourite stores a named format/length; Favourite formats reuses it in setup before Create. A current completed result → Quick rematch creates a new identity with the same rules and available players; no score or start time is copied.
 
-Settings → Colour scheme opens an explicit list with both card colours previewed: Classic (blue/red), Neon Lime (lime/pink), Sunlight (white/yellow with black scores). Choosing saves for all sports; Cancel keeps the current scheme. Ambient stays monochrome. Brightness: watch system → Open watch display settings delegates brightness to Wear OS; no app override or light sensing is added. Vibrations and Court/interval reminders have separate selected lists.
+Settings → Colour scheme opens an explicit list with both card colours previewed: Classic (blue/red), Neon Lime (lime/pink), Sunlight (white/yellow with black scores). Choosing saves for all sports and keeps this selector open with the current tick. Back to Settings returns explicitly. Ambient stays monochrome. Brightness: watch system → Open watch display settings delegates brightness to Wear OS; no app override or light sensing is added. Vibrations and Court/interval reminders have separate selected lists.
 
 Settings → Backup & restore → Create or restore backup → phone QR → download or select JSON → send → watch Receive changes → Restore this backup? → Replace data & restore. Preview/cancel changes nothing; stale/expired previews cannot apply. The replacement is atomic and unfinished restores are paused. Download previous data copy exports the pre-restore recovery snapshot through a fresh backup link. End an existing transfer before changing its snapshot purpose.
 
-Current match → Live scoreboard → Start live sharing → Show audience QR. A separate read-only link shares this match only for up to eight hours. Stop sharing revokes it if online; offline status explains expiry. Offline scoring continues and queues the latest score. A completed result → Share result card opens the private phone result view with Save/Share image actions.
+Current match → Live scoreboard → Start live sharing → audience QR opens automatically when ready. Reopen it later with Show audience QR. A separate read-only link shares this match only for up to eight hours. Stop sharing revokes it if online; offline status explains expiry. Offline scoring continues and queues the latest score. A completed result → Share result card opens the private phone result view with Save/Share image actions.
 
 Add Keep Score from the watch’s tile picker or the watch face’s complication picker. Tapping opens Current match or sport selection without scoring or resuming. These are optional read-only entry points.
 
 The audience page adapts to portrait phones and short landscape screens. Portrait keeps two large aligned cards; landscape places match details and controls alongside them. Full team names wrap, serving has its own badge, and viewers independently choose Classic/Neon Lime/Sunlight. Browser QA covers actual 393×852 and 852×393 CSS viewports with synthetic doubles names, aligned scores, all controls reachable and no horizontal overflow. These are browser layout checks, not physical phone acceptance.
+
+## v0.16.1 navigation and sharing corrections
+
+Settings is grouped into Display, Feedback, Data, Watch shortcuts and App. Vibration, reminders, screen policy and colour choices save immediately and stay on their selector with an updated tick. Reselecting the current option does nothing. Back to Settings, hardware Back and swipe use the same route; settings and selector scroll positions are retained. Other one-shot match-setup pickers still return to their draft after a changed choice.
+
+Live readiness automatically opens Audience QR only from the still-visible waiting panel. Failure replaces the waiting controls with Start live sharing; late/background callbacks never interrupt another screen. Returning from QR keeps the ready link available without reopening it repeatedly. QR screen retention stays bounded.
+
+A committed Cancel match → Discard match sends an encrypted anonymous discard notice, replacing all shared scores/names. The viewer shows Match discarded and stops polling. Cancelling the discard confirmation changes nothing. Offline notices retry on network reconnect while the process survives; no score action is required. A stopped/expired/revoked audience link clears the old Playing score and shows Broadcast ended.

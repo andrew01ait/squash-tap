@@ -48,7 +48,7 @@ public class SportNavigationUiTest {
         newMatch("Tennis");click("Opponent: No name (optional)");click("Jane");click("Mode: Singles");assertNotNull(button("✓ Singles"));assertNotNull(button("Doubles"));swipe();assertNotNull(button("Opponent: Jane (optional)"));assertNotNull(button("Mode: Singles"));
     }
     @Test public void reselectingTheCurrentRulePreservesInitialServingChoices(){
-        newMatch("Badminton");click("First server: Not set");click("Me");click("Rules: 21 points · cap 30");click("✓ 21 points · cap 30");assertNotNull(button("First server: Me"));click("Mode: Singles");click("✓ Singles");assertNotNull(button("First server: Me"));
+        newMatch("Badminton");click("First server: Not set");click("Me");click("Rules: 21 points · cap 30");click("✓ 21 points · cap 30");assertNotNull(button("✓ 21 points · cap 30"));click("Cancel");assertNotNull(button("First server: Me"));click("Mode: Singles");click("✓ Singles");assertNotNull(button("✓ Singles"));click("Cancel");assertNotNull(button("First server: Me"));
     }
     @Test public void tennisDeciderAndDeuceUseListsRatherThanCycling(){
         newMatch("Tennis");click("Deuce: Advantage");assertNotNull(button("✓ Advantage"));click("No-Ad");click("Decider: Full set");assertNotNull(button("✓ Full set"));click("Match tie-break to 10");click("Create match");assertEquals("no-ad",book().current().format().deuce);assertTrue(book().current().format().finalTie);
@@ -67,8 +67,8 @@ public class SportNavigationUiTest {
     @Test public void completedMatchesOfferResultsAndDoNotOfferDiscard(){
         MatchBook inMemory=ReflectionHelpers.getField(activity,"book");inMemory.retire(1);ReflectionHelpers.callInstanceMethod(activity,"afterMatchChange");click("Current match");assertNull(find("Cancel match"));assertNotNull(button("View result"));
     }
-    @Test public void screenSettingHasExplicitChoicesAndCancelDoesNotChangeIt(){
-        click("Settings");click("Keep screen on: ON");assertNotNull(button("✓ Keep screen on"));click("Cancel");assertFalse(prefs.contains("match_keep_awake_v3"));click("Keep screen on: ON");click("Allow screen to sleep");assertFalse(prefs.getBoolean("match_keep_awake_v3",true));assertNotNull(button("Keep screen on: OFF"));
+    @Test public void screenSettingHasExplicitChoicesAndBackKeepsTheSelection(){
+        click("Settings");click("Keep screen on: ON");assertNotNull(button("✓ Keep screen on"));click("Back to Settings");assertFalse(prefs.contains("match_keep_awake_v3"));click("Keep screen on: ON");click("Allow screen to sleep");assertFalse(prefs.getBoolean("match_keep_awake_v3",true));assertNotNull(button("✓ Allow screen to sleep"));click("Back to Settings");assertNotNull(button("Keep screen on: OFF"));
     }
     @Test public void completedMatchUnlocksOtherSports(){
         MatchBook inMemory=ReflectionHelpers.getField(activity,"book");inMemory.retire(1);ReflectionHelpers.callInstanceMethod(activity,"afterMatchChange");click("Change sport");assertTrue(button("Tennis").isEnabled());click("Tennis");assertNotNull(button("New Tennis match"));

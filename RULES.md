@@ -1,4 +1,4 @@
-# Sports and scoring — v0.16.0
+# Sports and scoring — v0.16.1
 
 Choose scoring presets from explicit lists before creating a match. Each match keeps its chosen rules. An unfinished or paused match must be completed or cancelled before switching sports.
 
@@ -52,3 +52,5 @@ Warm-up and interval countdowns, injury/blood recovery categories, awarded/conce
 - [USA Pickleball official rulebook and 2026 edition](https://usapickleball.org/rules/)
 - [USAP 2025 rules](https://usapickleball.org/docs/2025-USA-Pickleball-Rulebook.pdf), provisional rally scoring and service rotation
 - [USAP 2026 change document](https://usapickleball.org/docs/rules/USAP-Rulebook-Change-Document.pdf), rally game-winning point
+
+A discarded shared match saves no result and replaces the audience display with an anonymous discard notice; it does not alter the scoring rules.
