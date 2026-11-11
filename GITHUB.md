@@ -1,6 +1,6 @@
 # Internal and GitHub source workflow
 
-Public repository: <https://github.com/andrew01ait/squash-tap>. Official download/update site: <https://squash-tap-andrew.endruuu.chatgpt.site/>. Current watch release: **v0.16.3 / code 21**.
+Public repository: <https://github.com/andrew01ait/squash-tap>. Official download/update site: <https://squash-tap-andrew.endruuu.chatgpt.site/>. Current watch release: **v0.16.4 / code 22**.
 
 ## Two copies and their responsibilities
 
@@ -62,3 +62,5 @@ The v0.16.1 patch adds in-place Settings selection, guarded automatic audience Q
 The v0.16.2 patch replaces All Sports identity badges and app section labels with Keep Score, including shared selectors. Sport-scoped screens keep their sport label/icon. Keep the sanitized source and existing draft PR aligned without merging main.
 
 The v0.16.3 mirror adds alphabetical watch/phone sports, bounded matching-player head-to-head/last meeting, accessible audience share/copy icons and ten-minute final results with stable expiry, Undo and reconnect behavior. Include the deadline migration and native/browser tests; keep the existing draft PR without merging main.
+
+The v0.16.4 patch promotes Reset all filters on watch/phone, clears match mode as well as player/dates, restores page one/top, and refreshes phone statistics while retaining the sport and staged edits. Keep source, guides and the existing draft PR aligned without merging main.

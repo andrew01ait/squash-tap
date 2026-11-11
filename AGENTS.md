@@ -1,6 +1,6 @@
 # Maintenance instructions
 
-Read [README.md](README.md), [ARCHITECTURE.md](ARCHITECTURE.md), [FLOW.md](FLOW.md), [DEPLOYMENT.md](DEPLOYMENT.md), [TESTING.md](TESTING.md), [VERSIONING.md](VERSIONING.md) and [GITHUB.md](GITHUB.md) before changing the corresponding behavior. Current release is v0.16.3/code 21; older release-specific decisions remain in Git history and [CHANGELOG.md](CHANGELOG.md).
+Read [README.md](README.md), [ARCHITECTURE.md](ARCHITECTURE.md), [FLOW.md](FLOW.md), [DEPLOYMENT.md](DEPLOYMENT.md), [TESTING.md](TESTING.md), [VERSIONING.md](VERSIONING.md) and [GITHUB.md](GITHUB.md) before changing the corresponding behavior. Current release is v0.16.4/code 22; older release-specific decisions remain in Git history and [CHANGELOG.md](CHANGELOG.md).
 
 ## Scope, identity and publication
 
@@ -63,3 +63,5 @@ Read [RULES.md](RULES.md). Keep badminton 21/30 and 15/21 and all padel deuce op
 Settings selectors must save in place, update their tick and leave only by explicit Back/shortcut/swipe; selected-option taps never navigate. Live readiness may open Audience QR only from its visible current waiting page, never from another panel or background. A committed discard replaces shared scores with an encrypted anonymous terminal notice and retries on reconnect, without saving a result. Ended/revoked audience links must clear stale Playing scores.
 
 Keep watch/phone sport lists alphabetical by displayed name. Previous-meeting matching uses saved identities, the same sport/mode and exact doubles teams (opponent positions may swap); omit unknown identities and the current result. Keep final retry queues bounded and memory-only, and clear every rendered history field on discard/expiry.
+
+Reset all result filters clears player/date/mode together, retains the sport and returns to page one/top. Keep the action first in Result filters and visible in filtered Results. Phone reset refreshes the all-mode statistics without changing staged edits; never treat it as match data deletion or a sport switch.

@@ -1,4 +1,4 @@
-# Navigation and match flows — v0.16.3
+# Navigation and match flows — v0.16.4
 
 ## Sport entry and scope
 
@@ -136,3 +136,7 @@ Choose sport lists Badminton, Padel, Pickleball, Squash, Table tennis, Tennis; p
 The audience dashboard shows previous head-to-head wins/losses plus the last meeting date, overall result and game/set scores when the same saved opponent or complete doubles teams played in this sport/mode. It omits unknown players and the current match. These are previous meetings, including on the final screen. The share and copy actions are accessible icons with titles; unsupported native sharing falls back to copying.
 
 Completion shows the winner and final games/sets, preserves actual partial scores for retirement, and displays the remaining final window. The link expires ten minutes after completion, with repeated updates retaining the deadline. A delayed offline completion uses its completion timestamp; new-match/task dismissal can retry the final snapshot without revoking the completed link. Undo before expiry returns to play using the original live deadline. Stop sharing can still revoke access sooner. Expiry/discard removes current names, scores and previous-meeting details.
+
+## v0.16.4 reset all result filters
+
+Results → Filters → Reset all filters is the first filter action. Filtered Results also offers a direct Reset all filters row, including empty result lists. It clears opponent/player, From, To and Singles/Doubles mode, retains the selected sport, and shows page one at the top. Ordinary Back/details navigation still preserves filters and position. The phone action uses the same label, resets mode/player/dates within the shared snapshot, and refreshes all-mode statistics.

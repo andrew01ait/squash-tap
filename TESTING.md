@@ -1,6 +1,6 @@
 # Testing and verification
 
-Current watch release: **v0.16.3 / code 21**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
+Current watch release: **v0.16.4 / code 22**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
 
 ## Recorded release evidence
 
@@ -59,7 +59,7 @@ Native/browser interchange cases execute Java fixtures; the full command require
 Follow [DEPLOYMENT.md](DEPLOYMENT.md) for SDK, locked runtime/UI dependencies, original signing key and verified retained APKs. The standard builder executes core/web tests, compiles real AAPT resources and runs native UI tests before D8/signing. UI tests can also be repeated once those resources/generated classes exist:
 
 ```sh
-python3 scripts/test_ui.py --version 0.16.3
+python3 scripts/test_ui.py --version 0.16.4
 ```
 
 Robolectric executes API 34 and uses its configured API 35 framework for resource parsing. Test tooling stays under ignored `.local/`; it is not bundled in the APK. A fresh export does not contain the maintainer's signing key, SDK or prior unsigned build, so the complete release pipeline is not a key-free out-of-box build.
@@ -135,3 +135,7 @@ The full release suite passes 325 core + 185 native UI + 58 web/relay cases (568
 331 core + 190 native UI + 64 web/relay checks pass (585). Added coverage includes stable/archived/renamed identities, exact doubles teams with swapped opposing roles, unknown identity exclusion, backfilled result dates, current/deleted result exclusion, retirement winners, native summary privacy, stable completion metadata, Undo and queued final retries after rematch/task dismissal. API tests cover fixed ten-minute completion deadlines, the live cutoff, delayed offline completion, legacy rows, invalid markers, read-only roles and revision ordering. The alphabetical selector and browser/native fixture tests verify all six sports without positional sport assumptions.
 
 Native renders inspect the alphabetical selector and badges. Browser preview verifies portrait 393×852 and landscape 852×393 frames, aligned current/final scores, long doubles names, head-to-head/last meeting, winner/score breakdown, remaining availability and labelled share/copy icons without horizontal overflow. Browser-driven transition controls could not be verified because the test iframe hit the browser URL policy; the API/native transition regressions pass. Physical OnePlus acceptance remains pending. Original signer/package/SDK/alignment, all retained hashes, documentation/export parity and the local site build are checked separately.
+
+## Result filter reset — v0.16.4, 2026-11-11
+
+331 core + 191 native UI + 64 web/relay checks pass (586). The native regression combines mode, opponent and date filters, resets from page two, checks page one/top despite an earlier remembered scroll, retains Tennis, and verifies byte-identical match/name books and the active session. It also checks the first filter action and recovery from an empty result list. Browser QA applies Doubles, a named player and both dates, then verifies All modes/All players/empty dates, the same Tennis scope, restored results and the success message. Documentation/export parity, original signer/package/SDK/alignment, all retained APK hashes and the website build are verified. No new physical-watch acceptance is claimed.

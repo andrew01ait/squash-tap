@@ -1,6 +1,6 @@
 # Install, update and diagnose
 
-[Official download page](https://squash-tap-andrew.endruuu.chatgpt.site/) · Current watch APK: **v0.16.3 / code 21**.
+[Official download page](https://squash-tap-andrew.endruuu.chatgpt.site/) · Current watch APK: **v0.16.4 / code 22**.
 
 The APK runs on the watch. Wear Installer 2 is a helper on the Android phone; no PC development tools are required. The app is currently distributed by APK through this site, not the watch app store.
 
@@ -70,3 +70,5 @@ After installing v0.16.1, refresh any already-open audience webpage once. Start 
 In v0.16.2, shared menus such as Players, Settings and their subpages show Keep Score. Sport-specific menus still show the selected sport. Use Settings → Check for updates to install the correction over your existing app.
 
 Update to v0.16.3 and start a fresh broadcast to share the head-to-head summary and use the ten-minute final window. Refresh an already-open audience page once for the new layout and share icons. Head-to-head requires matching saved players; doubles requires the same partner and both opponents. Sports are listed alphabetically on the watch and phone.
+
+In v0.16.4, use Results → Filters → Reset all filters, or the direct reset row in filtered Results. It clears player, dates and Singles/Doubles mode, retains your sport, and returns to the first page. The phone results page has the same action; refresh an already-open phone page once for this correction.

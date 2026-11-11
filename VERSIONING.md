@@ -1,6 +1,6 @@
 # Versions and compatibility
 
-Current official watch release: **v0.16.3**; Android version code **21**; package **`at.andrew.squashtap`**. `public/release.properties` is the machine-readable update feed; `public/builds.json` and `SHA256SUMS.txt` record retained artifacts.
+Current official watch release: **v0.16.4**; Android version code **22**; package **`at.andrew.squashtap`**. `public/release.properties` is the machine-readable update feed; `public/builds.json` and `SHA256SUMS.txt` record retained artifacts.
 
 ## Independent version numbers
 
@@ -33,7 +33,7 @@ Keep [README.md](README.md), [INSTALLATION.md](INSTALLATION.md), [FLOW.md](FLOW.
 
 ## v0.16 compatibility
 
-Keep Score is the new display name. The package `at.andrew.squashtap`, SharedPreferences `squash`, original signing certificate, old crypto context and old published APK names remain stable for in-place updates. Current generated downloads use `KeepScore-0.16.3.apk` and `KeepScore-source.zip`; old `SquashTap-*.apk` files remain byte-for-byte. No repository/website URL rename or license change accompanies this release.
+Keep Score is the new display name. The package `at.andrew.squashtap`, SharedPreferences `squash`, original signing certificate, old crypto context and old published APK names remain stable for in-place updates. Current generated downloads use `KeepScore-0.16.4.apk` and `KeepScore-source.zip`; old `SquashTap-*.apk` files remain byte-for-byte. No repository/website URL rename or license change accompanies this release.
 
 ScoreState 4 adds pickleball’s server-dependent rally log while M4/B5 and CSV schema 3 retain their version identities with validated pickleball formats. Older watches must update before importing pickleball. New optional preferences include own name, favourites, palette, haptics and reminders; full-backup schema 1 carries only validated settings. Envelope 2 does not replace envelope 1. Live audience schema 1 is a separate read-only protocol/table with an eight-hour expiry and independent roles. Never reuse phone-transfer capabilities for an audience link.
 
@@ -42,3 +42,5 @@ The v0.16.1/code 19 patch changes navigation and sharing presentation, not match
 The v0.16.2/code 20 patch changes shared menu branding to Keep Score. Sport names, navigation, scoring, persistence and transfer schemas retain their existing behavior; retain v0.16.1/code 19 and earlier APKs unchanged.
 
 The v0.16.3/code 21 release adds alphabetical sport presentation, a bounded optional previous-meeting summary in live schema 1, and owner `completedAt` metadata for final-result expiry. Migration 0002 adds `live_games.active_expires_at` without deleting existing sessions. Old clients that omit completion metadata retain their prior expiry. Updated clients show final results for ten minutes and preserve the original live deadline for Undo. No match-book, CSV or backup schema changes; retain all earlier APKs byte-for-byte.
+
+The v0.16.4/code 22 release changes result-filter presentation/reset only: player/date/mode clear together while sport and stored data remain intact. Phone statistics refresh after reset. No scoring, book, backup, CSV, relay or database migration changes accompany this patch; retain all prior APKs unchanged.

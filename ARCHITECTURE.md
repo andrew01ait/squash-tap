@@ -1,6 +1,6 @@
 # Architecture
 
-Current watch release: **v0.16.3**, code **21**. This document describes the implemented system; release changes are in [CHANGELOG.md](CHANGELOG.md).
+Current watch release: **v0.16.4**, code **22**. This document describes the implemented system; release changes are in [CHANGELOG.md](CHANGELOG.md).
 
 ## Components and responsibilities
 
@@ -116,3 +116,7 @@ The audience page adapts to portrait phones and short landscape screens. Portrai
 `LiveScoreClient` attaches a stable `completedAt` marker to each queued snapshot and owner request (zero for active play). Real recorded completion time controls delayed offline updates; explicitly starting a new finished broadcast starts a fresh ten-minute window. `active_expires_at` preserves the original live deadline. The relay atomically updates revision, ciphertext and expiry, shortens repeated final updates without extending them, restores the original deadline on Undo, and allows ten full minutes when completion precedes the live cutoff. Old clients omitting the marker retain their existing contract. Migration 0002 adds only the nullable deadline column; old rows capture their existing deadline on the next accepted update. Scores and history remain encrypted; only expiry/completion timing is service metadata. No watch timer, polling or background worker is added.
 
 Pending completed snapshots use a separate bounded memory queue (eight sessions) and connectivity callbacks so rematch/task dismissal can preserve the final result without blocking scoring. Process death still loses unsent capabilities. The viewer shows final winner, actual game/set scores, retirement and availability; expiry clears names, scores and history, including after interrupted network access. Browser controls use accessible icon buttons.
+
+## Result filter reset — v0.16.4
+
+`MainActivity.resetResultFilters` clears player/date/mode together, calls Results page zero and posts a final scroll-to-top after any remembered-position restoration. It changes only browsing state, retaining selected sport, caller, book, directory and active session. The action appears first in Result filters and in Results when any filter is active. Phone reset also sets All modes and refreshes scoped Statistics, without re-rendering or discarding staged name/import changes. It operates within the received history snapshot and adds no requests or persistence fields.

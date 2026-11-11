@@ -1,6 +1,6 @@
 # Keep Score
 
-A standalone, offline racket-sport scorekeeper for Wear OS. Current watch release: **v0.16.3**, Android version code **21**. No account is required; scores and saved history live on the watch.
+A standalone, offline racket-sport scorekeeper for Wear OS. Current watch release: **v0.16.4**, Android version code **22**. No account is required; scores and saved history live on the watch.
 
 [Download the watch app](https://squash-tap-andrew.endruuu.chatgpt.site/) · [GitHub source](https://github.com/andrew01ait/squash-tap) · [Install using your phone](INSTALLATION.md)
 
@@ -15,7 +15,7 @@ A standalone, offline racket-sport scorekeeper for Wear OS. Current watch releas
 - Choose the supported match length for each sport, keep every set score, and optionally choose a saved opponent. New-match choices stay in a draft until Create match.
 - Save completed matches automatically, or use Match options → Save retirement result to record an early win/loss. Current match → Cancel match → Discard match quits without saving scores or a statistics entry. Saved history and shared names are kept.
 - Enter a completed set for the current match or add an independent past match using score wheels, large controls and saved names.
-- Browse history with combined opponent/date filters: **10 matches per watch page**, newest first. Returning from a result preserves the page, filters and scroll position.
+- Browse history with combined opponent/date filters: **10 matches per watch page**, newest first. Returning from a result preserves the page, filters and scroll position. Reset all filters clears player, dates and mode for the selected sport and returns to page one. It appears at the top of Result filters and directly in filtered Results; the phone provides the same action.
 - See match wins/losses, game/set totals and known points for the selected sport/mode. The phone view also provides per-opponent balances and recent W/L history.
 - View results, edit names and import/export CSV through an optional encrypted, ten-minute QR session in a phone browser. Phone results use 25 matches per page.
 - Check for watch updates and export diagnostics from Settings. An explicit active match controls the ongoing session, ambient scoreboard and screen retention.
@@ -83,7 +83,7 @@ Updates are requested manually in Settings. There is no background update pollin
 | [AGENTS.md](AGENTS.md) | Maintenance constraints for future coding work. |
 | [CHANGELOG.md](CHANGELOG.md) | Release and documentation history. |
 
-The current v0.16.3 release suite passes **331 core + 190 Android UI + 64 web/relay checks = 585**. The historical v0.13 release suite was **265 core + 100 Android UI + 35 web/relay checks = 400**. This is release evidence, not a claim that every documentation update reruns or physically validates the watch. See [TESTING.md](TESTING.md) for current verification.
+The current v0.16.4 release suite passes **331 core + 191 Android UI + 64 web/relay checks = 586**. The historical v0.13 release suite was **265 core + 100 Android UI + 35 web/relay checks = 400**. This is release evidence, not a claim that every documentation update reruns or physically validates the watch. See [TESTING.md](TESTING.md) for current verification.
 
 Full backups use the local export date and application name: `YYYYMMDD_ApplicationName_Description.json`, for example `20261111_KeepScore_Backup.json`. Completed-result interchange remains CSV; full backup JSON also preserves current rallies and Undo.
 

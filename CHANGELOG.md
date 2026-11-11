@@ -1,5 +1,11 @@
 # Releases
 
+## 0.16.4 — 2026-11-11
+
+- Make Reset all filters the first watch filter action and show a direct reset row in filtered/empty Results. Clear player/date/mode, retain the sport and return to page one/top despite remembered scrolling.
+- Fix phone reset to clear Singles/Doubles as well as player/dates and refresh scoped statistics without discarding staged edits. Use the same Reset all filters label.
+- Verify 331 core + 191 native UI + 64 web/relay cases (586), combined native filters/pagination/scroll and storage/session preservation, browser reset behavior, original signing/metadata/alignment and retained APK hashes. Refresh current guides and source/download artifacts.
+
 ## 0.16.3 — 2026-11-11
 
 - Sort sport choices and badges alphabetically on watch and phone. Preserve selected/current sport IDs and unfinished-match locks.

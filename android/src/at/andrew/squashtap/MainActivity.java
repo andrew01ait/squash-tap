@@ -568,6 +568,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         resultsPage=page;LinearLayout content=panel("Results","results:"+selectedSport+":"+filterMode+":"+page+":"+filterOpponent+":"+filterFrom+":"+filterTo);
         LinearLayout tools=ManualEntryUi.row(content);Button filters=navigationButton(tools,"Filters",this::showResultFilters),options=navigationButton(tools,"Options",this::showResultOptions),add=navigationButton(tools,"Add past match",this::showAddPastMatch);filters.setContentDescription("Filter results");options.setContentDescription("Result options");
         for(Button tool:new Button[]{filters,options,add}){tool.setCompoundDrawables(null,null,null,null);tool.setGravity(Gravity.CENTER);tool.setTextSize(11);tool.setPadding(dp(2),dp(4),dp(2),dp(4));tool.setMinWidth(0);tool.setMinimumWidth(0);LinearLayout.LayoutParams slot=new LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1);slot.bottomMargin=dp(4);tool.setLayoutParams(slot);}
+        if(resultFiltersActive())navigationButton(content,"Reset all filters",this::resetResultFilters);
         if(items.isEmpty())paragraph(content,book.count()==0?"No saved matches yet. Finished matches are saved here automatically.":"No matches fit these filters.");
         else{
             paragraph(content,items.size()+" of "+book.count()+" saved\nPage "+(page+1)+" of "+Math.max(1,(items.size()+9)/10));
@@ -817,15 +818,19 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     }
     private void assignOpponent(String matchId,String id,Runnable back){String before=opponents.encode();try{opponents.assign(matchId,id);if(!persistScore())throw new IllegalStateException("The watch did not confirm saving");updateDisplay();back.run();}catch(Exception error){opponents=OpponentDirectory.decode(before);message("Name not saved",safe(error),back);}}
     private void showResultFilters(){
-        LinearLayout content=panel("Result filters");if(!selectedSport.equals("squash")&&!selectedSport.equals("padel"))navigationButton(content,"Mode: "+modeLabel(),()->chooseResultMode(this::showResultFilters));OpponentDirectory.Entry e=filterOpponent==null?null:opponents.get(filterOpponent);
+        LinearLayout content=panel("Result filters");navigationButton(content,"Reset all filters",this::resetResultFilters);if(!selectedSport.equals("squash")&&!selectedSport.equals("padel"))navigationButton(content,"Mode: "+modeLabel(),()->chooseResultMode(this::showResultFilters));OpponentDirectory.Entry e=filterOpponent==null?null:opponents.get(filterOpponent);
         personButton(content,"Opponent: "+(filterOpponent==null?"All":filterOpponent.isEmpty()?"Unnamed":e==null?"Unknown":e.name),()->showOpponentPicker(null,true,0));
         paragraph(content,"Dates: "+(filterFrom==null?"any":filterFrom.toString())+" to "+(filterTo==null?"any":filterTo.toString()));
         button(content,"Today",()->{filterFrom=LocalDate.now();filterTo=filterFrom;showResults(0);});
         button(content,"Last 7 days",()->{filterTo=LocalDate.now();filterFrom=filterTo.minusDays(6);showResults(0);});
         button(content,"This month",()->{filterTo=LocalDate.now();filterFrom=filterTo.withDayOfMonth(1);showResults(0);});
         button(content,"Custom date range",this::showDateRange);
-        button(content,"Clear all filters",()->{filterOpponent=null;filterFrom=null;filterTo=null;filterMode=-1;showResults(0);});
         backButton(content,"Back to Results",()->showResults(resultsPage));
+    }
+    private boolean resultFiltersActive(){return filterOpponent!=null||filterFrom!=null||filterTo!=null||filterMode>=0;}
+    private void resetResultFilters(){
+        filterOpponent=null;filterFrom=filterTo=null;filterMode=-1;showResults(0);
+        final ScrollView scroll=panelScroll;if(scroll!=null)scroll.post(()->scroll.scrollTo(0,0));
     }
     private void showDateRange(){
         LinearLayout content=panel("Date range");paragraph(content,"Use YYYY-MM-DD. Leave either date empty for no limit.");

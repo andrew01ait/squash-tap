@@ -6,8 +6,8 @@ import argparse, hashlib, json, os, secrets, shutil, subprocess, sys, zipfile
 ROOT=Path(__file__).resolve().parents[1]
 PKG='at.andrew.squashtap'
 SITE='https://squash-tap-andrew.endruuu.chatgpt.site'
-RELEASES=((21,'0.16.3'),)
-RELEASE_NOTES='Sports are alphabetical. Live scoreboards show head-to-head and the last meeting for matching saved players or teams, icon sharing, and a final-result view available for ten minutes after completion.'
+RELEASES=((22,'0.16.4'),)
+RELEASE_NOTES='Reset all filters is now prominent in Results and at the top of Result filters. It clears player, dates and match mode, returns to the first page, and keeps the selected sport. Phone reset also refreshes all-mode statistics.'
 
 def run(args, env=None):
     result=subprocess.run([str(x) for x in args],cwd=ROOT,env=env,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
