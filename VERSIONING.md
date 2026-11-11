@@ -1,6 +1,6 @@
 # Versions and compatibility
 
-Current official watch release: **v0.15.1**; Android version code **17**; package **`at.andrew.squashtap`**. `public/release.properties` is the machine-readable update feed; `public/builds.json` and `SHA256SUMS.txt` record retained artifacts.
+Current official watch release: **v0.16.0**; Android version code **18**; package **`at.andrew.squashtap`**. `public/release.properties` is the machine-readable update feed; `public/builds.json` and `SHA256SUMS.txt` record retained artifacts.
 
 ## Independent version numbers
 
@@ -13,7 +13,7 @@ Current official watch release: **v0.15.1**; Android version code **17**; packag
 
 ## Current formats
 
-Read B1–B5 books. Preserve B4 for unchanged squash-only state; use B5 for multisport/explicit serving or extended results. Preserve old M1/M2/M3 squash encodings; M4 stores format/initial service data. O1 remains readable, O2 separates team roles, and both use the same stable player catalog. Retain once-only B1/B2/B3/B4/O1 backups. CSV schemas 1/2 remain squash-compatible; schema 3 adds explicit sport/mode/rules, seven-game results, team roles and known point/tie-break details. Schema 3 requires the updated watch. Phone encryption/session direction remains unchanged. See [RULES.md](RULES.md) for frozen rule presets.
+Read B1–B5 books. Preserve B4 for unchanged squash-only state; use B5 for multisport/explicit serving or extended results. Preserve old M1/M2/M3 squash encodings; M4 stores format/initial service data. O1 remains readable, O2 separates team roles, and both use the same stable player catalog. Retain once-only B1/B2/B3/B4/O1 backups. CSV schemas 1/2 remain squash-compatible; schema 3 adds explicit sport/mode/rules, seven-game results, team roles and known point/tie-break details. Schema 3 requires the updated watch. Ordinary envelope-1 encryption/session direction remains unchanged; envelope 2 adds bounded complete-backup payloads with separate version-bound AAD. See [RULES.md](RULES.md) for frozen rule presets.
 
 Older versions may not understand new preferences or retirement/manual CSV. Do not promise safe downgrades. For corrections, normally deliver a higher-version-code APK with compatible readers and the same package/key. Never fabricate legacy timing, rally order, winning sets or reused references during migration.
 
@@ -30,3 +30,9 @@ Documentation, source export and maintenance-tool updates do not by themselves r
 ## Required release records
 
 Keep [README.md](README.md), [INSTALLATION.md](INSTALLATION.md), [FLOW.md](FLOW.md), [ARCHITECTURE.md](ARCHITECTURE.md), [DEPLOYMENT.md](DEPLOYMENT.md), [TESTING.md](TESTING.md), [GITHUB.md](GITHUB.md), [AGENTS.md](AGENTS.md) and [CHANGELOG.md](CHANGELOG.md) aligned with the final implemented behavior. Historical release entries remain historical; do not overwrite old suite totals with new ones.
+
+## v0.16 compatibility
+
+Keep Score is the new display name. The package `at.andrew.squashtap`, SharedPreferences `squash`, original signing certificate, old crypto context and old published APK names remain stable for in-place updates. Current generated downloads use `KeepScore-0.16.0.apk` and `KeepScore-source.zip`; old `SquashTap-*.apk` files remain byte-for-byte. No repository/website URL rename or license change accompanies this release.
+
+ScoreState 4 adds pickleball’s server-dependent rally log while M4/B5 and CSV schema 3 retain their version identities with validated pickleball formats. Older watches must update before importing pickleball. New optional preferences include own name, favourites, palette, haptics and reminders; full-backup schema 1 carries only validated settings. Envelope 2 does not replace envelope 1. Live audience schema 1 is a separate read-only protocol/table with an eight-hour expiry and independent roles. Never reuse phone-transfer capabilities for an audience link.

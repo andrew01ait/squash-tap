@@ -103,5 +103,12 @@
     "filename": "SquashTap-0.15.1.apk",
     "sizeBytes": 2099358,
     "sha256": "82282b004744966b0c2233f2be018773f75defbb85751155ccf9e16cc6762585"
+  },
+  {
+    "versionCode": 18,
+    "versionName": "0.16.0",
+    "filename": "KeepScore-0.16.0.apk",
+    "sizeBytes": 4697757,
+    "sha256": "3bfa2168b3d8f2ae0aad7b82259fe689a1dd86108a76b8461f9a50e5461c659d"
   }
 ]

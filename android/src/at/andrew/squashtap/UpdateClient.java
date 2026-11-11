@@ -29,7 +29,7 @@ public final class UpdateClient {
         HttpsURLConnection connection=(HttpsURLConnection)new URL(address).openConnection();
         connection.setConnectTimeout(15000); connection.setReadTimeout(20000);
         connection.setInstanceFollowRedirects(false); connection.setUseCaches(false);
-        connection.setRequestProperty("User-Agent","SquashTap/"+BuildConfig.VERSION_NAME+" WearOS");
+        connection.setRequestProperty("User-Agent","KeepScore/"+BuildConfig.VERSION_NAME+" WearOS");
         connection.setRequestProperty("Cache-Control","no-cache");
         int code=connection.getResponseCode();
         if(code>=300&&code<400){ connection.disconnect(); throw new IOException("Update website requires sign-in or redirects. Open it on your phone."); }
@@ -84,7 +84,7 @@ public final class UpdateClient {
         return values;
     }
     public void install(File apk) throws Exception {
-        if(!context.getPackageManager().canRequestPackageInstalls())throw new IOException("Allow Squash Tap to install updates first");
+        if(!context.getPackageManager().canRequestPackageInstalls())throw new IOException("Allow Keep Score to install updates first");
         PackageInstaller installer=context.getPackageManager().getPackageInstaller();
         PackageInstaller.SessionParams params=new PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL);
         params.setAppPackageName(context.getPackageName());params.setSize(apk.length());

@@ -66,7 +66,7 @@ def source_bytes(file):
         body = (json.dumps(hosting, indent=2) + '\n').encode()
     elif relative.as_posix() == '.gitignore':
         text = body.decode()
-        rules = ('public/apks/', 'public/SquashTap-source.zip',
+        rules = ('public/apks/', 'public/SquashTap-source.zip', 'public/KeepScore-source.zip',
                  '.openai/deliverables.json', '*.pem', '*.key')
         extra = [rule for rule in rules if rule not in text.splitlines()]
         if extra:
@@ -87,10 +87,10 @@ def package(github_directory=None):
         if target.exists() and (not target.is_dir() or any(target.iterdir())):
             raise RuntimeError('GitHub export directory must be empty')
     payload = [(file, source_bytes(file)) for file in source_files()]
-    destination = ROOT / 'public/SquashTap-source.zip'
+    destination = ROOT / 'public/KeepScore-source.zip'
     with zipfile.ZipFile(destination, 'w', zipfile.ZIP_DEFLATED) as archive:
         for file, body in payload:
-            entry = zipfile.ZipInfo('SquashTap/' + file.relative_to(ROOT).as_posix(),
+            entry = zipfile.ZipInfo('KeepScore/' + file.relative_to(ROOT).as_posix(),
                                     (2026, 11, 3, 0, 0, 0))
             entry.compress_type = zipfile.ZIP_DEFLATED
             mode = 0o755 if file.stat().st_mode & 0o111 else 0o644

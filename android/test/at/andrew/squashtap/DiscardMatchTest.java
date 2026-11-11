@@ -17,7 +17,7 @@ public class DiscardMatchTest {
             assertEquals(sport,book.current().format().sport);assertEquals(3,book.current().bestOf());assertEquals("replacement",book.current().id());
             assertFalse(book.current().hasPoints());assertFalse(book.undo());assertEquals(-1,book.current().firstServer(0));assertEquals(0,book.currentStartedAt());assertEquals(0,book.currentFinishedAt());
             assertNull(book.result("abandoned"));assertEquals(1,book.count());assertEquals(result,book.result("history").gamesText());assertEquals(1,MatchStatistics.from(book.newestFirst()).matchesPlayed());
-            book.add(0);assertTrue(book.currentStartedAt()>0);assertTrue(book.retire(1));assertEquals(2,book.result("replacement").number);
+            if(format.pickleball())book.current().serving(0,1);book.add(0);assertTrue(book.currentStartedAt()>0);assertTrue(book.retire(1));assertEquals(2,book.result("replacement").number);
         }
     }
     @Test public void completedResultsRequireDeletionInsteadOfDiscard(){

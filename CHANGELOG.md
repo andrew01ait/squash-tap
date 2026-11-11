@@ -1,5 +1,16 @@
 # Releases
 
+## 0.16.0 — 2026-11-11
+
+- Rename the app display and current downloads to Keep Score while preserving package, preferences, original signer, existing data, repository/site URLs and all historical APK bytes. Add optional Your name in Players and reviewed phone editing, used on watch/live/result images without creating an opponent identity.
+- Add pickleball singles/doubles, 11/15/21 points and one/BO3/BO5 games. Keep traditional side-out, 2025 rally win-on-serve and 2026 rally either-side finish explicit. Track doubles server/court/call and genuine non-point rallies in Undo. Preserve legacy readers and validated CSV schema 3.
+- Adapt round/square/rectangular menus, full-width headings, 48dp targets and system text scaling. Add Classic, Neon Lime and high-contrast Sunlight scoreboard presets with a preview list; preserve monochrome ambient and system brightness, with a Display-settings shortcut.
+- Add quick rematch of the last completed current match, named favourite formats, configurable point/game/set/match haptics, optional non-blocking interval/change-ends prompts and event-updated read-only Wear OS tile/score complications.
+- Add complete checksummed JSON backup/restore through a private encrypted phone link: all sports, current rallies/Undo, players, own name, favourites and settings. Validate/stale-guard before atomic replacement, pause restored unfinished matches and retain a downloadable pre-restore copy. Preserve ordinary envelope 1 and add bounded AAD-bound envelope 2 for full backups.
+- Add explicit encrypted eight-hour live score mirroring with separate read-only audience links, event-driven watch pushes/latest-score reconnect, guarded revisions, expiry/revoke, bounded/rate-limited D1 storage and visible-only browser refresh. Local scoring stays offline; offline stop honestly reports delayed expiry. Add selected-result PNG download/sharing from the phone view.
+- Refresh the six-sport landing page, privacy, current APK/source links and native previews. Update all current guides, dependency locks/notices and synthetic tests; retain historical device reports. Release checks cover 325 core + 170 native UI + 56 web/relay cases (551), nine size/shape/font profiles, three palettes, signer/package/SDK/alignment and retained hashes. Physical watch acceptance remains separate.
+
+
 ## 0.15.1 — 2026-11-10
 
 - Keep serving visible with a dedicated pale-gold badge and score-card outline. Fit names by measured pixel width; fixed doubles role labels keep the serve cue independent of long or missing names. Preserve known service in ambient and full names in accessibility text; hide serve cues after a game/match finishes.

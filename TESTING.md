@@ -1,6 +1,6 @@
 # Testing and verification
 
-Current watch release: **v0.15.1 / code 17**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
+Current watch release: **v0.16.0 / code 18**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
 
 ## Recorded release evidence
 
@@ -30,7 +30,7 @@ from pathlib import Path
 import os, subprocess
 root = Path.cwd()
 folder = root / 'android/src/at/andrew/squashtap'
-names = ('MatchFormat','ServiceOrder','ScoreState','TouchTargets','UpdatePolicy','VerifiedDownload','MatchState',
+names = ('ScorePalette','BackupArchive','MatchPresets','MatchReminders','PickleballGame','MatchFormat','ServiceOrder','ScoreState','TouchTargets','UpdatePolicy','VerifiedDownload','MatchState',
          'MatchResult','MatchStatistics','ManualMatchEntry','MatchBook','MatchDisplayPolicy',
          'DiagnosticTransfer','OpponentDirectory','ResultFilter','MatchCsv','TransferCrypto')
 tests = sorted((root / 'android/test').rglob('*Test.java'))
@@ -49,17 +49,17 @@ PY
 After core classes exist, install locked Node dependencies and run the complete web suite:
 
 ```sh
-node --test web-test/interchange.test.mjs web-test/transfer-state.test.mjs web-test/relay.test.mjs web-test/multisport.test.mjs
+node --test web-test/interchange.test.mjs web-test/transfer-state.test.mjs web-test/relay.test.mjs web-test/multisport.test.mjs web-test/backup.test.mjs web-test/live.test.mjs
 ```
 
-Native/browser interchange cases execute Java fixtures; the full command requires the compiled core tests. Relay cases require Miniflare from the project's locked Wrangler dependency. Do not silently skip missing prerequisites and claim all 43 ran.
+Native/browser interchange cases execute Java fixtures; the full command requires the compiled core tests. Relay cases require Miniflare from the project's locked Wrangler dependency. Do not silently skip missing prerequisites and claim all 56 ran.
 
 ## Full native release checks
 
 Follow [DEPLOYMENT.md](DEPLOYMENT.md) for SDK, locked runtime/UI dependencies, original signing key and verified retained APKs. The standard builder executes core/web tests, compiles real AAPT resources and runs native UI tests before D8/signing. UI tests can also be repeated once those resources/generated classes exist:
 
 ```sh
-python3 scripts/test_ui.py --version 0.15.0
+python3 scripts/test_ui.py --version 0.16.0
 ```
 
 Robolectric executes API 34 and uses its configured API 35 framework for resource parsing. Test tooling stays under ignored `.local/`; it is not bundled in the APK. A fresh export does not contain the maintainer's signing key, SDK or prior unsigned build, so the complete release pipeline is not a key-free out-of-box build.
@@ -111,3 +111,13 @@ Native Canvas inspection covers the five sport scoreboards, coloured sport menu,
 v0.15.1/code 17 passes 299 core + 135 native UI + 43 web/relay checks = 477. Five additional native rendering regressions cover empty/long names at 180/200/233/260dp equivalents, all four doubles service slots, unknown/completed state, side changes with Undo and ambient service text. Native Canvas previews show the actual synthetic app views; they do not establish physical-device acceptance. Original signing identity, metadata/alignment and all 15 retained APK hashes are verified. The website refresh is checked separately for preview switching, links, images and responsive layout.
 
 Landing-page browser QA verified five radio/CSS previews and keyboard arrow selection, all eight PNGs loaded, installation anchors and retirement/discard help. Desktop width 1363px and narrow CSS viewports 454px/340px have no horizontal overflow. Narrow checks use browser zoom/reflow, not a physical phone.
+
+## Keep Score verification — 2026-11-11
+
+v0.16.0/code 18 uses the Java 17 release pipeline. The suite is 325 core + 170 native UI + 56 web/relay cases (551 total). Added coverage includes traditional pickleball non-point rallies/server two/courts, singles/doubles and 2025/2026 finishing differences, all preset/CSV/book combinations, backup validation/checksum/Undo/presets/name/settings, envelope-version binding and native↔browser backup interoperability, reminders and high-contrast palette checks. Native UI covers own name, favourite/rematch behavior, backup cancel/atomic apply/stale-setting rejection/recovery access, live coalescing/offline reconnect/stale-session guards, tile/complication data and tap actions, colour list/cancel/ambient and system brightness delegation.
+
+API-34 native Canvas renders cover six sport scoreboards and nine profiles: round 192/216/233/240dp, square 180/240dp, rectangular 201×238dp, and round 192/240dp with 130% system text. Scoreboard, current menu, menu bottom and Players are rendered for each; long player names retain an independent serving cue. Three palette renders inspect Classic/Neon Lime/Sunlight. These are actual native view renders with synthetic data, not installed watch screenshots.
+
+The live API suite checks audience read-only roles, encrypted content, no listing/CORS/cache, ordered/parallel revisions, expiry/revocation, field/body bounds and hashed-IP rate limits. Browser QA uses only local synthetic fixtures, separately from production sessions. Physical OnePlus sunlight/brightness/reflection, vibration feel, tile/complication system rendering, touch/swipe/ambient, optical QR, phone file sharing and watch-network reconnect/battery acceptance remain to be performed; DEVICE_TESTS.json is unchanged.
+
+The audience page adapts to portrait phones and short landscape screens. Portrait keeps two large aligned cards; landscape places match details and controls alongside them. Full team names wrap, serving has its own badge, and viewers independently choose Classic/Neon Lime/Sunlight. Browser QA covers actual 393×852 and 852×393 CSS viewports with synthetic doubles names, aligned scores, all controls reachable and no horizontal overflow. These are browser layout checks, not physical phone acceptance.

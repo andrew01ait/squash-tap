@@ -1,6 +1,6 @@
 # Build and deployment
 
-Official watch release: **v0.15.1 / code 17**. User installation is in [INSTALLATION.md](INSTALLATION.md); release-number and compatibility rules are in [VERSIONING.md](VERSIONING.md).
+Official watch release: **v0.16.0 / code 18**. User installation is in [INSTALLATION.md](INSTALLATION.md); release-number and compatibility rules are in [VERSIONING.md](VERSIONING.md).
 
 ## Repositories and prerequisites
 
@@ -87,4 +87,12 @@ Transfers expire after ten minutes; physical cleanup of unused ciphertext occurs
 
 ## Multisport release
 
-The original package/signing identity remains unchanged. RULES.md documents formats and limitations. A native release must test unfinished/paused/prepared sport locks, stale selection/create callbacks, confirmed discard versus retirement/deletion, contextual shared-screen Back/swipe, explicit choice lists, all five sports, both badminton formats, padel deuce options, Undo across tennis game/set boundaries, service rotation, B4/B5 and O1/O2 migration, team identities, scope/filter/delete behavior, and native/browser CSV schema-3 parity. Preserve old CSV readers and all historical APK bytes.
+The original package/signing identity remains unchanged. RULES.md documents formats and limitations. A native release must test unfinished/paused/prepared sport locks, stale selection/create callbacks, confirmed discard versus retirement/deletion, contextual shared-screen Back/swipe, explicit choice lists, all six sports, both badminton formats, padel deuce options, Undo across tennis game/set boundaries, service rotation, B4/B5 and O1/O2 migration, team identities, scope/filter/delete behavior, and native/browser CSV schema-3 parity. Preserve old CSV readers and all historical APK bytes.
+
+## Keep Score release additions
+
+The Android runtime lock now includes Tiles 1.2.0 and watchface complication data source 1.2.1 plus their pinned dependencies. The resolver compares stable/prerelease versions correctly and includes Kotlin 1.8.22 explicitly. The APK/source notice includes the relocated Protocol Buffers BSD notice as well as the existing Apache notices. Preserve all SHA-256 locks and the same signing identity.
+
+`drizzle/0001_breezy_rawhide_kid.sql` adds only `live_games` and its expiry index; migration 0000 remains immutable. Apply pending migrations to the local preview in order using Wrangler’s local `d1 execute DB` with `dist/server/wrangler.json` and `.wrangler/state`. Sites applies hosted migrations during publication. Do not initialize tables in request handlers or seed real player data.
+
+The v0.16 source package is `public/KeepScore-source.zip`; the APK is `public/apks/KeepScore-0.16.0.apk`. Preserve earlier APK names/hashes. Verify the landing page’s six PNG sport previews plus the three colour schemes and all currently referenced downloads before publication. Full backup envelope 2 and live schema 1 are separate from the original envelope-1 transfer; keep both reader contracts and access roles.

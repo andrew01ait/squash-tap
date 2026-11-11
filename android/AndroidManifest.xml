@@ -2,6 +2,8 @@
     <uses-sdk android:minSdkVersion="30" android:targetSdkVersion="34" />
     <uses-feature android:name="android.hardware.type.watch" android:required="true" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.UPDATE_PACKAGES_WITHOUT_USER_ACTION" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
@@ -9,7 +11,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <queries><intent><action android:name="android.speech.action.RECOGNIZE_SPEECH" /></intent></queries>
-    <application android:name=".AppDiagnostics" android:label="Squash Tap" android:icon="@drawable/ic_launcher"
+    <application android:name=".AppDiagnostics" android:label="Keep Score" android:icon="@drawable/ic_launcher"
         android:theme="@style/AppTheme" android:allowBackup="false" android:usesCleartextTraffic="false">
         <uses-library android:name="com.google.android.wearable" android:required="true" />
         <meta-data android:name="com.google.android.wearable.standalone" android:value="true" />
@@ -20,6 +22,15 @@
             </intent-filter>
         </activity>
         <receiver android:name=".InstallReceiver" android:exported="false" />
+        <service android:name=".KeepScoreTileService" android:exported="true" android:label="Keep Score" android:icon="@drawable/ic_launcher" android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER">
+            <intent-filter><action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER" /></intent-filter>
+            <meta-data android:name="androidx.wear.tiles.PREVIEW" android:resource="@drawable/tile_preview" />
+        </service>
+        <service android:name=".ScoreComplicationService" android:exported="true" android:label="Keep Score · Match score" android:icon="@drawable/ic_match" android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
+            <intent-filter><action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" /></intent-filter>
+            <meta-data android:name="android.support.wearable.complications.SUPPORTED_TYPES" android:value="SHORT_TEXT,LONG_TEXT" />
+            <meta-data android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS" android:value="0" />
+        </service>
         <service android:name=".MatchSessionService" android:exported="false" android:foregroundServiceType="specialUse">
             <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="User-initiated racket-sport scorekeeping session and persistent ongoing match shortcut." />
         </service>

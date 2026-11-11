@@ -8,6 +8,7 @@ public final class ServiceOrder {
     public static int next(MatchState match){
         MatchFormat f=match.format();int index=match.gameCount()-1;ScoreState game=match.game();
         int first=match.firstServer(index),receiver=match.firstReceiver(index);
+        if(f.pickleball())return game.pickleServer();
         if(f.sport.equals("squash")||f.sport.equals("badminton")){
             int side=game.lastRallyWinner();
             if(side<0&&index>0)side=match.game(index-1).winner();

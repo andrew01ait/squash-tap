@@ -39,7 +39,7 @@ public final class MatchCsv {
         if(quoted)throw new IllegalArgumentException("Unclosed CSV quote");if(value.length()>0||closed||!row.isEmpty()){row.add(restore(value.toString()));rows.add(row);}return rows;
     }
     public static List<Row> parse(String text){
-        List<List<String>> rows=cells(text);boolean multi=!rows.isEmpty()&&rows.get(0).equals(Arrays.asList(MULTISPORT_HEADER.split(",")));boolean retirements=multi||!rows.isEmpty()&&rows.get(0).equals(Arrays.asList(RETIREMENT_HEADER.split(",")));if(rows.isEmpty()||!retirements&&!rows.get(0).equals(Arrays.asList(HEADER.split(","))))throw new IllegalArgumentException("Use a Squash Tap CSV export or its template with the original column headings");
+        List<List<String>> rows=cells(text);boolean multi=!rows.isEmpty()&&rows.get(0).equals(Arrays.asList(MULTISPORT_HEADER.split(",")));boolean retirements=multi||!rows.isEmpty()&&rows.get(0).equals(Arrays.asList(RETIREMENT_HEADER.split(",")));if(rows.isEmpty()||!retirements&&!rows.get(0).equals(Arrays.asList(HEADER.split(","))))throw new IllegalArgumentException("Use a Keep Score CSV export or its template with the original column headings");
         List<Row> out=new ArrayList<>();for(int n=1;n<rows.size();n++)try{
             List<String> c=rows.get(n);if(c.size()!=(multi?36:retirements?24:23)||!c.get(0).equals(multi?"3":retirements?"2":"1"))throw new IllegalArgumentException("Invalid columns or schema");
             String retirement=retirements?c.get(23):"";if(!retirement.isEmpty()&&!retirement.equals("me")&&!retirement.equals("opponent"))throw new IllegalArgumentException("Invalid retired player");

@@ -1,8 +1,8 @@
-# Navigation and match flows — v0.15.1
+# Navigation and match flows — v0.16.0
 
 ## Sport entry and scope
 
-The launcher opens Choose sport with distinct icons/colours for Squash, Tennis, Badminton, Padel and Table tennis, plus shared Players and Settings. An unfinished current match locks every other sport, including when paused or explicitly created but unplayed. The selector explains the lock and disables the other sport rows; stale selection/create callbacks also enforce it. Finish or cancel the match to unlock selection. A completed match permits another sport. Close app exits without silently opening another sport’s scoreboard. Each sport remembers its new-match rules and length.
+The launcher opens Choose sport with distinct icons/colours for Squash, Tennis, Badminton, Padel, Table tennis and Pickleball, plus shared Players and Settings. An unfinished current match locks every other sport, including when paused or explicitly created but unplayed. The selector explains the lock and disables the other sport rows; stale selection/create callbacks also enforce it. Finish or cancel the match to unlock selection. A completed match permits another sport. Close app exits without silently opening another sport’s scoreboard. Each sport remembers its new-match rules and length.
 
 Results and Statistics use the chosen sport. Eligible sports offer All modes / Singles / Doubles. Result player filters include all team roles; date/player filters do not narrow Statistics. Delete all results deletes the selected sport only and preserves other sports, current state, daily counters and deletion markers. Phone Results/Statistics have their own shared sport/mode selectors; the Players catalog is global.
 
@@ -18,9 +18,10 @@ The scoreboard stays focused on Me/Opponent scoring, Undo and Next/New. Its head
 | --- | --- | --- |
 | Current match | Live session, set entry and current scores | Filled blue |
 | Results | Saved history, filters, past matches, CSV and phone viewing | Blue navigation row |
+| Favourite formats | Choose a saved sport preset; save/remove favourites from setup. |
 | Statistics | All-result match/set/point balances | Blue navigation row |
 | Players | Saved name catalog | Purple person control |
-| Change sport | Return to the five-sport selector | Blue navigation row |
+| Change sport | Return to the six-sport selector | Blue navigation row |
 | Scoring rules | Sport presets, service guidance and limits | Blue navigation row |
 | Settings | Version, updates, screen/notification options and diagnostics | Grey |
 
@@ -90,7 +91,7 @@ Each phone action retains its caller and export scope. A differently filtered sn
 
 An explicit active_match_id, unfinished match and no pause are required for the ongoing service/ambient observer. First point or Start/Resume activates it. Pause, completion, task removal and new-match replacement clear it. Old unfinished scores wait for Resume. Undo to zero during active play retains the session; Undo after completion does not resume automatically. Opening panels releases the scoreboard screen flag while preserving a separately active session. QR awake time is bounded to one minute and releases on backgrounding. No CPU wake lock, sensor sampling or background update polling is added.
 
-Settings contains the version and explicit Check for updates; a verified HTTPS APK installs over the existing app with its original signer/package. The phone installer remains the fallback. Diagnostics → Send to phone uses a separate local-fragment QR and returns to Diagnostics. Diagnostic data stays private until explicitly exported. Whole-watch battery snapshots are on-demand and do not attribute energy consumption to Squash Tap.
+Settings contains the version and explicit Check for updates; a verified HTTPS APK installs over the existing app with its original signer/package. The phone installer remains the fallback. Diagnostics → Send to phone uses a separate local-fragment QR and returns to Diagnostics. Diagnostic data stays private until explicitly exported. Whole-watch battery snapshots are on-demand and do not attribute energy consumption to Keep Score.
 
 ## Landing page and sharing
 
@@ -101,3 +102,17 @@ Documentation and release maintenance routes are in [README.md](README.md), [DEP
 ## Serving at a glance
 
 The serving side has a pale-gold outline and dedicated badge, independent of the opponent header. Singles show SERVING; known doubles servers show SERVE plus ME, PARTNER, OPP. 1 or OPP. 2. An unknown individual may retain a known serving-team indicator. Names fit the card width and accessibility retains the full server name. Known service remains visible in ambient view. Unknown service and completed games/matches show no guessed serving cue.
+
+## Keep Score additions
+
+Players → Your name → Save your name (blank means Me) changes your display name independently of saved opponents. Phone editing also requires receive/review/apply. New match → Save as favourite stores a named format/length; Favourite formats reuses it in setup before Create. A current completed result → Quick rematch creates a new identity with the same rules and available players; no score or start time is copied.
+
+Settings → Colour scheme opens an explicit list with both card colours previewed: Classic (blue/red), Neon Lime (lime/pink), Sunlight (white/yellow with black scores). Choosing saves for all sports; Cancel keeps the current scheme. Ambient stays monochrome. Brightness: watch system → Open watch display settings delegates brightness to Wear OS; no app override or light sensing is added. Vibrations and Court/interval reminders have separate selected lists.
+
+Settings → Backup & restore → Create or restore backup → phone QR → download or select JSON → send → watch Receive changes → Restore this backup? → Replace data & restore. Preview/cancel changes nothing; stale/expired previews cannot apply. The replacement is atomic and unfinished restores are paused. Download previous data copy exports the pre-restore recovery snapshot through a fresh backup link. End an existing transfer before changing its snapshot purpose.
+
+Current match → Live scoreboard → Start live sharing → Show audience QR. A separate read-only link shares this match only for up to eight hours. Stop sharing revokes it if online; offline status explains expiry. Offline scoring continues and queues the latest score. A completed result → Share result card opens the private phone result view with Save/Share image actions.
+
+Add Keep Score from the watch’s tile picker or the watch face’s complication picker. Tapping opens Current match or sport selection without scoring or resuming. These are optional read-only entry points.
+
+The audience page adapts to portrait phones and short landscape screens. Portrait keeps two large aligned cards; landscape places match details and controls alongside them. Full team names wrap, serving has its own badge, and viewers independently choose Classic/Neon Lime/Sunlight. Browser QA covers actual 393×852 and 852×393 CSS viewports with synthetic doubles names, aligned scores, all controls reachable and no horizontal overflow. These are browser layout checks, not physical phone acceptance.

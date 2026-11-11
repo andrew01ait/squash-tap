@@ -45,6 +45,6 @@ public final class MatchSessionService extends Service {
         }
     }
     private void finishSession(){stopForeground(STOP_FOREGROUND_REMOVE);getSystemService(NotificationManager.class).cancel(NOTIFICATION);stopSelf();}
-    @Override public void onTaskRemoved(Intent rootIntent){AppDiagnostics.record(this,"Task removed; pausing match; battery "+BatterySnapshot.describe(this));getSharedPreferences("squash",MODE_PRIVATE).edit().remove(MatchDisplayPolicy.ACTIVE_MATCH).putBoolean("match_paused",true).commit();finishSession();super.onTaskRemoved(rootIntent);}
+    @Override public void onTaskRemoved(Intent rootIntent){AppDiagnostics.record(this,"Task removed; pausing match; battery "+BatterySnapshot.describe(this));getSharedPreferences("squash",MODE_PRIVATE).edit().remove(MatchDisplayPolicy.ACTIVE_MATCH).putBoolean("match_paused",true).commit();LiveScoreClient.stopIfPresent();finishSession();super.onTaskRemoved(rootIntent);}
     @Override public void onDestroy(){AppDiagnostics.record(this,"Ongoing match session stopped");super.onDestroy();}
 }

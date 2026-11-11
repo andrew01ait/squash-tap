@@ -1,23 +1,23 @@
-import {rowRules,scorePairs,finalScore,details} from './sports.mjs?v=0.14.0';
+import {rowRules,scorePairs,finalScore,details} from './sports.mjs?v=0.16.0';
 export const HEADER='schema,match_id,date,match_number,opponent_id,opponent_name,best_of,started_at,finished_at,time_zone,duration_seconds,me_sets,opponent_sets,set_1_me,set_1_opponent,set_2_me,set_2_opponent,set_3_me,set_3_opponent,set_4_me,set_4_opponent,set_5_me,set_5_opponent';
 export const RETIREMENT_HEADER=HEADER+',retired_player';
 export const MULTISPORT_HEADER=RETIREMENT_HEADER+',sport,mode,rules,set_6_me,set_6_opponent,set_7_me,set_7_opponent,score_details,partner_id,partner_name,opponent_2_id,opponent_2_name';
-export const MAX_PLAIN=4*1024*1024,MAX_CSV=3*1024*1024;
+export const MAX_PLAIN=4*1024*1024,MAX_CSV=3*1024*1024,MAX_BACKUP_PLAIN=24*1024*1024;
 export const b64=bytes=>{let s='';for(let i=0;i<bytes.length;i+=8192)s+=String.fromCharCode(...bytes.subarray(i,i+8192));return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');};
 export const unb64=value=>Uint8Array.from(atob(value.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));
 const bytes=value=>new TextEncoder().encode(value);
-const context=(id,direction)=>{if(!/^[a-f0-9]{32}$/.test(id)||!['in','out'].includes(direction))throw Error('Invalid transfer context');return bytes('squashtap-transfer-v1|'+id+'|'+direction);};
+const context=(id,direction,backup=false)=>{if(!/^[a-f0-9]{32}$/.test(id)||!['in','out'].includes(direction))throw Error('Invalid transfer context');return bytes('squashtap-transfer-v1|'+id+'|'+direction+(backup?'|backup-v1':''));};
 async function streamBytes(stream,limit){const reader=stream.getReader(),chunks=[];let size=0;try{while(true){const {value,done}=await reader.read();if(done)break;size+=value.length;if(size>limit)throw Error('Transfer is too large. Choose a smaller date range.');chunks.push(value);}}finally{await reader.cancel().catch(()=>{});}const out=new Uint8Array(size);let p=0;for(const c of chunks){out.set(c,p);p+=c.length;}return out;}
-export async function seal(id,direction,key,text,providedIv){
- const plain=bytes(text);if(plain.length>MAX_PLAIN)throw Error('Transfer is too large');
- const compressed=await streamBytes(new Blob([plain]).stream().pipeThrough(new CompressionStream('gzip')),1024*1024);
+export async function seal(id,direction,key,text,providedIv,backup=false){
+ const plain=bytes(text);if(plain.length>(backup?MAX_BACKUP_PLAIN:MAX_PLAIN))throw Error('Transfer is too large');
+ const compressed=await streamBytes(new Blob([plain]).stream().pipeThrough(new CompressionStream('gzip')), (backup?4:1)*1024*1024);
  const raw=unb64(key);if(raw.length!==32)throw Error('Invalid key');const secret=await crypto.subtle.importKey('raw',raw,'AES-GCM',false,['encrypt']);const iv=providedIv||crypto.getRandomValues(new Uint8Array(12));
- const cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:context(id,direction)},secret,compressed);return '1.'+b64(iv)+'.'+b64(new Uint8Array(cipher));
+ const cipher=await crypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:context(id,direction,backup)},secret,compressed);return (backup?'2.':'1.')+b64(iv)+'.'+b64(new Uint8Array(cipher));
 }
 export async function open(id,direction,key,envelope){
- if(typeof envelope!=='string'||envelope.length>1500000)throw Error('Invalid transfer');const p=envelope.split('.');if(p.length!==3||p[0]!=='1')throw Error('Unknown transfer format');const iv=unb64(p[1]),raw=unb64(key),cipher=unb64(p[2]);if(iv.length!==12||raw.length!==32||cipher.length>1024*1024+16)throw Error('Invalid transfer');
- const secret=await crypto.subtle.importKey('raw',raw,'AES-GCM',false,['decrypt']);const compressed=await crypto.subtle.decrypt({name:'AES-GCM',iv,additionalData:context(id,direction)},secret,cipher);
- const plain=await streamBytes(new Blob([compressed]).stream().pipeThrough(new DecompressionStream('gzip')),MAX_PLAIN);return new TextDecoder('utf-8',{fatal:true}).decode(plain);
+ if(typeof envelope!=='string'||envelope.length>6000000)throw Error('Invalid transfer');const p=envelope.split('.');if(p.length!==3||!['1','2'].includes(p[0]))throw Error('Unknown transfer format');const backup=p[0]==='2';if(!backup&&envelope.length>1500000)throw Error('Invalid transfer');const iv=unb64(p[1]),raw=unb64(key),cipher=unb64(p[2]);if(iv.length!==12||raw.length!==32||cipher.length>(backup?4:1)*1024*1024+16)throw Error('Invalid transfer');
+ const secret=await crypto.subtle.importKey('raw',raw,'AES-GCM',false,['decrypt']);const compressed=await crypto.subtle.decrypt({name:'AES-GCM',iv,additionalData:context(id,direction,backup)},secret,cipher);
+ const plain=await streamBytes(new Blob([compressed]).stream().pipeThrough(new DecompressionStream('gzip')),backup?MAX_BACKUP_PLAIN:MAX_PLAIN);return new TextDecoder('utf-8',{fatal:true}).decode(plain);
 }
 const unsafe=c=>"=+-@\t\r\n'".includes(c);
 const restore=s=>s.length>1&&s[0]==="'"&&unsafe(s[1])?s.slice(1):s;
@@ -42,7 +42,7 @@ export function parseCsv(text){
   if(c.length!==(multi?36:retirements?24:23)||c[0]!==(multi?'3':retirements?'2':'1')||!/^[-a-zA-Z0-9]{1,80}$/.test(c[1]))throw Error('Invalid schema, columns or ID');
   const retired=retirements?c[23]:'';if(!['','me','opponent'].includes(retired))throw Error('Invalid retired side');
   if(!/^\d{4}-\d{2}-\d{2}$/.test(c[2])||new Date(c[2]+'T00:00:00Z').toISOString().slice(0,10)!==c[2]||integer(c[3])<1)throw Error('Invalid date or reference');
-  const f=rowRules(c),best=integer(c[6]),options=f.sport==='table-tennis'?[3,5,7]:['badminton','padel'].includes(f.sport)?[3]:[3,5];if(!options.includes(best))throw Error('Invalid match length');
+  const f=rowRules(c),best=integer(c[6]),options=f.sport==='pickleball'?[1,3,5]:f.sport==='table-tennis'?[3,5,7]:['badminton','padel'].includes(f.sport)?[3]:[3,5];if(!options.includes(best))throw Error('Invalid match length');
   for(const i of multi?[4,32,34]:[4]){if(c[i]&&!/^[-a-zA-Z0-9]{1,80}$/.test(c[i]))throw Error('Invalid player ID');if(c[i+1])name(c[i+1]);else if(c[i])throw Error('Missing player name');}
   if(multi&&!f.doubles&&(c[33]||c[35]))throw Error('Extra players in singles');const ids=(multi?[c[4],c[32],c[34]]:[c[4]]).filter(Boolean);if(new Set(ids).size!==ids.length)throw Error('Duplicate player');
   const raw=multi?[13,15,17,19,21,27,29]:[13,15,17,19,21];let ended=false,partial=false,me=0,op=0;const scores=[];

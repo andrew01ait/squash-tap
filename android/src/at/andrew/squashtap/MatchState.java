@@ -21,7 +21,7 @@ public final class MatchState {
     public MatchFormat format(){return format;}
     public int firstServer(int index){return firstServers[index];}
     public int firstReceiver(int index){return firstReceivers[index];}
-    public void serving(int server,int receiver){int max=format.doubles?3:1;if(server< -1||server>max||receiver< -1||receiver>max||server>=0&&receiver>=0&&server%2==receiver%2)throw new IllegalArgumentException("Choose players on opposite teams");firstServers[games.size()-1]=server;firstReceivers[games.size()-1]=receiver;}
+    public void serving(int server,int receiver){int max=format.doubles?3:1;if(server< -1||server>max||receiver< -1||receiver>max||server>=0&&receiver>=0&&server%2==receiver%2)throw new IllegalArgumentException("Choose players on opposite teams");if(format.pickleball()){if(server<0||receiver<0)throw new IllegalArgumentException("Choose the starting player on each team");game().pickleServing(server,receiver);}firstServers[games.size()-1]=server;firstReceivers[games.size()-1]=receiver;}
     public int server(){return ServiceOrder.next(this);}
     private boolean hasService(){for(int n:firstServers)if(n>=0)return true;return false;}
     public boolean matchTie(int index){return format.finalTie&&index==bestOf-1;}
@@ -45,6 +45,7 @@ public final class MatchState {
     public boolean undoEnteredSet(){return !retired()&&(game().entered()||game().rallies()==0&&games.size()>1&&games.get(games.size()-2).entered());}
     public boolean enterCompletedSet(int me,int opponent){
         ScoreState entered=ScoreState.completedSet(format,matchTie(nextReady()?games.size():games.size()-1),me,opponent);if(complete())return false;
+        if(format.pickleball()){int index=nextReady()?games.size():games.size()-1;int first=index==games.size()?firstReceivers[index-1]:firstServers[index],other=index==games.size()?firstServers[index-1]:firstReceivers[index];firstServers[index]=first;firstReceivers[index]=other;entered.pickleServing(first,other);}
         if(nextReady())games.add(entered);else games.set(games.size()-1,entered);return true;
     }
     public boolean canChangeBestOf(int value){
@@ -61,14 +62,15 @@ public final class MatchState {
     }
     public boolean add(int player){return !complete()&&game().add(player);}
     public boolean nextGame(){if(!nextReady())return false;int index=games.size();
-        if(!format.doubles&&format.sport.equals("badminton"))firstServers[index]=game().winner();
+        if(format.pickleball()){firstServers[index]=firstReceivers[index-1];firstReceivers[index]=firstServers[index-1];}
+        else if(!format.doubles&&format.sport.equals("badminton"))firstServers[index]=game().winner();
         else if(format.sport.equals("table-tennis")&&firstServers[index-1]>=0){if(!format.doubles)firstServers[index]=1-firstServers[index-1];else if(firstReceivers[index-1]>=0){firstServers[index]=firstReceivers[index-1];firstReceivers[index]=firstServers[index-1];}}
         else if(format.nested()&&firstServers[index-1]>=0){int step=game().serviceStep();int old=firstServers[index-1],receive=firstReceivers[index-1];if(format.doubles&&receive>=0){int[] order={old,receive,ServiceOrder.partner(old),ServiceOrder.partner(receive)};firstServers[index]=order[step%4];firstReceivers[index]=order[(step+1)%4];}else if(!format.doubles)firstServers[index]=(old+step)%2;}
-        games.add(new ScoreState(format,matchTie(index)));return true;}
+        games.add(new ScoreState(format,matchTie(index)));if(format.pickleball())game().pickleServing(firstServers[index],firstReceivers[index]);return true;}
     public boolean undo(){
         if(retired()){retiredPlayer=-1;return true;}
         if(game().rallies()==0&&games.size()>1)games.remove(games.size()-1);
-        if(game().entered()){games.set(games.size()-1,new ScoreState(format,matchTie(games.size()-1)));return true;}
+        if(game().entered()){games.set(games.size()-1,new ScoreState(format,matchTie(games.size()-1)));if(format.pickleball())game().pickleServing(firstServers[games.size()-1],firstReceivers[games.size()-1]);return true;}
         return game().undo();
     }
     public String encode(){
@@ -85,7 +87,7 @@ public final class MatchState {
             MatchState m=new MatchState(p[1],Integer.parseInt(p[2]),MatchFormat.decode(p[4]));m.games.clear();
             String[] service=p[5].split(",",-1);if(service.length!=14)throw new IllegalArgumentException("Invalid serving setup");for(int i=0;i<7;i++){int a=Integer.parseInt(service[i*2]),b=Integer.parseInt(service[i*2+1]),max=m.format.doubles?3:1;if(a< -1||a>max||b< -1||b>max||a>=0&&b>=0&&a%2==b%2)throw new IllegalArgumentException("Invalid serving setup");m.firstServers[i]=a;m.firstReceivers[i]=b;}
             String[] states=p[6].split("~",-1);if(states.length<1||states.length>m.bestOf)throw new IllegalArgumentException("Invalid set count");
-            for(String item:states){if(!m.games.isEmpty()&&(m.complete()||m.game().winner()==-1))throw new IllegalArgumentException("Invalid set progression");ScoreState state=ScoreState.decode(item);if(!state.uses(m.format,m.matchTie(m.games.size())))throw new IllegalArgumentException("Inconsistent set rules");m.games.add(state);}
+            for(String item:states){if(!m.games.isEmpty()&&(m.complete()||m.game().winner()==-1))throw new IllegalArgumentException("Invalid set progression");ScoreState state=ScoreState.decode(item);if(!state.uses(m.format,m.matchTie(m.games.size())))throw new IllegalArgumentException("Inconsistent set rules");if(m.format.pickleball()&&(state.pickleFirst()!=m.firstServers[m.games.size()]||state.pickleOther()!=m.firstReceivers[m.games.size()]))throw new IllegalArgumentException("Inconsistent pickleball service");m.games.add(state);}
             int retired=Integer.parseInt(p[3]);if(retired< -1||retired>1||retired!=-1&&!m.retire(retired))throw new IllegalArgumentException("Invalid retirement");return m;
         }
         if(text==null||text.length()>51000)throw new IllegalArgumentException("Invalid saved match");
