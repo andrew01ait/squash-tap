@@ -1,5 +1,10 @@
 # Releases
 
+## 0.16.2 — 2026-11-11
+
+- Use Keep Score as the identity on shared menus, Players, Settings and their subpages, replacing the misleading All Sports badge. Use the same app name on the sport selector and app section headings; sport-specific screens retain their sport name/icon/accent and contextual Back/swipe.
+- Verify the full 325 core + 185 native UI + 58 web/relay release suite (568), native renders, original package/signer/SDK/alignment and all retained APK hashes. Refresh release downloads, current guides and sanitized source export; physical watch acceptance remains separate.
+
 ## 0.16.1 — 2026-11-11
 
 - Group Settings by purpose. Keep vibration/reminder/display/palette selectors open after saving, with selected ticks, scroll retention and explicit Back to Settings. Reselecting an active option no longer implicitly goes Back. Preserve contextual hardware/swipe navigation and score/session data.

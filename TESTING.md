@@ -1,6 +1,6 @@
 # Testing and verification
 
-Current watch release: **v0.16.1 / code 19**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
+Current watch release: **v0.16.2 / code 20**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
 
 ## Recorded release evidence
 
@@ -59,7 +59,7 @@ Native/browser interchange cases execute Java fixtures; the full command require
 Follow [DEPLOYMENT.md](DEPLOYMENT.md) for SDK, locked runtime/UI dependencies, original signing key and verified retained APKs. The standard builder executes core/web tests, compiles real AAPT resources and runs native UI tests before D8/signing. UI tests can also be repeated once those resources/generated classes exist:
 
 ```sh
-python3 scripts/test_ui.py --version 0.16.1
+python3 scripts/test_ui.py --version 0.16.2
 ```
 
 Robolectric executes API 34 and uses its configured API 35 framework for resource parsing. Test tooling stays under ignored `.local/`; it is not bundled in the APK. A fresh export does not contain the maintainer's signing key, SDK or prior unsigned build, so the complete release pipeline is not a key-free out-of-box build.
@@ -125,3 +125,7 @@ The audience page adapts to portrait phones and short landscape screens. Portrai
 ## Navigation and live corrections — v0.16.1, 2026-11-11
 
 The patch suite includes 325 core + 185 native UI + 58 web/relay cases (568). New native checks cover persistent Settings ticks, selected-option taps, contextual Back/swipe, auto QR readiness/failure/background/late response behavior, bounded QR retention, discard confirmation versus cancellation, anonymous terminal payloads, offline reconnect and starting another broadcast. Web checks reject names/scores in discard notices and verify replacement ciphertext with audience read-only access. Old release evidence remains historical. Physical watch and live-network acceptance remain pending.
+
+## Shared menu branding — v0.16.2, 2026-11-11
+
+The full release suite passes 325 core + 185 native UI + 58 web/relay cases (568). The existing shared-navigation regression checks Keep Score on the sport selector, Players, Settings and a nested settings selector, absence of ALL SPORTS identity text, and return to the sport selector. Existing sport-context tests retain the actual sport name/icon/accent. Native Canvas renders cover updated shared headers and sport menus. Original signer/package/SDK/alignment, immutable retained APK hashes, documentation/export parity and a matching local website build are verified. Physical watch acceptance remains pending.

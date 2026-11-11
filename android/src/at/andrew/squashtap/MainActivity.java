@@ -229,7 +229,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         section(menu,"Sport");
         navigationButton(menu,"Scoring rules",this::showSportRules);
         navigationButton(menu,"Change sport",this::showSports);
-        section(menu,"App · all sports");
+        section(menu,"Keep Score");
         personButton(menu,"Players",()->openPlayers(this::showMenu,"Back to Menu"));
         settingsButton(menu,"Settings",()->openSettings(this::showMenu,"Back to Menu"));
         if(here)backButton(menu,"Back to score",this::closePanel);
@@ -651,7 +651,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         if(hasCurrentMatch()&&!book.current().complete())button(content,"Resume "+book.current().format().name(),this::showMatchControls);
         if(sportLocked())paragraph(content,"Finish or cancel your "+book.current().format().name()+" match to change sport. Paused matches stay locked.");
         for(String sport:MatchFormat.SPORTS){Button choice=navigationButton(content,MatchFormat.name(sport),()->{if(selectSport(sport))showMenu();});sportButton(choice,sport);boolean enabled=!sportLocked()||sport.equals(book.current().format().sport);choice.setEnabled(enabled);choice.setAlpha(enabled?1f:.4f);choice.setContentDescription(MatchFormat.name(sport)+(enabled?", choose sport":", locked until the current match is finished or cancelled"));}
-        section(content,"App · all sports");
+        section(content,"Keep Score");
         personButton(content,"Players",()->openPlayers(this::showSports,"Back to sports"));settingsButton(content,"Settings",()->openSettings(this::showSports,"Back to sports"));
         backButton(content,"Close app",this::finish);
     }
@@ -1061,7 +1061,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         scroll.setPadding(horizontal,top,horizontal,round?Math.round(metrics.heightPixels*.14f):dp(18));
         LinearLayout content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);content.setGravity(Gravity.CENTER_HORIZONTAL);
         scroll.addView(content,new ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT));
-        if(title.equals("Choose sport")){TextView brand=paragraph(content,"KEEP SCORE");brand.setTextSize(10);brand.setTextColor(0xff9daec4);}
+        if(title.equals("Choose sport")){TextView brand=paragraph(content,"Keep Score");brand.setTextSize(10);brand.setTextColor(0xff9daec4);}
         else sportBadge(content,sharedArea?null:selectedSport);
         TextView heading=paragraph(content,title);heading.setTextSize(17);heading.setTextColor(0xffcdeaff);
         panelShortcut=!title.equals("Menu")&&!title.equals("Choose sport")&&!title.endsWith("?")&&book.current().format().sport.equals(selectedSport)&&(sessionOngoing()||needsResume());
@@ -1101,10 +1101,10 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     }
     private void section(LinearLayout content,String text){TextView label=paragraph(content,text.toUpperCase(java.util.Locale.ROOT));label.setTextSize(10);label.setTextColor(0xff9daec4);label.setPadding(0,dp(7),0,dp(3));}
     private void sportBadge(LinearLayout content,String sport){
-        TextView badge=paragraph(content,sport==null?"ALL SPORTS":MatchFormat.name(sport));badge.setTextSize(12);badge.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);badge.setTextColor(sport==null?0xffd9c6ff:SportIcons.accent(sport));badge.setPadding(dp(10),dp(4),dp(10),dp(4));
+        TextView badge=paragraph(content,sport==null?"Keep Score":MatchFormat.name(sport));badge.setTextSize(12);badge.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);badge.setTextColor(sport==null?0xffd9c6ff:SportIcons.accent(sport));badge.setPadding(dp(10),dp(4),dp(10),dp(4));
         GradientDrawable shape=new GradientDrawable();shape.setCornerRadius(dp(12));shape.setColor(sport==null?0xff241c32:(SportIcons.accent(sport)&0x00ffffff)|0x18000000);badge.setBackground(shape);
         if(sport!=null){SportIcons icon=new SportIcons(sport,dp(18));icon.setBounds(0,0,dp(18),dp(18));badge.setCompoundDrawables(icon,null,null,null);badge.setCompoundDrawablePadding(dp(5));}
-        badge.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,ViewGroup.LayoutParams.WRAP_CONTENT));badge.setContentDescription(sport==null?"Shared across all sports":"Current sport: "+MatchFormat.name(sport));
+        badge.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,ViewGroup.LayoutParams.WRAP_CONTENT));badge.setContentDescription(sport==null?"Keep Score, shared across all sports":"Current sport: "+MatchFormat.name(sport));
     }
     private void sportButton(Button button,String sport){
         int accent=SportIcons.accent(sport);GradientDrawable shape=new GradientDrawable();shape.setCornerRadius(dp(15));shape.setColor((accent&0x00ffffff)|0x18000000);shape.setStroke(dp(1),(accent&0x00ffffff)|0x66000000);

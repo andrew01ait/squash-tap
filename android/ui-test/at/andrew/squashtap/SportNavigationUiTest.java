@@ -35,7 +35,11 @@ public class SportNavigationUiTest {
         cancelCurrent();click("Change sport");click("Tennis");assertNotNull(button("Back to sports"));assertNull(find("Back to score"));click("Statistics");assertNull(find("Scoreboard"));back();back();assertTrue(button("Tennis").isEnabled());assertNotNull(button("Squash"));
     }
     @Test public void sharedPlayersAndSettingsReturnToSportsByButtonAndSystemBack(){
-        click("Change sport");click("Players");assertTrue(text().contains("ALL SPORTS"));click("Back to sports");assertNotNull(button("Table tennis"));click("Settings");assertTrue(text().contains("ALL SPORTS"));back();assertNotNull(button("Table tennis"));assertNotNull(button("Close app"));
+        click("Change sport");assertTrue(text().contains("Keep Score"));assertFalse(text().contains("ALL SPORTS"));
+        click("Players");assertTrue(text().contains("Keep Score"));assertFalse(text().contains("ALL SPORTS"));
+        click("Back to sports");assertNotNull(button("Table tennis"));click("Settings");assertTrue(text().contains("Keep Score"));assertFalse(text().contains("ALL SPORTS"));
+        click("Vibrations: Points and milestones");assertTrue(text().contains("Keep Score"));assertFalse(text().contains("ALL SPORTS"));click("Back to Settings");
+        back();assertNotNull(button("Table tennis"));assertNotNull(button("Close app"));
     }
     @Test public void sportContextAppearsInMenusSetupRulesAndHistory(){
         cancelCurrent();click("Change sport");click("Badminton");boolean found=false;for(View v:views())if("Current sport: Badminton".contentEquals(v.getContentDescription()==null?"":v.getContentDescription())){found=true;assertEquals(SportIcons.accent("badminton"),((TextView)v).getCurrentTextColor());}assertTrue(found);

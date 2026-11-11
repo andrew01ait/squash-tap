@@ -1,4 +1,4 @@
-# Navigation and match flows — v0.16.1
+# Navigation and match flows — v0.16.2
 
 ## Sport entry and scope
 
@@ -25,7 +25,7 @@ The scoreboard stays focused on Me/Opponent scoring, Undo and Next/New. Its head
 | Scoring rules | Sport presets, service guidance and limits | Blue navigation row |
 | Settings | Version, updates, screen/notification options and diagnostics | Grey |
 
-The sport Menu returns to its own current scoreboard when available; an idle sport Menu returns to Choose sport. A sport icon/name badge identifies the scope. App-wide Players/Settings use an ALL SPORTS badge and return to their originating Menu or sport selector. Every subpage has one named outlined Back/Cancel action. Hardware Back and native right-swipe dismissal invoke that same return. During active or resumable play, compatible subpages have a Scoreboard shortcut for the actual match sport; it changes no session state. Dialog replacement, backgrounding and ambient transitions do not act as a user Back.
+The sport Menu returns to its own current scoreboard when available; an idle sport Menu returns to Choose sport. A sport icon/name badge identifies the scope. App-wide Players/Settings and their subpages use a Keep Score badge and return to their originating Menu or sport selector. Every subpage has one named outlined Back/Cancel action. Hardware Back and native right-swipe dismissal invoke that same return. During active or resumable play, compatible subpages have a Scoreboard shortcut for the actual match sport; it changes no session state. Dialog replacement, backgrounding and ambient transitions do not act as a user Back.
 
 ## Current match
 
@@ -124,3 +124,7 @@ Settings is grouped into Display, Feedback, Data, Watch shortcuts and App. Vibra
 Live readiness automatically opens Audience QR only from the still-visible waiting panel. Failure replaces the waiting controls with Start live sharing; late/background callbacks never interrupt another screen. Returning from QR keeps the ready link available without reopening it repeatedly. QR screen retention stays bounded.
 
 A committed Cancel match → Discard match sends an encrypted anonymous discard notice, replacing all shared scores/names. The viewer shows Match discarded and stops polling. Cancelling the discard confirmation changes nothing. Offline notices retry on network reconnect while the process survives; no score action is required. A stopped/expired/revoked audience link clears the old Playing score and shows Broadcast ended.
+
+## v0.16.2 menu identity
+
+Shared screens use the Keep Score app name, including Players, Settings and their selectors. The sport selector and app-wide section headings use the same name. Sport-specific pages retain their sport name/icon; Back and swipe routes retain their caller.

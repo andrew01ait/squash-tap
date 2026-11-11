@@ -1,6 +1,6 @@
 # Keep Score
 
-A standalone, offline racket-sport scorekeeper for Wear OS. Current watch release: **v0.16.1**, Android version code **19**. No account is required; scores and saved history live on the watch.
+A standalone, offline racket-sport scorekeeper for Wear OS. Current watch release: **v0.16.2**, Android version code **20**. No account is required; scores and saved history live on the watch.
 
 [Download the watch app](https://squash-tap-andrew.endruuu.chatgpt.site/) · [GitHub source](https://github.com/andrew01ait/squash-tap) · [Install using your phone](INSTALLATION.md)
 
@@ -27,7 +27,7 @@ A standalone, offline racket-sport scorekeeper for Wear OS. Current watch releas
 
 ## Where to find things
 
-The launcher opens the six-sport selector. Every sport has a distinct icon and accent colour, also shown in menus and on the scoreboard. There is one current match across the app. Other sports are locked while an unfinished match exists, including paused or prepared matches; finish or cancel it first. Shared Players and Settings remain accessible and return to their actual caller.
+The launcher opens the six-sport selector. Every sport has a distinct icon and accent colour, also shown in menus and on the scoreboard. There is one current match across the app. Other sports are locked while an unfinished match exists, including paused or prepared matches; finish or cancel it first. Shared Players and Settings show the Keep Score app name, remain accessible and return to their actual caller. Sport-specific screens retain their sport name and icon.
 
 | Menu | Purpose |
 | --- | --- |
@@ -83,7 +83,7 @@ Updates are requested manually in Settings. There is no background update pollin
 | [AGENTS.md](AGENTS.md) | Maintenance constraints for future coding work. |
 | [CHANGELOG.md](CHANGELOG.md) | Release and documentation history. |
 
-The current v0.16.1 release suite passes **325 core + 185 Android UI + 58 web/relay checks = 568**. The historical v0.13 release suite was **265 core + 100 Android UI + 35 web/relay checks = 400**. This is release evidence, not a claim that every documentation update reruns or physically validates the watch. See [TESTING.md](TESTING.md) for current verification.
+The current v0.16.2 release suite passes **325 core + 185 Android UI + 58 web/relay checks = 568**. The historical v0.13 release suite was **265 core + 100 Android UI + 35 web/relay checks = 400**. This is release evidence, not a claim that every documentation update reruns or physically validates the watch. See [TESTING.md](TESTING.md) for current verification.
 
 Full backups use the local export date and application name: `YYYYMMDD_ApplicationName_Description.json`, for example `20261111_KeepScore_Backup.json`. Completed-result interchange remains CSV; full backup JSON also preserves current rallies and Undo.
 

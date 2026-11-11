@@ -6,8 +6,8 @@ import argparse, hashlib, json, os, secrets, shutil, subprocess, sys, zipfile
 ROOT=Path(__file__).resolve().parents[1]
 PKG='at.andrew.squashtap'
 SITE='https://squash-tap-andrew.endruuu.chatgpt.site'
-RELEASES=((19,'0.16.1'),)
-RELEASE_NOTES='Settings choices stay open with selected marks and consistent Back navigation. Live sharing opens the audience QR automatically when ready. Discarded matches replace the audience score with an anonymous notice, with reconnect retry; ended broadcasts clear stale scores.'
+RELEASES=((20,'0.16.2'),)
+RELEASE_NOTES='Shared menus now show Keep Score instead of All Sports. Sport-specific menus keep their sport names. Includes the Settings navigation and live audience discard fixes from v0.16.1.'
 
 def run(args, env=None):
     result=subprocess.run([str(x) for x in args],cwd=ROOT,env=env,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
