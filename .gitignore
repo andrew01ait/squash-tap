@@ -24,6 +24,7 @@ public/apks/*.idsig
 # Source-only public export; official release artifacts stay separate.
 public/apks/
 public/SquashTap-source.zip
+public/KeepScore-source.zip
 .openai/deliverables.json
 *.pem
 *.key

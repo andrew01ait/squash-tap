@@ -27,10 +27,10 @@ public final class MatchSessionService extends Service {
             channel.setSound(null,null);channel.enableVibration(false);manager.createNotificationChannel(channel);
             PendingIntent touch=PendingIntent.getActivity(this,0,new Intent(this,MainActivity.class)
                 .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP|Intent.FLAG_ACTIVITY_CLEAR_TOP),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
-            String score="Me "+match.game().blue()+" – "+match.game().red()+" Opponent · Sets "+match.gamesWon(0)+"–"+match.gamesWon(1);
+            String score=(match.format().doubles?"Our team ":"Me ")+match.game().displayPoint(0)+" – "+match.game().displayPoint(1)+(match.format().doubles?" Opponents · ":" Opponent · ")+ (match.format().nested()?"Sets ":"Games ")+match.gamesWon(0)+"–"+match.gamesWon(1);
             if(ongoing==null){
                 NotificationCompat.Builder notification=new NotificationCompat.Builder(this,CHANNEL)
-                    .setSmallIcon(R.drawable.ic_match).setContentTitle("Squash match in progress")
+                    .setSmallIcon(R.drawable.ic_match).setContentTitle(match.format().name()+" match in progress")
                     .setContentText(score).setContentIntent(touch).setCategory("workout")
                     .setVisibility(NotificationCompat.VISIBILITY_PRIVATE).setOnlyAlertOnce(true).setSilent(true).setOngoing(true);
                 ongoing=new OngoingActivity.Builder(this,NOTIFICATION,notification).setStaticIcon(R.drawable.ic_match)
@@ -45,6 +45,6 @@ public final class MatchSessionService extends Service {
         }
     }
     private void finishSession(){stopForeground(STOP_FOREGROUND_REMOVE);getSystemService(NotificationManager.class).cancel(NOTIFICATION);stopSelf();}
-    @Override public void onTaskRemoved(Intent rootIntent){AppDiagnostics.record(this,"Task removed; pausing match; battery "+BatterySnapshot.describe(this));getSharedPreferences("squash",MODE_PRIVATE).edit().remove(MatchDisplayPolicy.ACTIVE_MATCH).putBoolean("match_paused",true).commit();finishSession();super.onTaskRemoved(rootIntent);}
+    @Override public void onTaskRemoved(Intent rootIntent){AppDiagnostics.record(this,"Task removed; pausing match; battery "+BatterySnapshot.describe(this));getSharedPreferences("squash",MODE_PRIVATE).edit().remove(MatchDisplayPolicy.ACTIVE_MATCH).putBoolean("match_paused",true).commit();LiveScoreClient.stopIfPresent();finishSession();super.onTaskRemoved(rootIntent);}
     @Override public void onDestroy(){AppDiagnostics.record(this,"Ongoing match session stopped");super.onDestroy();}
 }

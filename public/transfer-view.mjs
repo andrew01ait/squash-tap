@@ -1,26 +1,29 @@
-import {localDate,localMoment,rowWinner,rowOutcome,statistics} from './interchange.mjs?v=0.11.0';
-import {opponentStatistics} from './transfer-state.mjs?v=0.11.0';
+import {downloadResultCard,shareResultCard} from './result-card.mjs?v=0.16.0';
+import {sportName,rowSport,rowMode,rowRules,scorePairs,finalScore,details} from './sports.mjs?v=0.16.3';
+import {localDate,localMoment,rowWinner,rowOutcome,statistics} from './interchange.mjs?v=0.16.0';
+import {opponentStatistics} from './transfer-state.mjs?v=0.16.0';
 const $=id=>document.getElementById(id);
 export const newest=rows=>[...rows].sort((a,b)=>(b[7]||b[2]).localeCompare(a[7]||a[2])||Number(b[3])-Number(a[3]));
 const line=(parent,text,tag='p')=>{const e=document.createElement(tag);e.textContent=text;parent.append(e);return e;};
 const balance=n=>n>0?'+'+n:String(n);
 export function shortRecord(s){return s.played+' matches · '+s.won+' won / '+s.lost+' lost'+(s.winRate===null?'':' · '+s.winRate+'% wins');}
 function moment(row,index){if(!row[index])return 'Not recorded';const copy=[...row];copy[7]=row[index];return localMoment(copy);}
-export function resultCard(row,opponent){
+export function resultCard(row,opponent,myName='Me'){
  const card=document.createElement('details');card.className='result'+(rowWinner(row)===1?' lost':'');card.dataset.matchId=row[1];
- const summary=document.createElement('summary');line(summary,localMoment(row)+' · vs '+opponent);line(summary,'Sets · Me '+row[11]+'–'+row[12]+' '+opponent,'strong');line(summary,rowOutcome(row),'span');card.append(summary);
+ const summary=document.createElement('summary');line(summary,localMoment(row)+' · '+sportName(rowSport(row))+' · '+rowMode(row)+' · vs '+opponent+(row[0]==='3'&&row[35]?' + '+row[35]:''));line(summary,'Sets · '+myName+' '+row[11]+'–'+row[12]+' '+opponent,'strong');line(summary,rowOutcome(row),'span');card.append(summary);
  const detail=document.createElement('div');detail.className='result-detail';line(detail,'Best of '+row[6]+' · Match '+row[3]);line(detail,'Start: '+moment(row,7)+'\nEnd: '+moment(row,8));line(detail,'Duration: '+(row[10]?Math.floor(Number(row[10])/60)+' min '+Number(row[10])%60+' sec':'Not recorded'));
- const sets=[];for(let i=13;i<23;i+=2)if(row[i]!==''){const a=Number(row[i]),b=Number(row[i+1]),hi=Math.max(a,b),lo=Math.min(a,b),done=lo<10?hi===11:hi===lo+2;sets.push('Set '+((i-13)/2+1)+': '+a+'–'+b+(done?'':' · unfinished'));}line(detail,sets.join('\n'));card.append(detail);return card;
+ const f=rowRules(row),ds=details(row),sets=[];scorePairs(row).filter(Boolean).forEach(([a,b],i)=>{const tie=f.finalTie&&i===Number(row[6])-1;sets.push((tie?'Match tie-break':f.nested?'Set':'Game')+' '+(i+1)+': '+a+'–'+b+(ds[i][2]>=0?' (TB '+ds[i][2]+'–'+ds[i][3]+')':'')+(finalScore(f,tie,a,b)?'':' · unfinished'+(ds[i].length===6&&ds[i][4]>=0?' · points '+[0,1].map(side=>{const p=ds[i][4+side],q=ds[i][5-side];return a===6&&b===6?p:p>=3&&q>=3?p>q?'AD':'40':['0','15','30','40'][Math.min(p,3)];}).join('–'):'')));});if(f.doubles)line(detail,'Our team: '+myName+' + '+(row[33]||'Partner')+'\nOpposing team: '+opponent+' + '+(row[35]||'Opponent 2'));line(detail,sets.join('\n'));const actions=document.createElement('div');actions.className='actions';for(const [text,action] of [['Download result card',downloadResultCard],['Share result card',shareResultCard]]){const button=document.createElement('button');button.textContent=text;button.addEventListener('click',async()=>{button.disabled=true;try{await action(row,opponent,myName);}catch(e){if(e.name!=='AbortError')alert(e.message);}finally{button.disabled=false;}});actions.append(button);}detail.append(actions);card.append(detail);return card;
 }
 function metric(parent,title,value,detail){const c=document.createElement('article');c.className='metric';line(c,title,'h3');line(c,String(value),'strong');line(c,detail);parent.append(c);}
 export function renderStatistics(rows,catalog,totalResults,onOpponent,onMatch){
  const overall=statistics(rows),summary=$('overall-summary');summary.replaceChildren();
- $('statistics-scope').textContent=(Number.isInteger(totalResults)&&totalResults===rows.length?'All saved matches':'All transferred matches')+' · across all players. Browsing filters do not apply.'+(Number.isInteger(totalResults)&&totalResults!==rows.length?' This transfer includes '+rows.length+' of '+totalResults+' saved results. Use Browse on phone on the watch for your complete history.':'');
+ $('statistics-scope').textContent=(Number.isInteger(totalResults)&&totalResults===rows.length?'All saved matches':'All transferred matches')+' · selected sport and mode. Date/player filters do not apply.'+(Number.isInteger(totalResults)&&totalResults!==rows.length?' This transfer includes '+rows.length+' of '+totalResults+' saved results. Use Browse on phone on the watch for your complete history.':'');
  metric(summary,'Matches',overall.played,overall.won+' won / '+overall.lost+' lost\nWin rate: '+(overall.winRate===null?'—':overall.winRate+'%')+'\nBalance: '+balance(overall.balance));
- metric(summary,'Sets (games)',overall.setsFor+overall.setsAgainst,overall.setsFor+' won / '+overall.setsAgainst+' lost');
- metric(summary,'Points',overall.pointsFor+overall.pointsAgainst,overall.pointsFor+' for / '+overall.pointsAgainst+' against');
+ metric(summary,rows.some(r=>rowRules(r).nested)?'Sets':'Games',overall.setsFor+overall.setsAgainst,overall.setsFor+' won / '+overall.setsAgainst+' lost');
+ metric(summary,'Points',overall.pointsFor+overall.pointsAgainst,overall.pointsFor+' for / '+overall.pointsAgainst+' against'+(overall.unknownPointMatches?' · unknown points omitted in '+overall.unknownPointMatches+' manually entered matches':''));if(rows.some(r=>rowRules(r).nested))metric(summary,'Games',overall.gamesFor+overall.gamesAgainst,overall.gamesFor+' won / '+overall.gamesAgainst+' lost');
  const form=$('recent-form');form.replaceChildren();const recent=newest(rows).slice(0,12).reverse();
  for(const r of recent){const b=document.createElement('button');b.textContent=rowWinner(r)===0?'W':'L';if(rowWinner(r)===1)b.className='lost';b.setAttribute('aria-label',rowOutcome(r)+' against '+(catalog.find(e=>e.id===r[4])?.name||r[5]||'Unnamed')+' · '+localMoment(r));b.title=b.getAttribute('aria-label');b.addEventListener('click',()=>onMatch(r[1]));form.append(b);}if(!rows.length)line(form,'No saved matches in this transfer yet.');
  const list=$('opponent-balances');list.replaceChildren();const groups=opponentStatistics(rows).sort((a,b)=>b.played-a.played||a.fallback.localeCompare(b.fallback));
  for(const s of groups){const card=document.createElement('article');card.className='opponent-balance';const b=document.createElement('button');b.className='person-link';b.textContent=s.id?(catalog.find(e=>e.id===s.id)?.name||s.fallback):'Unnamed';b.addEventListener('click',()=>onOpponent(s.id));card.append(b);line(card,shortRecord(s)+'\nMatch balance: '+balance(s.balance)+'\nSets: '+s.setsFor+'–'+s.setsAgainst+' · Points: '+s.pointsFor+'–'+s.pointsAgainst);list.append(card);}
+ const partners=$('partner-balances');if(partners){partners.replaceChildren();const ids=[...new Set(rows.filter(r=>r[0]==='3'&&r[32]).map(r=>r[32]))];for(const id of ids){const stats=statistics(rows.filter(r=>r[32]===id));line(partners,(catalog.find(e=>e.id===id)?.name||'Partner')+' · '+shortRecord(stats));}if(!ids.length)line(partners,'No named partners in this selection.');}
 }

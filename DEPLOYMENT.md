@@ -1,6 +1,6 @@
 # Build and deployment
 
-Official watch release: **v0.13.0 / code 14**. User installation is in [INSTALLATION.md](INSTALLATION.md); release-number and compatibility rules are in [VERSIONING.md](VERSIONING.md).
+Official watch release: **v0.16.4 / code 22**. User installation is in [INSTALLATION.md](INSTALLATION.md); release-number and compatibility rules are in [VERSIONING.md](VERSIONING.md).
 
 ## Repositories and prerequisites
 
@@ -84,3 +84,35 @@ A documentation-only publication may update the downloadable source ZIP and the 
 Preserved APKs enable recovery analysis but do not imply a safe Android downgrade. Newer preferences may be unreadable by old versions; a corrective release normally needs a higher version code and compatible readers. Website rollback must retain a compatible relay/CSV contract and source provenance. Never uninstall the watch app as a routine update step.
 
 Transfers expire after ten minutes; physical cleanup of unused ciphertext occurs on later API traffic. There is no independent timed erasure job or permanent history service. Health checks and complete transfer tests use synthetic sessions only. Application updates and transfers remain explicit actions, without background polling.
+
+## Multisport release
+
+The original package/signing identity remains unchanged. RULES.md documents formats and limitations. A native release must test unfinished/paused/prepared sport locks, stale selection/create callbacks, confirmed discard versus retirement/deletion, contextual shared-screen Back/swipe, explicit choice lists, all six sports, both badminton formats, padel deuce options, Undo across tennis game/set boundaries, service rotation, B4/B5 and O1/O2 migration, team identities, scope/filter/delete behavior, and native/browser CSV schema-3 parity. Preserve old CSV readers and all historical APK bytes.
+
+## Keep Score release additions
+
+The Android runtime lock now includes Tiles 1.2.0 and watchface complication data source 1.2.1 plus their pinned dependencies. The resolver compares stable/prerelease versions correctly and includes Kotlin 1.8.22 explicitly. The APK/source notice includes the relocated Protocol Buffers BSD notice as well as the existing Apache notices. Preserve all SHA-256 locks and the same signing identity.
+
+`drizzle/0001_breezy_rawhide_kid.sql` adds only `live_games` and its expiry index; migration 0000 remains immutable. Apply pending migrations to the local preview in order using Wrangler’s local `d1 execute DB` with `dist/server/wrangler.json` and `.wrangler/state`. Sites applies hosted migrations during publication. Do not initialize tables in request handlers or seed real player data.
+
+The v0.16 source package is `public/KeepScore-source.zip`; the APK is `public/apks/KeepScore-0.16.4.apk`. Preserve earlier APK names/hashes. Verify the landing page’s six PNG sport previews plus the three colour schemes and all currently referenced downloads before publication. Full backup envelope 2 and live schema 1 are separate from the original envelope-1 transfer; keep both reader contracts and access roles.
+
+For v0.16.1 the live relay/schema are unchanged. Terminal notices use the existing encrypted owner PUT protocol; only the native client/viewer and navigation change. Preserve the v0.16.0/code 18 APK byte-for-byte while adding code 19.
+
+The v0.16.2/code 20 patch changes shared menu branding to Keep Score. Sport names, navigation, scoring, persistence and transfer schemas retain their existing behavior; retain v0.16.1/code 19 and earlier APKs unchanged.
+
+The v0.16.3/code 21 release adds alphabetical sport presentation, a bounded optional previous-meeting summary in live schema 1, and owner `completedAt` metadata for final-result expiry. Migration 0002 adds `live_games.active_expires_at` without deleting existing sessions. Old clients that omit completion metadata retain their prior expiry. Updated clients show final results for ten minutes and preserve the original live deadline for Undo. No match-book, CSV or backup schema changes; retain all earlier APKs byte-for-byte.
+
+The v0.16.4/code 22 release changes result-filter presentation/reset only: player/date/mode clear together while sport and stored data remain intact. Phone statistics refresh after reset. No scoring, book, backup, CSV, relay or database migration changes accompany this patch; retain all prior APKs unchanged.
+
+## Separate Google Play preparation
+
+The public watch feed remains v0.16.4/code 22. Preparation candidate 0.17.0-play.1/code 23 targets API 35 and outputs an AAB under ignored `build/play/`, without publishing an APK or updating release metadata. With a complete JDK 17, original signing material, retained APKs and the existing Node dependencies restored:
+
+```sh
+python3 scripts/bootstrap_android.py
+python3 scripts/bootstrap_play.py
+python3 scripts/verify_play.py
+```
+
+Play tooling/downloads and installed critical files are SHA-256 pinned in `play-build-tools.json`; runtime AndroidX pins remain unchanged. The existing supported AAPT2/bundletool command-line pipeline avoids an unrelated Gradle migration. The public source excludes generated AAB/APKS files and private signing material. Configure Play App Signing with the existing app key and register a separate upload key before actual submission. Do not upload the direct APK updater to Google Play. The candidate has not been submitted and is not promoted by website deployment. See [PLAY_RELEASE.md](PLAY_RELEASE.md).

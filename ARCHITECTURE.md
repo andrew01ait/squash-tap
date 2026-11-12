@@ -1,13 +1,13 @@
 # Architecture
 
-Current watch release: **v0.13.0**, code **14**. This document describes the implemented system; release changes are in [CHANGELOG.md](CHANGELOG.md).
+Current watch release: **v0.16.4**, code **22**. This document describes the implemented system; release changes are in [CHANGELOG.md](CHANGELOG.md).
 
 ## Components and responsibilities
 
 | Area | Implementation | Responsibility |
 | --- | --- | --- |
 | Watch UI | `android/src/at/andrew/squashtap/MainActivity.java`, `ScoreView`, `TouchTargets`, `ManualEntryUi` | Native round-screen scoring, dialogs, menus, input, contextual navigation and storage orchestration. |
-| Scoring/model | `ScoreState`, `MatchState`, `MatchResult`, `MatchBook` | PAR-11/deuce, BO3/BO5, rally/entered-set Undo, retirement, persistence, timing and result references. |
+| Scoring/model | `MatchFormat`, `ServiceOrder`, `ScoreState`, `MatchState`, `MatchResult`, `MatchBook` | PAR-11/deuce, BO3/BO5, rally/entered-set Undo, retirement, persistence, timing and result references. |
 | People/interchange | `OpponentDirectory`, `ResultFilter`, `MatchStatistics`, `MatchCsv`, `ManualMatchEntry` | Stable names, filters, derived totals, validated CSV and independent past-match drafts. |
 | Availability | `MatchDisplayPolicy`, `MatchSessionService`, AndroidX ambient/ongoing integration | Explicit active-session policy, quiet return shortcut and scoreboard screen flags. |
 | Updates | `UpdatePolicy`, `VerifiedDownload`, `UpdateClient`, `InstallReceiver` | Manual update checks, bounded verified download, package/signer checks and installation. |
@@ -18,25 +18,31 @@ Current watch release: **v0.13.0**, code **14**. This document describes the imp
 
 The website is a Vinext/Cloudflare Worker application with `DB` and `BUCKET` bindings. Canonical static assets are in `public/`; `dist/` is generated. GitHub Pages alone cannot run the transfer relay.
 
+## Sport navigation and discard
+
+MainActivity keeps the browsing scope separate from the one current match. An unfinished scored, timed, active, paused or explicitly prepared match locks every other sport. Selection/setup/create callbacks enforce the lock before mutation; completion or confirmed discard unlocks it. `match_ready_id` retains a created or explicitly started, unplayed match across restarts and foreground-session removal. It is not a result or active-service token. SportIcons supplies the same accent and vector mark to selectors, badges and ScoreView. Shared Players/Settings and their subpages identify the app as Keep Score; sport-scoped badges retain the sport name/icon. Shared menus retain contextual return callbacks; rule/mode/length/display choices use ticked lists with options before help text and restored setup scroll.
+
+Discard clones the book and directory, calls `MatchBook.discardCurrent` and `OpponentDirectory.forgetMatch`, then commits both plus cleared active/pause/prepared preferences before swapping live references. It creates no result or daily reference. Saved history, counters, player catalog and historical roles stay intact; a fresh empty UUID prevents old Undo/resume/transfer callbacks from reviving the discarded match. Completed matches reject discard and retain the normal result-deletion path. New-match creation likewise commits related state before replacing live references. These navigation operations preserve the compatible book readers. Pickleball extends the nested ScoreState encoding and live sharing adds an independent relay table.
+
 ## Local persistence and compatibility
 
 `SharedPreferences("squash")` contains the match book, separate opponent directory and display/session preferences. State commits precede successful result/apply confirmation. Failed commits retain the previous state and report the failure.
 
 | Format | Current contract |
 | --- | --- |
-| Match book | Write B4; read B1/B2/B3/B4. Current match, completed results, timing, durable daily counters and the deleted-current marker are one unit. |
-| Match/set encodings | Preserve M1 for ordinary matches and M2 for retirement-only state; M3 can carry entered set totals. `ScoreState` keeps real rallies or validated `2|me|opponent` completed totals. |
-| Opponents | O1 with stable IDs, NFC-normalized optional names up to 60 code points and archive flags. Commit related match/name edits together. |
-| CSV | Schema 1 for ordinary-only results; schema 2 appends `retired_player` for retired/mixed exports. Read both and gate unsupported old-watch imports. |
-| Migration/recovery | Retain once-only B1/B2/B3 backups, legacy score data and recovery copies of malformed data. Never fabricate old timestamps or rally order. |
+| Match book | Write B4 for unchanged squash-only state; B5 for explicit serving/multisport state or results. Read B1/B2/B3/B4/B5. Current match, completed results, timing, durable daily counters and the deleted-current marker are one unit. |
+| Match/set encodings | Preserve M1 for ordinary squash, M2 for retirement-only squash, and M3 for entered squash totals. M4 stores explicit formats plus initial service choices for each game/set. `ScoreState` keeps real rallies or validated `2|me|opponent` completed totals. |
+| Opponents | O1 or O2 with stable IDs (O2 adds separate partner/opponent-2 role maps; O1 stays readable), NFC-normalized optional names up to 60 code points and archive flags. Commit related match/name edits together. |
+| CSV | Schema 1 for ordinary squash; schema 2 appends `retired_player`; schema 3 adds exact format, mode, slots 6/7, point/tie-break/unfinished-game details and both extra team identities. Read all three and gate unsupported old-watch imports. |
+| Migration/recovery | Retain once-only B1/B2/B3/B4 and O1 backups, legacy score data and recovery copies of malformed data. Never fabricate old timestamps or rally order. |
 
 Duplicate/conflicting imported IDs, the active current ID and deleted-current tombstones must not overwrite or resurrect local state. Validate every CSV row first, preview against current data, then merge cloned books atomically. Imported matches allocate references beyond durable local counters; deleting results never resets those counters.
 
-History is bounded to 10,000 results; the decoded match-book string is bounded to 5,000,000 characters. A full book keeps the completed scoreboard while the user frees space and explicitly saves. Opponent identities are bounded to 1,000. CSV is bounded to 3 MiB, expanded transfer content to 4 MiB and compressed transfer content to 1 MiB; large histories need date-range exports before these limits.
+History is bounded to 10,000 results; the decoded match-book string is bounded to 5,000,000 characters. A full book keeps the completed scoreboard while the user frees space and explicitly saves. Player identities are bounded to 1,000; encoded directory data is bounded to 8,000,000 characters. O2 role maps are separate from primary assignments, avoiding ID collisions. CSV is bounded to 3 MiB, expanded transfer content to 4 MiB and compressed transfer content to 1 MiB; large histories need date-range exports before these limits.
 
 ## Scoring, retirement and timing
 
-Me is always first in scores. Sets use PAR-11/win by two. BO3/BO5 changes retain UUID, points, sets, timing and Undo, but reject completed matches and a BO5→BO3 change after either player already has two set wins.
+Me is always first in scores. Squash games use PAR-11/win by two. MatchFormat freezes each sport's validated rules; ScoreState handles rally games or nested tennis/padel sets. ServiceOrder derives next-server guidance from genuine scoring and initial choices. All presets and exclusions are in [RULES.md](RULES.md). BO3/BO5 changes retain UUID, points, sets, timing and Undo, but reject completed matches and a BO5→BO3 change after either player already has two set wins.
 
 A real final point or confirmed retirement completes/saves the match and stops its active session. Retirement preserves actual points/sets and determines the match winner independently of the set lead. Undo retirement restores the prior state before ordinary rally Undo. Undo/re-completion reuses its original reference and cannot revive a deliberately deleted result.
 
@@ -46,7 +52,7 @@ Duration includes pauses and set breaks. Recorded start zone controls display/fi
 
 ## Navigation and power
 
-Menus are Current match, Results, Statistics, Opponents and Settings. Results have 10 items per watch page; phone browsing has 25. Filters apply before pagination. Details/pickers/delete cancellation preserve list filter/page/scroll and the actual caller. Every named Back/Cancel, system Back and native swipe callback uses the same route. Late network callbacks cannot reopen an abandoned waiting panel.
+The entry is a six-sport selector, with shared Players/Settings. Within each sport: Current match (or new/resume), Results, Statistics, Change sport and Scoring rules. One current match remains global. Result mode/sport selection is separate from date/player filters; statistics ignore date/player filters. Global player icons derive involvement across all saved results, including partners. Results have 10 items per watch page; phone browsing has 25. Filters apply before pagination. Details/pickers/delete cancellation preserve list filter/page/scroll and the actual caller. Every named Back/Cancel, system Back and native swipe callback uses the same route. Late network callbacks cannot reopen an abandoned waiting panel.
 
 Roles are explicit: blue match/secondary navigation, purple people, grey Settings, red destructive actions and outlined Back/Cancel. Touch targets are at least 48dp. Score taps reject swipes, long presses and multi-touch. New-match setup stages format/name choices until explicit Create; replacement requires confirmation.
 
@@ -72,3 +78,51 @@ This is link-possession access, not identity-based authorization: anyone with a 
 Update metadata is untrusted. Validate schema/package/version/SDK, HTTPS origin, expected size and SHA-256. Streaming download enforces size/hash; the APK must match the package and installed signer before PackageInstaller confirmation. Settings initiates the request; no launch/scheduled polling exists. Keep the original package and release key for official in-place updates.
 
 See [TESTING.md](TESTING.md) for the recorded 400-check v0.13 release, separately recorded user reports and remaining physical-device acceptance. Source publishing and documentation checks do not establish physical screen, sensor, gesture or battery behavior.
+
+## Serving display and landing previews
+
+ScoreView reserves a separate high-contrast serving capsule and outline on the serving score card. Name labels fit actual measured card width with Unicode-safe truncation; the serving capsule uses fixed roles rather than variable-length names. Derive the service slot once per frame, retain known service in ambient text and expose complete server names in accessibility text. The colour palette changes drawing only; the recorded sport/rules/points and serving derivation remain independent.
+
+The landing page keeps its canonical HTML in public/index.html with matching app/layout.tsx metadata. Native Canvas previews generated from synthetic fixtures are copied to public/watch-*.png and included in sanitized source exports. Native radio inputs and CSS switch the six hero previews without JavaScript, storage or network transfers.
+
+## Keep Score v0.16 components and protocols
+
+`PickleballGame` replays the actual rally sequence into point totals and service state. ScoreState encoding 4 stores pickleball format, both chosen starters and genuine rallies or entered totals. M4/B5 continues to wrap it; existing B1–B5 and score encodings remain readable. Unknown old starters are not invented. Non-scoring side-outs are real Undo events and start timing. `MatchPresets` stores at most 24 named immutable presets under `favourite_formats`; `my_name` is separate from O1/O2 identities.
+
+`ScorePalette` supplies Classic/Neon Lime/Sunlight colours to the Canvas scoreboard. `score_palette` is validated and backed up; missing/unknown local preferences fall back to Classic. Menu sport colours and classic result cards retain their existing roles. Canvas uses the system font scale and measured fitting; round panels use proportional insets, square/rectangular panels use compact insets. `TouchTargets.area` guarantees 48dp Menu/Undo/New hit areas. Ambient remains monochrome. The app leaves Window brightness at its system default; Display settings is an explicit external intent.
+
+`MatchHaptics` uses short vibration patterns on accepted point/game/set/match transitions with user and system controls. `MatchReminders` derives optional brief prompts from state transitions, without timers that govern play or stored counters. `MatchWidgets`, `KeepScoreTileService` and `ScoreComplicationService` publish read-only current scores on changes; Tile freshness and complication update period are zero, so there is no periodic watch update loop. Their explicit tap intents preserve session/pause state. Tile/complication services require the Wear system’s binding permissions.
+
+`BackupArchive` schema 1 contains a checksummed base64url binary payload of the full validated match book, player directory and allowlisted settings. JSON maximum is 20 MiB, with bounded book/directory/settings fields. It excludes keys/capabilities, diagnostics, notification permissions and active session tokens. SHA-256 detects corruption, not malicious authorship; imports require native structural validation and watch confirmation. `backup_before_restore` holds one pre-restore recovery copy and is downloadable separately. Restores atomically commit all related preferences, reject stale book/directory/settings or expired sessions, clear the active token and pause unfinished matches. CSV remains completed-results interchange.
+
+Ordinary encryption envelope 1 retains 4 MiB plaintext/1 MiB compressed limits and its original AAD. Full-backup envelope 2 permits 24 MiB plaintext/4 MiB compressed and appends `|backup-v1` to the AAD, preventing version relabelling. Relay request bounds are 6,000,600 bytes; envelope-specific ciphertext bounds remain enforced. Both use AES-256-GCM/gzip, ten-minute expiry and the existing role/capability boundary. Phone capabilities gate backup, pickleball and own-name editing for old clients.
+
+`LiveScoreClient` is an application-memory singleton with a single network executor, latest-state coalescing and connectivity callback retries. It has no watch polling/heartbeat. `/api/live` stores opaque encrypted score snapshots in D1 `live_games` (schema migration 0001), separate from the transfer history snapshot. Random owner and viewer capabilities have independent hashes; only the watch owner can PUT/DELETE, only the viewer can GET. Keys stay in URL fragments/memory. Snapshots contain the current match’s score/rules/names/serving/phase and, when available, a bounded head-to-head aggregate plus one previous result for the same saved players and sport/mode. No directory IDs or unrelated results are sent. Bounds: eight-hour live TTL followed by a ten-minute completion window, 32,000-character envelope, 48,000-byte body, 250 rooms and 12 creations per ten-minute hashed-IP bucket. Revisions prevent delayed writes replacing newer ones. Expired access is rejected; physical cleanup occurs on subsequent creation. No list endpoint, CORS access, caching or plaintext cloud history is added.
+
+Audience pages poll only while visible (three seconds, ten after finish), preserve the last received score through connection failures and show its timestamp. They cannot know whether an idle watch is disconnected or simply between rallies. Offline stop cannot guarantee immediate remote revocation; the watch reports that limitation. Completed scores expire ten minutes after completion; unfinished replacement/restore/task dismissal revoke sharing. Finished task dismissal/new-match transitions retain the final window and retry a pending final snapshot on reconnect. A confirmed discard replaces the snapshot with the encrypted minimal notice `{schema:1, phase:"discarded"}`, containing no score or names. Process death drops all local capabilities and expiry bounds leftover remote links. Local development fixtures for phone/live use synthetic data and are tree-shaken out of production.
+
+`result-card.mjs` renders one completed result into a 1080×1280 PNG with full names, sets, timing and Keep Score branding. Download/Web Share is explicit; the watch points at a focused private phone snapshot, never a public history URL.
+
+The audience page adapts to portrait phones and short landscape screens. Portrait keeps two large aligned cards; landscape places match details and controls alongside them. Full team names wrap, serving has its own badge, and viewers independently choose Classic/Neon Lime/Sunlight. Browser QA covers actual 393×852 and 852×393 CSS viewports with synthetic doubles names, aligned scores, all controls reachable and no horizontal overflow. These are browser layout checks, not physical phone acceptance.
+
+`MainActivity.onLiveStatusChanged` reconciles session identity/readiness into visible controls, ignores abandoned panels/background callbacks and opens Audience QR once from its pending state. Settings uses persistent choice pages and contextual named Back actions. Reselecting an active option never implicitly goes Back.
+
+`LiveScoreClient.discard` runs only after the watch discard commit. It removes that session from active sharing, clears its plaintext score and queues an anonymous terminal update using the existing owner PUT/revision/encryption protocol. Up to eight notices can remain in process memory; connectivity callbacks retry them without polling. Success/expiry releases pending callbacks when otherwise idle. No keys or notices are persisted across process death. The relay schema is unchanged and opaque ciphertext replaces the old score. The viewer accepts only the two-field discard notice, removes rendered names/scores, shows Match discarded and stops refreshing. HTTP 401/403/404 likewise clear stale scores and show an ended broadcast; transient network errors still preserve the last score.
+
+## Live history and final expiry — v0.16.3
+
+`HeadToHead` derives wins/losses and the latest previous result from completed history. Exclude the current UUID, require the same sport/mode and saved opponent identity; doubles also require the same partner and unordered opposing pair. Missing identities yield no summary. Archived/renamed identities still match. Pick the latest recorded date, known start time and daily number, rather than import order. Retirement uses the actual match winner. The snapshot contains only aggregate wins/losses and that one dated score summary.
+
+`LiveScoreClient` attaches a stable `completedAt` marker to each queued snapshot and owner request (zero for active play). Real recorded completion time controls delayed offline updates; explicitly starting a new finished broadcast starts a fresh ten-minute window. `active_expires_at` preserves the original live deadline. The relay atomically updates revision, ciphertext and expiry, shortens repeated final updates without extending them, restores the original deadline on Undo, and allows ten full minutes when completion precedes the live cutoff. Old clients omitting the marker retain their existing contract. Migration 0002 adds only the nullable deadline column; old rows capture their existing deadline on the next accepted update. Scores and history remain encrypted; only expiry/completion timing is service metadata. No watch timer, polling or background worker is added.
+
+Pending completed snapshots use a separate bounded memory queue (eight sessions) and connectivity callbacks so rematch/task dismissal can preserve the final result without blocking scoring. Process death still loses unsent capabilities. The viewer shows final winner, actual game/set scores, retirement and availability; expiry clears names, scores and history, including after interrupted network access. Browser controls use accessible icon buttons.
+
+## Result filter reset — v0.16.4
+
+`MainActivity.resetResultFilters` clears player/date/mode together, calls Results page zero and posts a final scroll-to-top after any remembered-position restoration. It changes only browsing state, retaining selected sport, caller, book, directory and active session. The action appears first in Result filters and in Results when any filter is active. Phone reset also sets All modes and refreshes scoped Statistics, without re-rendering or discarding staged name/import changes. It operates within the received history snapshot and adds no requests or persistence fields.
+
+## Play distribution preparation
+
+The preparation candidate is declared separately in `play-release.json`. `scripts/build_play.py` generates an API-35 manifest from the direct manifest, removing APK install permissions and InstallReceiver while preserving package, standalone/watch, Tile/complication and explicit match-session declarations. `BuildConfig.PLAY_DISTRIBUTION` is a compile-time flag; the old builder emits false, the Play builder emits true. The Play source set substitutes a non-networking UpdateClient and excludes InstallReceiver, so no PackageInstaller implementation is packaged. The Play resource theme and compile-time scoreboard background use black while the direct theme remains unchanged. All native update/setup entry points are guarded; Play navigation preserves match storage/session state.
+
+The bundle pipeline uses the existing pinned AndroidX graph and locked Google SDK/Maven AAPT2 plus bundletool. It creates compiled binary resources for UI testing and protobuf resources/dex for the AAB, signs with the original private key and inspects a generated same-signer APK. Public v0.16.4/code 22 metadata and all retained APK bytes remain unchanged. See [PLAY_RELEASE.md](PLAY_RELEASE.md) for the candidate, evidence and incomplete Console/privacy/device gates.

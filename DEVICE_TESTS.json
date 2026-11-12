@@ -39,6 +39,16 @@
       "date": "2026-11-04",
       "version": "0.8.0",
       "observation": "After the v0.8 release the user reported that the workflow worked and requested distinct name styling plus optional opponent selection during new-match setup. This general confirmation does not identify every CSV/import, dictation or battery scenario as individually tested."
+    },
+    {
+      "date": "2026-11-10",
+      "version": "0.15.0",
+      "observation": "User reported that the new navigation is much easier to understand. Subsequently reported that serving information was difficult to see or clipped with missing or long opponent names. This does not validate the v0.15.1 serving fix, ambient behavior or battery use."
+    },
+    {
+      "date": "2026-11-11",
+      "version": "0.16.0",
+      "observation": "User reported that some setting selections, including vibrations, immediately return to the previous menu; live sharing does not automatically present its ready QR; a discarded watch match leaves the audience scoreboard looking active. These are reported defects, not acceptance of the v0.16.1 corrections."
     }
   ]
 }

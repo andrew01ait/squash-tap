@@ -1,6 +1,6 @@
 # Internal and GitHub source workflow
 
-Public repository: <https://github.com/andrew01ait/squash-tap>. Official download/update site: <https://squash-tap-andrew.endruuu.chatgpt.site/>. Current watch release: **v0.13.0 / code 14**.
+Public repository: <https://github.com/andrew01ait/squash-tap>. Official download/update site: <https://squash-tap-andrew.endruuu.chatgpt.site/>. Current watch release: **v0.16.4 / code 22**.
 
 ## Two copies and their responsibilities
 
@@ -39,6 +39,8 @@ Both copies use the same Markdown documentation. Private artifact identifiers an
 
 The GitHub connector/tool must actually have write authorization; a listed tool or repository-level account permission does not establish that a write succeeded. Report a rejected write honestly and recheck only after authorization changes. Use secure account authorization, not credentials pasted into chat or committed to files.
 
+The multisport/navigation work is reviewed in [draft PR #1](https://github.com/andrew01ait/squash-tap/pull/1) on `feature/multisport-v0.14.0`; main remains separate until an explicitly authorized merge. Keep the PR title/description and source export aligned with the latest release.
+
 ## Building or contributing
 
 See [DEPLOYMENT.md](DEPLOYMENT.md) for Linux build prerequisites and [TESTING.md](TESTING.md) for checks that can run without the official signing key. Keep dependency locks and migrations reviewed. Compare the final diff, tests, persistence/Undo behavior, privacy boundary and power policy before publishing changes.
@@ -51,4 +53,18 @@ The relay needs a Worker/server with D1/R2-compatible storage. A static-only Git
 
 No project-wide open-source license has been selected. Preserve third-party notices and individual dependency licenses; do not add/change licensing without the owner's choice.
 
-Future user-facing JSON filenames use the local export date and application name: `YYYYMMDD_ApplicationName_Description.json`, for example `20261109_SquashTap_results.json`. Current results interchange is CSV. This convention does not rename internal configuration files or add a JSON export feature.
+Future user-facing JSON filenames use the local export date and application name: `YYYYMMDD_ApplicationName_Description.json`, for example `20261111_KeepScore_Backup.json`. Current results interchange is CSV. Complete backup JSON uses this naming convention; internal configuration filenames remain unchanged.
+
+The v0.16 mirror includes Keep Score branding, six sports including pickleball, own name, palettes, full backup/restore, live audience viewer/API, tiles/complication, result cards and their tests/docs. Continue using the existing draft PR #1 until merge is explicitly authorized; changing the app display name does not rename the repository.
+
+The v0.16.1 patch adds in-place Settings selection, guarded automatic audience QR presentation, encrypted anonymous discard notices/reconnect retry and ended-view clearing, with native/web regressions. Sync this patch into the existing draft PR without merging main.
+
+The v0.16.2 patch replaces All Sports identity badges and app section labels with Keep Score, including shared selectors. Sport-scoped screens keep their sport label/icon. Keep the sanitized source and existing draft PR aligned without merging main.
+
+The v0.16.3 mirror adds alphabetical watch/phone sports, bounded matching-player head-to-head/last meeting, accessible audience share/copy icons and ten-minute final results with stable expiry, Undo and reconnect behavior. Include the deadline migration and native/browser tests; keep the existing draft PR without merging main.
+
+The v0.16.4 patch promotes Reset all filters on watch/phone, clears match mode as well as player/dates, restores page one/top, and refreshes phone statistics while retaining the sport and staged edits. Keep source, guides and the existing draft PR aligned without merging main.
+
+## Play preparation source
+
+The mirror also includes the preparation-only Play manifest/bundle generator, compile-time distribution guard, Play UpdateClient source set, API-34/35 native tests, checksum-pinned build-tool lock and review drafts. Generated AAB/APKS/test APKs and all private keys remain excluded. Keep the public watch release at v0.16.4/code 22 until an explicit release; source/site publication does not submit or launch the app on Google Play. Continue using draft PR #1 without merging main. See [PLAY_RELEASE.md](PLAY_RELEASE.md).

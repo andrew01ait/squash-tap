@@ -9,19 +9,19 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 DOCS = ('README.md', 'INSTALLATION.md', 'FLOW.md', 'ARCHITECTURE.md',
         'DEPLOYMENT.md', 'TESTING.md', 'VERSIONING.md', 'GITHUB.md',
-        'AGENTS.md', 'CHANGELOG.md')
+        'AGENTS.md', 'CHANGELOG.md', 'RULES.md', 'PLAY_RELEASE.md')
 ROOT_FILES = (*DOCS, '.gitignore', 'THIRD_PARTY_NOTICES.txt', 'DEVICE_TESTS.json',
-              'SIGNING_IDENTITY.json', 'android-dependencies.json', 'components.json',
+              'SIGNING_IDENTITY.json', 'android-dependencies.json', 'play-release.json', 'play-build-tools.json', 'components.json',
               'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'tsconfig.json',
               'vite.config.ts', 'drizzle.config.ts', 'next.config.ts', 'next-env.d.ts',
               'cloudflare-env.d.ts', 'postcss.config.mjs', 'eslint.config.mjs',
               'LICENSE', 'LICENSE.md', 'LICENSE.txt')
 DIRECTORIES = ('android', 'scripts', 'app', 'lib', 'worker', 'db', 'drizzle',
-               'web-test', 'vendor', 'components', 'hooks', 'examples')
+               'web-test', 'vendor', 'components', 'hooks', 'examples', 'play')
 PRIVATE_PARTS = {'.git', '.local', 'build', 'node_modules', '__pycache__', '.wrangler',
                  '.sites-runtime', 'dist', 'outputs'}
 PRIVATE_SUFFIXES = {'.p12', '.password', '.jks', '.keystore', '.pem', '.key', '.apk',
-                    '.zip', '.pyc'}
+                    '.zip', '.pyc', '.aab', '.apks', '.idsig'}
 PRIVATE_CONTENT = re.compile(
     rb'libfile_[A-Za-z0-9]{16,}|-----BEGIN (?:[A-Z ]+ )?PRIVATE KEY-----|'
     rb'github_pat_[A-Za-z0-9_]{40,}|gh[pousr]_[A-Za-z0-9]{30,}|'
@@ -42,7 +42,7 @@ def source_files():
     metadata = {'_headers', 'builds.json', 'release.properties', 'SHA256SUMS.txt',
                 'test-results.txt', 'THIRD_PARTY_NOTICES.txt'}
     files.update(p for p in public.iterdir() if p.is_file()
-                 and (p.suffix in ('.html', '.css', '.mjs', '.js', '.svg')
+                 and (p.suffix in ('.html', '.css', '.mjs', '.js', '.svg', '.png')
                       or p.name in metadata))
     return sorted(files)
 
@@ -66,7 +66,7 @@ def source_bytes(file):
         body = (json.dumps(hosting, indent=2) + '\n').encode()
     elif relative.as_posix() == '.gitignore':
         text = body.decode()
-        rules = ('public/apks/', 'public/SquashTap-source.zip',
+        rules = ('public/apks/', 'public/SquashTap-source.zip', 'public/KeepScore-source.zip',
                  '.openai/deliverables.json', '*.pem', '*.key')
         extra = [rule for rule in rules if rule not in text.splitlines()]
         if extra:
@@ -87,10 +87,10 @@ def package(github_directory=None):
         if target.exists() and (not target.is_dir() or any(target.iterdir())):
             raise RuntimeError('GitHub export directory must be empty')
     payload = [(file, source_bytes(file)) for file in source_files()]
-    destination = ROOT / 'public/SquashTap-source.zip'
+    destination = ROOT / 'public/KeepScore-source.zip'
     with zipfile.ZipFile(destination, 'w', zipfile.ZIP_DEFLATED) as archive:
         for file, body in payload:
-            entry = zipfile.ZipInfo('SquashTap/' + file.relative_to(ROOT).as_posix(),
+            entry = zipfile.ZipInfo('KeepScore/' + file.relative_to(ROOT).as_posix(),
                                     (2026, 11, 3, 0, 0, 0))
             entry.compress_type = zipfile.ZIP_DEFLATED
             mode = 0o755 if file.stat().st_mode & 0o111 else 0o644

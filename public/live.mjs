@@ -1,0 +1,41 @@
+import {open} from './interchange.mjs?v=0.16.1';
+import {sportName,sportMarkup} from './sports.mjs?v=0.16.3';
+import {validateLive} from './live-data.mjs?v=0.16.3';
+const $=id=>document.getElementById(id),params=new URLSearchParams(location.hash.slice(1));
+const link={id:params.get('id'),token:params.get('p'),key:params.get('k')};let timer,expiryTimer,controller,fetching=false,ended=false,last,updated=0,expiresAt=0;
+function status(s,error=false){$('connection').textContent=s;$('connection').classList.toggle('error',error);}
+function showEnded(title,detail){
+ ended=true;clearTimeout(timer);clearTimeout(expiryTimer);last=null;$('scoreboard').hidden=true;$('ended').hidden=false;$('ended-title').textContent=title;$('ended-detail').textContent=detail;
+ for(const id of ['name-0','name-1','score-0','score-1','score-unit','score-call','rules','freshness','set-scores','winner-name','final-detail','history-name-0','history-name-1','history-balance','history-scope','last-date','last-score','last-winner','last-games','expires'])$(id).replaceChildren();
+ $('final-result').hidden=true;$('head-to-head').hidden=true;
+ $('phase').textContent='Ended';for(let i=0;i<2;i++){$('side-'+i).classList.remove('serving');$('serve-'+i).hidden=true;$('serve-'+i).textContent='';}status(title);
+}
+function render(d){
+ $('scoreboard').hidden=false;$('sport').replaceChildren();const mark=document.createElement('span');mark.innerHTML=sportMarkup(d.sport);$('sport').append(mark,document.createTextNode(' '+sportName(d.sport)+' · '+d.mode));$('phase').textContent=({ready:'Ready to play',playing:'Playing',paused:'Paused',interval:'Between games',finished:'Finished'})[d.phase];
+ const nested=['tennis','padel'].includes(d.sport),final=d.phase==='finished';
+ if(final)$('phase').textContent='Final · '+Math.max(1,Math.ceil((expiresAt-Date.now())/60000))+' min left';
+ $('scoreboard').dataset.phase=d.phase;$('final-result').hidden=!final;$('winner-name').textContent=final?d.names[d.winner]+' wins':'';
+ $('final-detail').textContent=final?(d.retiredPlayer>=0?'By retirement · actual scores shown below':'Best of '+(d.bestOf||Math.max(...d.sets)*2-1)+' · '+(nested?'sets':'games')):'';
+ for(let i=0;i<2;i++){ $('name-'+i).textContent=d.names[i];$('score-'+i).textContent=final?d.sets[i]:d.points[i];const serves=!final&&d.server>=0&&(d.server>=4?d.server-4:d.server%2)===i;$('side-'+i).classList.toggle('serving',serves);$('side-'+i).classList.toggle('winner',final&&d.winner===i);$('serve-'+i).hidden=!serves;$('serve-'+i).textContent=serves?'Serving · '+d.serveName:'Serving';}
+ $('score-unit').textContent=(final?(nested?'Final sets':'Final games'):(nested?'Points · sets ':'Points · games ')+d.sets.join('–'));$('score-call').textContent=!final&&d.scoreCall?'Serve call: '+d.scoreCall:'';$('rules').textContent=d.rules;
+ $('set-scores').replaceChildren();d.setScores.forEach((s,i)=>{const e=document.createElement('span');e.textContent=(s.matchTie?'Match tie-break':nested?'Set':'Game')+' '+(i+1)+' · '+s.a+'–'+s.b+(final&&s.complete===false?' · unfinished':'');$('set-scores').append(e);});
+ $('freshness').textContent='Last score update '+new Date(updated).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'})+'. Updates arrive after a rally or match action.';
+ const h=d.headToHead;$('head-to-head').hidden=!h;
+ if(h){$('history-name-0').textContent=d.names[0];$('history-name-1').textContent=d.names[1];$('history-balance').textContent=h.won+'–'+h.lost;$('history-scope').textContent=(h.won+h.lost)+' previous '+(h.won+h.lost===1?'meeting':'meetings')+' · '+(d.mode==='doubles'?'same teams':'same opponent')+' · before this match';
+  $('last-date').dateTime=h.last.date;$('last-date').textContent=new Date(h.last.date+'T12:00:00').toLocaleDateString([], {day:'numeric',month:'short',year:'numeric'});$('last-score').textContent=h.last.sets.join('–');$('last-winner').textContent=d.names[h.last.winner]+' won'+(h.last.retiredPlayer>=0?' by retirement':'');$('last-games').replaceChildren();for(const s of h.last.scores){const e=document.createElement('span');e.textContent=(s.matchTie?'MTB ':'')+s.a+'–'+s.b+(s.complete?'':' · unfinished');$('last-games').append(e);}}
+ else for(const id of ['history-name-0','history-name-1','history-balance','history-scope','last-date','last-score','last-winner','last-games'])$(id).replaceChildren();
+ $('expires').textContent=final?'Final result available until '+new Date(expiresAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})+' · '+Math.max(1,Math.ceil((expiresAt-Date.now())/60000))+' min remaining':'';
+}
+function expire(){showEnded('Broadcast ended','This audience link has expired. Final results remain available for 10 minutes after completion.');}
+async function poll(){clearTimeout(timer);if(fetching||ended||document.hidden)return;fetching=true;controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),10000);
+ try{const r=await fetch('/api/live/'+link.id,{cache:'no-store',credentials:'omit',redirect:'error',headers:{Authorization:'Bearer '+link.token},signal:controller.signal});if([401,403,404].includes(r.status)){showEnded('Broadcast ended','This match is no longer available on this audience link. Sharing has stopped or the link has expired.');return;}if(!r.ok)throw Error('Live score service unavailable');const data=await r.json();if(!Number.isFinite(data.updatedAt)||!Number.isFinite(data.expiresAt))throw Error('Invalid live response');if(Date.now()>=data.expiresAt){expire();return;}const score=validateLive(JSON.parse(await open(link.id,'out',link.key,data.cipher)));if(ended)return;if(score.phase==='discarded'){showEnded('Match discarded','The scoring watch discarded this match. No result was saved.');return;}last=score;updated=data.updatedAt;expiresAt=data.expiresAt;clearTimeout(expiryTimer);expiryTimer=setTimeout(expire,Math.max(0,expiresAt-Date.now()));render(score);status(score.phase==='finished'?'Match finished · final result':'Connected · following this match');}
+ catch(e){if(!document.hidden)status(last?'Connection interrupted · showing the last received score':'Could not connect · retrying shortly',true);}
+ finally{clearTimeout(timeout);fetching=false;controller=null;if(!ended&&!document.hidden)timer=setTimeout(poll,last?.phase==='finished'?10000:3000);}
+}
+document.addEventListener('visibilitychange',()=>{clearTimeout(timer);if(document.hidden)controller?.abort();else if(expiresAt&&Date.now()>=expiresAt)expire();else poll();});window.addEventListener('online',poll);
+$('palette').addEventListener('change',()=>{document.body.dataset.palette=$('palette').value;});
+$('copy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(location.href);status('Audience link copied');}catch{status('Copy this page’s address to share the audience link.');}});
+$('share').addEventListener('click',async()=>{try{if(navigator.share)await navigator.share({title:'Keep Score · live match',url:location.href});else $('copy').click();}catch(e){if(e.name!=='AbortError')status('Use Copy audience link to share.');}});
+$('fullscreen').addEventListener('click',async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{status('Fullscreen is unavailable in this browser.');}});
+if(/^[a-f0-9]{32}$/.test(link.id)&&/^[-\w]{43}$/.test(link.token)&&/^[-\w]{43}$/.test(link.key)){status('Connecting to the live match…');poll();}
+else if(link.id||link.token||link.key)status('Invalid audience link. Scan a fresh QR code from the scoring watch.',true);

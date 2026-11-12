@@ -60,9 +60,9 @@ public class NavigationUiTest {
     }
     private View root(){Dialog dialog=ShadowDialog.getLatestDialog();assertNotNull(dialog);assertTrue(dialog.isShowing());return dialog.getWindow().getDecorView();}
     private List<View> descendants(View view){List<View> all=new ArrayList<>();all.add(view);if(view instanceof ViewGroup)for(int i=0;i<((ViewGroup)view).getChildCount();i++)all.addAll(descendants(((ViewGroup)view).getChildAt(i)));return all;}
-    private Button button(String text){for(View view:descendants(root()))if(view instanceof Button&&((Button)view).getText().toString().equals(text))return (Button)view;throw new AssertionError("Missing button: "+text);}
-    private boolean hasButton(String text){for(View view:descendants(root()))if(view instanceof Button&&((Button)view).getText().toString().equals(text))return true;return false;}
-    private boolean hasText(String text){for(View view:descendants(root()))if(view instanceof TextView&&((TextView)view).getText().toString().equals(text))return true;return false;}
+    private Button button(String text){for(View view:descendants(root()))if(view instanceof Button&&((Button)view).getText().toString().split("\n",2)[0].equals(text))return (Button)view;throw new AssertionError("Missing button: "+text);}
+    private boolean hasButton(String text){for(View view:descendants(root()))if(view instanceof Button&&((Button)view).getText().toString().split("\n",2)[0].equals(text))return true;return false;}
+    private boolean hasText(String text){for(View view:descendants(root()))if(view instanceof TextView&&((TextView)view).getText().toString().split("\n",2)[0].equals(text))return true;return false;}
     private boolean textContains(String text){for(View view:descendants(root()))if(view instanceof TextView&&((TextView)view).getText().toString().contains(text))return true;return false;}
     private int colour(Button button){assertNotNull(button.getBackgroundTintList());return button.getBackgroundTintList().getColorForState(button.getDrawableState(),0);}
     private void grey(Button button){int c=colour(button);assertEquals(Color.red(c),Color.green(c));assertEquals(Color.green(c),Color.blue(c));assertTrue(Color.alpha(c)>0);}
@@ -85,10 +85,10 @@ public class NavigationUiTest {
         grey(button("Keep screen on: ON"));grey(button("Diagnostics"));outline(button("Back to Menu"));outline(button("Scoreboard"));assertFalse(hasButton("New match"));assertFalse(hasButton("Results (1)"));
     }
     @Test public void updatePageUsesGreyControlsAndOutlinedBack(){
-        button("Settings").performClick();ReflectionHelpers.setField(activity,"checking",true);button("Check for updates").performClick();assertTrue(hasText("App updates"));grey(button("Checking…"));grey(button("Phone install help"));outline(button("Back to Settings"));
+        button("Settings").performClick();ReflectionHelpers.setField(activity,"checking",true);button("Check for updates").performClick();assertTrue(hasText("App updates"));if(BuildConfig.PLAY_DISTRIBUTION){grey(button("Open Google Play"));assertFalse(hasButton("Phone install help"));}else{grey(button("Checking…"));grey(button("Phone install help"));}outline(button("Back to Settings"));
     }
     @Test public void formatSelectorKeepsPointsThroughActualButtonNavigation(){
-        button("Current match").performClick();button("Match options").performClick();button("Match format: Best of 3").performClick();blue(button("Best of 5 · first to 3"));button("Best of 5 · first to 3").performClick();MatchBook book=saved();assertEquals(5,book.current().bestOf());assertEquals(2,book.current().game().blue());assertEquals(1,book.current().game().red());assertEquals(1,book.count());
+        button("Current match").performClick();button("Match options").performClick();button("Match length: Best of 3").performClick();blue(button("Best of 5 · first to 3"));button("Best of 5 · first to 3").performClick();MatchBook book=saved();assertEquals(5,book.current().bestOf());assertEquals(2,book.current().game().blue());assertEquals(1,book.current().game().red());assertEquals(1,book.count());
     }
     @Test public void singleDeleteAndConfirmationAreRedAndCancelKeepsResult(){
         openSavedResult();red(button("Delete this result"));button("Delete this result").performClick();red(button("Delete result"));outline(button("Cancel"));button("Cancel").performClick();assertEquals(1,saved().count());assertTrue(hasButton("Delete this result"));

@@ -6,8 +6,8 @@ import argparse, hashlib, json, os, secrets, shutil, subprocess, sys, zipfile
 ROOT=Path(__file__).resolve().parents[1]
 PKG='at.andrew.squashtap'
 SITE='https://squash-tap-andrew.endruuu.chatgpt.site'
-RELEASES=((14,'0.13.0'),)
-RELEASE_NOTES='Clearer menus: Current match, Results, Statistics, Opponents and Settings. Live controls come first, past matches belong in Results, new matches use an explicit Create button, and Back/swipe returns to the right screen. Contextual phone QR links open results, names or CSV import.'
+RELEASES=((22,'0.16.4'),)
+RELEASE_NOTES='Reset all filters is now prominent in Results and at the top of Result filters. It clears player, dates and match mode, returns to the first page, and keeps the selected sport. Phone reset also refreshes all-mode statistics.'
 
 def run(args, env=None):
     result=subprocess.run([str(x) for x in args],cwd=ROOT,env=env,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
@@ -25,7 +25,7 @@ def build(sdk,junit,hamcrest):
         if jvm.exists(): env['JAVA_HOME']=str(jvm)
     work=ROOT/'build';work.mkdir(exist_ok=True)
     test_classes=work/'test-classes';test_classes.mkdir(exist_ok=True)
-    core=[ROOT/'android/src/at/andrew/squashtap'/f'{name}.java' for name in ('ScoreState','TouchTargets','UpdatePolicy','VerifiedDownload','MatchState','MatchResult','MatchStatistics','ManualMatchEntry','MatchBook','MatchDisplayPolicy','DiagnosticTransfer','OpponentDirectory','ResultFilter','MatchCsv','TransferCrypto')]
+    core=[ROOT/'android/src/at/andrew/squashtap'/f'{name}.java' for name in ('HeadToHead','ScorePalette','BackupArchive','MatchPresets','MatchReminders','PickleballGame','ServiceOrder','MatchFormat','ScoreState','TouchTargets','UpdatePolicy','VerifiedDownload','MatchState','MatchResult','MatchStatistics','ManualMatchEntry','MatchBook','MatchDisplayPolicy','DiagnosticTransfer','OpponentDirectory','ResultFilter','MatchCsv','TransferCrypto')]
     tests=sorted((ROOT/'android/test').rglob('*Test.java'))
     cp=os.pathsep.join((str(junit),str(hamcrest)))
     print('Compiling and running local JUnit tests',flush=True)
@@ -33,7 +33,7 @@ def build(sdk,junit,hamcrest):
     result=run(['java','-cp',str(test_classes)+os.pathsep+cp,'org.junit.runner.JUnitCore',*('at.andrew.squashtap.'+t.stem for t in tests)],env)
     (work/'test-results.txt').write_text(result)
     print('Running browser interchange and relay/storage tests',flush=True)
-    web_result=run(['node','--test',ROOT/'web-test/interchange.test.mjs',ROOT/'web-test/transfer-state.test.mjs',ROOT/'web-test/relay.test.mjs'],env)
+    web_result=run(['node','--test',ROOT/'web-test/interchange.test.mjs',ROOT/'web-test/transfer-state.test.mjs',ROOT/'web-test/relay.test.mjs',ROOT/'web-test/multisport.test.mjs',ROOT/'web-test/backup.test.mjs',ROOT/'web-test/live.test.mjs'],env)
     (work/'web-test-results.txt').write_text(web_result)
     signing=ROOT/'.local/signing';signing.mkdir(parents=True,exist_ok=True)
     key=signing/'squash-tap.p12';password=signing/'key.password'
@@ -52,12 +52,12 @@ def build(sdk,junit,hamcrest):
         old_file=apks/previous['filename']
         if hashlib.sha256(old_file.read_bytes()).hexdigest()!=previous['sha256']:raise SystemExit('Retained APK changed: '+previous['filename'])
     for code,version in RELEASES:
-        print(f'Building Squash Tap {version}',flush=True)
+        print(f'Building Keep Score {version}',flush=True)
         out=work/version;out.mkdir(exist_ok=True)
         classes=out/'classes';classes.mkdir(exist_ok=True)
         dex=out/'dex';dex.mkdir(exist_ok=True)
         config=out/'generated/at/andrew/squashtap/BuildConfig.java';config.parent.mkdir(parents=True,exist_ok=True)
-        config.write_text(f'package {PKG}; public final class BuildConfig {{ public static final String VERSION_NAME="{version}"; public static final int VERSION_CODE={code}; public static final String SITE_URL="{SITE}"; public static final String RELEASE_URL="{SITE}/release.properties"; }}\n')
+        config.write_text(f'package {PKG}; public final class BuildConfig {{ public static final String VERSION_NAME="{version}"; public static final int VERSION_CODE={code}; public static final String SITE_URL="{SITE}"; public static final String RELEASE_URL="{SITE}/release.properties"; public static final boolean PLAY_DISTRIBUTION=false; }}\n')
         resource_archives=[]
         for index,resources in enumerate([*library_resources,ROOT/'android/res']):
             destination=out/f'resources-{index}.zip'
@@ -75,7 +75,7 @@ def build(sdk,junit,hamcrest):
             for file in dex.glob('*.dex'):archive.write(file,file.name)
             archive.write(ROOT/'THIRD_PARTY_NOTICES.txt','assets/THIRD_PARTY_NOTICES.txt')
         run([tools/'zipalign','-f','4',out/'unsigned.apk',out/'aligned.apk'],env)
-        apk=apks/f'SquashTap-{version}.apk'
+        apk=apks/f'KeepScore-{version}.apk'
         run([tools/'apksigner','sign','--ks',key,'--ks-key-alias','squash-tap','--ks-pass','file:'+str(password),'--out',apk,out/'aligned.apk'],env)
         signature=run([tools/'apksigner','verify','--verbose','--print-certs',apk],env)
         import re

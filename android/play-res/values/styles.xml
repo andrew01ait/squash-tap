@@ -1,0 +1,5 @@
+<resources>
+    <style name="PlayAppTheme" parent="@style/AppTheme">
+        <item name="android:windowBackground">@drawable/play_starting_background</item>
+    </style>
+</resources>

@@ -1,5 +1,86 @@
 # Releases
 
+## Google Play preparation — 2026-11-12 (public watch v0.16.4 unchanged)
+
+- Add a separate API-35 AAB candidate, 0.17.0-play.1/code 23, using the original package/signer and locked official build tools. Preserve all published APK/feed bytes.
+- Use Play-managed update navigation and exclude the APK installer permissions, receiver and implementation from the Play package. Retain direct distribution separately.
+- Add Play-only black launch/scoreboard backgrounds, matching splash icon, native distribution/state tests, both-channel verification, store/privacy drafts and an explicit launch/test checklist. Account setup, final privacy publication, upload-key enrollment, physical upgrade acceptance, closed testing and Store review remain pending.
+
+## Live streaming feature section — 2026-11-11 (watch v0.16.4 unchanged)
+
+- Give live result streaming a dedicated landing-page section with navigation/hero links, watch-to-QR-to-share setup, an illustrative audience scoreboard, previous-meeting details and ten-minute final results. Explain connection and link-access requirements alongside the feature.
+- Add responsive portrait/landscape QA frames, check mobile layout and links, and refresh documentation/source artifacts. This website-only update preserves the watch release and retained APK bytes.
+
+## Website explanations — 2026-11-11 (watch v0.16.4 unchanged)
+
+- Add result-filter reset and live-sharing instructions to the landing page. Align privacy wording with encrypted head-to-head/last-meeting summaries, the live window and ten-minute final results. Keep the current v0.16.4 download and all release bytes.
+- Validate documentation/export parity, landing-page links and a fresh website build; native release checks are not rerun for this copy-only change.
+
+## 0.16.4 — 2026-11-11
+
+- Make Reset all filters the first watch filter action and show a direct reset row in filtered/empty Results. Clear player/date/mode, retain the sport and return to page one/top despite remembered scrolling.
+- Fix phone reset to clear Singles/Doubles as well as player/dates and refresh scoped statistics without discarding staged edits. Use the same Reset all filters label.
+- Verify 331 core + 191 native UI + 64 web/relay cases (586), combined native filters/pagination/scroll and storage/session preservation, browser reset behavior, original signing/metadata/alignment and retained APK hashes. Refresh current guides and source/download artifacts.
+
+## 0.16.3 — 2026-11-11
+
+- Sort sport choices and badges alphabetically on watch and phone. Preserve selected/current sport IDs and unfinished-match locks.
+- Share previous head-to-head and the latest meeting date/result for the same saved opponent or complete doubles teams in this sport/mode. Exclude the current match and unknown identities; keep aggregates and one result encrypted without publishing unrelated history or player IDs.
+- Replace audience link controls with accessible share/copy icons. Show a final winner, game/set score breakdown, retirement outcome and remaining availability in portrait/landscape layouts.
+- Expire final links ten minutes after completion, including delayed offline completion. Repeated updates never extend the final deadline; Undo restores the original live deadline. Preserve and retry final results across rematch/task dismissal while the process survives. Add a compatible live-deadline column migration.
+- Verify 331 core + 190 native UI + 64 web/relay cases (585), native renders, browser layout previews, original signer/package/SDK/alignment and all retained APK hashes. Physical watch acceptance remains separate.
+
+## 0.16.2 — 2026-11-11
+
+- Use Keep Score as the identity on shared menus, Players, Settings and their subpages, replacing the misleading All Sports badge. Use the same app name on the sport selector and app section headings; sport-specific screens retain their sport name/icon/accent and contextual Back/swipe.
+- Verify the full 325 core + 185 native UI + 58 web/relay release suite (568), native renders, original package/signer/SDK/alignment and all retained APK hashes. Refresh release downloads, current guides and sanitized source export; physical watch acceptance remains separate.
+
+## 0.16.1 — 2026-11-11
+
+- Group Settings by purpose. Keep vibration/reminder/display/palette selectors open after saving, with selected ticks, scroll retention and explicit Back to Settings. Reselecting an active option no longer implicitly goes Back. Preserve contextual hardware/swipe navigation and score/session data.
+- Automatically reconcile live-sharing controls and open Audience QR when ready from the visible waiting page. Restore Start after failure; ignore late callbacks on other/background screens. Preserve one-minute QR screen retention.
+- After a committed discard, replace the shared match with an encrypted anonymous notice containing no names/scores, retry it on reconnect and show Match discarded to viewers. Stop refreshing terminal views. Revoked/expired links also clear stale Playing scores. Cancelling discard preserves the match/broadcast. No scoring or storage schema changes.
+- Verify 325 core + 185 native UI + 58 web/relay cases (568), original package/signer/SDK/alignment and retained APKs. Update native patch, viewer cache versions, release/source artifacts and all current guides. Physical device acceptance remains separate.
+
+
+## 0.16.0 — 2026-11-11
+
+- Rename the app display and current downloads to Keep Score while preserving package, preferences, original signer, existing data, repository/site URLs and all historical APK bytes. Add optional Your name in Players and reviewed phone editing, used on watch/live/result images without creating an opponent identity.
+- Add pickleball singles/doubles, 11/15/21 points and one/BO3/BO5 games. Keep traditional side-out, 2025 rally win-on-serve and 2026 rally either-side finish explicit. Track doubles server/court/call and genuine non-point rallies in Undo. Preserve legacy readers and validated CSV schema 3.
+- Adapt round/square/rectangular menus, full-width headings, 48dp targets and system text scaling. Add Classic, Neon Lime and high-contrast Sunlight scoreboard presets with a preview list; preserve monochrome ambient and system brightness, with a Display-settings shortcut.
+- Add quick rematch of the last completed current match, named favourite formats, configurable point/game/set/match haptics, optional non-blocking interval/change-ends prompts and event-updated read-only Wear OS tile/score complications.
+- Add complete checksummed JSON backup/restore through a private encrypted phone link: all sports, current rallies/Undo, players, own name, favourites and settings. Validate/stale-guard before atomic replacement, pause restored unfinished matches and retain a downloadable pre-restore copy. Preserve ordinary envelope 1 and add bounded AAD-bound envelope 2 for full backups.
+- Add explicit encrypted eight-hour live score mirroring with separate read-only audience links, event-driven watch pushes/latest-score reconnect, guarded revisions, expiry/revoke, bounded/rate-limited D1 storage and visible-only browser refresh. Local scoring stays offline; offline stop honestly reports delayed expiry. Add selected-result PNG download/sharing from the phone view.
+- Refresh the six-sport landing page, privacy, current APK/source links and native previews. Update all current guides, dependency locks/notices and synthetic tests; retain historical device reports. Release checks cover 325 core + 170 native UI + 56 web/relay cases (551), nine size/shape/font profiles, three palettes, signer/package/SDK/alignment and retained hashes. Physical watch acceptance remains separate.
+
+
+## 0.15.1 — 2026-11-10
+
+- Keep serving visible with a dedicated pale-gold badge and score-card outline. Fit names by measured pixel width; fixed doubles role labels keep the serve cue independent of long or missing names. Preserve known service in ambient and full names in accessibility text; hide serve cues after a game/match finishes.
+- Refresh the landing page around the five sports, native example previews, supported modes/rules, shared players/separate results, clearer navigation, installation/update guidance and transfer privacy. Preserve blue score/red playing branding and the single current APK version. Native radio/CSS preview switching needs no JavaScript. Update page metadata and export PNG source assets.
+- Verify 299 core + 135 native UI + 43 web/relay checks = 477, native renders across four sizes, original signing identity/package/API/alignment and all 15 retained APK hashes. Update documentation and the matching public source package.
+
+
+## 0.15.0 — 2026-11-10
+
+- Identify each sport with its own vector mark and accent in the selector, menu badges and live scoreboard; retain blue/red scoring sides. Separate sport actions and app-wide controls, with shared purple Players, grey Settings, red discard/delete and contextual Back/Cancel.
+- Lock other sports while a match is unfinished, including paused and explicitly created unplayed matches. Finish or cancel first. Preserve the lock across restart and reject stale sport-selection/new-match callbacks. Completed or discarded matches unlock selection.
+- Add Current match → Cancel match → Discard match to quit without saving a result, retirement or win/loss. Commit the replacement state, abandoned role-link removal and cleared session/pause/prepared flags together; retain saved history, shared names and daily counters. Undo/resume cannot restore discarded rallies. Keep retirement as the separate Save retirement result action.
+- Replace cycling mode/scoring/deuce/decider/result-mode controls with explicit selected lists. Put match length in its own picker and provide explicit screen-policy choices. Back/swipe/cancellation and reselecting the same choice keep the draft and serving choices.
+- Return shared Players/Settings to the sport selector or sport Menu that opened them, prevent unrelated score shortcuts, and label tennis/padel’s next opposing server correctly. Make new-match replacement commits atomic before replacing the in-memory state.
+- Put choices before help text, preserve setup/options/settings/serving scroll on picker return, and omit the Scoreboard shortcut from confirmation questions. Verify 299 core + 130 native UI + 43 web checks = 472, inspect round-screen native renders, and retain original signer/package/API/alignment and historical APK hashes. Physical watch acceptance remains separate.
+
+
+## 0.14.0 — 2026-11-10
+
+- Add the five-sport entry selector: squash, tennis, badminton, padel and table tennis. Keep one current match, explicit replacement confirmation, independent sport/mode history and statistics, and shared Players/Settings. Keep the original Squash Tap name, package and release signer.
+- Support singles/doubles where applicable, two team scoring cards, shared optional opponent/partner identities and derived vector sport badges for every saved role. Removing/reopening results updates badges; bulk deletion is scoped to the selected sport.
+- Preserve squash PAR-11/BO3/BO5; add badminton 21/30 and 15/21, tennis advantage/No-Ad, padel Advantage/Golden/Star, and table tennis BO3/BO5/BO7. Add nested games/sets, standard tie-breaks, optional ten-point deciding match tie-breaks and Undo across boundaries. Freeze each match's rules.
+- Keep one-tap point scoring without first/second serve, let or stroke recording. Add optional server guidance, squash Game Ball/Match Ball cues and sport-specific rules/help. Do not infer missing initial service choices or automate conduct/injury rulings.
+- Add B5/M4 and separate O2 team-role metadata while reading legacy B1–B4/M1–M3/O1, retaining once-only B4/O1 recovery backups, counters, timing, UUIDs and deletion markers. Preserve true rally order and unknown manual timing.
+- Add CSV schema 3 with sport/mode/rules, extra participants, seven-game scores, known rally/tie-break and partial tennis retirement details. Keep schemas 1/2, reject unsupported old-watch imports, and extend phone filtering/statistics/partner records/player badges without changing relay encryption or expiry.
+- Verify 294 core + 113 native UI + 43 web checks = 450; inspect native round-screen Canvas renders and synthetic phone flows. Java 17 release build, original certificate/package/API/alignment and all retained APK hashes are checked. Physical OnePlus acceptance remains separate.
+
 ## Documentation and GitHub source — 2026-11-09 (watch v0.13.0/code 14 unchanged)
 
 - Publish the sanitized watch/site source, tests and documentation to andrew01ait/squash-tap after repository write authorization succeeds; verify all 221 imported file blobs.
