@@ -4,6 +4,8 @@
 
 The APK runs on the watch. Wear Installer 2 is a helper on the Android phone; no PC development tools are required. The app is currently distributed by APK through this site, not the watch app store.
 
+Google Play preparation is separate from this public release. The candidate uses the same package/signer and directs updates to the watch's Play Store, without an APK installer. It has not launched on Google Play. See [the preparation gates](PLAY_RELEASE.md); no new installation is required for existing users at this stage.
+
 Choose a sport at launch, then create or resume a match. Sport icons/colours identify your selection. An unfinished match locks other sports, even when paused; finish it or choose Current match → Cancel match → Discard match first. Players and Settings are shared. Existing squash history stays available after an update.
 
 ## Initial installation using an Android phone

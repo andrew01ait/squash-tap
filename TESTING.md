@@ -2,6 +2,16 @@
 
 Current watch release: **v0.16.4 / code 22**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
 
+## Google Play preparation — 2026-11-12
+
+Fresh `python3 scripts/verify_play.py` verification passes **331 core, 191 direct-distribution native UI, 207 Play-distribution native UI and 64 web/relay tests**. The Play total includes the 191 shared API-34 cases and eight distribution/state/visual scenarios run on both API 34 and API 35. They check retained saved/current scores and names/settings/session, no website updater creation/polling, guarded legacy update/setup entry points, Play Store navigation and contextual Back, the black scoreboard background and matching black splash theme. These are two distribution runs with shared cases, not a count of distinct tests or physical watch tests.
+
+The preparation-only 0.17.0-play.1/code 23 AAB validates with bundletool and JAR signing. A generated universal test APK has the original signer/package, minimum API 30/target API 35 and aligned ZIP entries. It excludes installer permissions, PackageInstaller implementation and InstallReceiver and has no native libraries. The AAB's certificate is also compared with the original public fingerprint. All 20 retained APK sizes/hashes and public release metadata/report remain unchanged. Pinned official tool archives and installed critical files are checksum-verified. No new app signing key is generated.
+
+Initial preparation failures were harness/tooling issues: the managed image supplied an incomplete JDK without Java release symbols, so a verified full JDK 17 was restored; browser/native vectors required the established `build/test-classes` path; and Maven AAPT2 names its badging field `minSdkVersion`. The final full command passes after those corrections and switching the pixel-rendering assertion to native graphics mode. Native dependency debug-local warnings are nonfatal; no dependency lock changes are made.
+
+The original APK-to-Play Store upgrade, real watch behaviour, foreground-service review, privacy/contact completion, closed testing and Google approval remain pending. Detailed gates, test instructions and review drafts are in [PLAY_RELEASE.md](PLAY_RELEASE.md). Candidate artifacts stay outside public APK feeds; source publication does not launch Google Play distribution.
+
 ## Recorded release evidence
 
 | Suite | v0.13 recorded passing checks | Coverage |

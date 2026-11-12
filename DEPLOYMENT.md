@@ -104,3 +104,15 @@ The v0.16.2/code 20 patch changes shared menu branding to Keep Score. Sport name
 The v0.16.3/code 21 release adds alphabetical sport presentation, a bounded optional previous-meeting summary in live schema 1, and owner `completedAt` metadata for final-result expiry. Migration 0002 adds `live_games.active_expires_at` without deleting existing sessions. Old clients that omit completion metadata retain their prior expiry. Updated clients show final results for ten minutes and preserve the original live deadline for Undo. No match-book, CSV or backup schema changes; retain all earlier APKs byte-for-byte.
 
 The v0.16.4/code 22 release changes result-filter presentation/reset only: player/date/mode clear together while sport and stored data remain intact. Phone statistics refresh after reset. No scoring, book, backup, CSV, relay or database migration changes accompany this patch; retain all prior APKs unchanged.
+
+## Separate Google Play preparation
+
+The public watch feed remains v0.16.4/code 22. Preparation candidate 0.17.0-play.1/code 23 targets API 35 and outputs an AAB under ignored `build/play/`, without publishing an APK or updating release metadata. With a complete JDK 17, original signing material, retained APKs and the existing Node dependencies restored:
+
+```sh
+python3 scripts/bootstrap_android.py
+python3 scripts/bootstrap_play.py
+python3 scripts/verify_play.py
+```
+
+Play tooling/downloads and installed critical files are SHA-256 pinned in `play-build-tools.json`; runtime AndroidX pins remain unchanged. The existing supported AAPT2/bundletool command-line pipeline avoids an unrelated Gradle migration. The public source excludes generated AAB/APKS files and private signing material. Configure Play App Signing with the existing app key and register a separate upload key before actual submission. Do not upload the direct APK updater to Google Play. The candidate has not been submitted and is not promoted by website deployment. See [PLAY_RELEASE.md](PLAY_RELEASE.md).

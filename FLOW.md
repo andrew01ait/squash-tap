@@ -1,5 +1,7 @@
 # Navigation and match flows — v0.16.4
 
+The separate Play preparation candidate retains these scoring/navigation flows. Its Settings → Check for updates opens a Google Play explanation, Open Google Play and Back to Settings. All website update/download/install/setup entry points route there in that build; a missing Store produces an actionable message and keeps the match. The public direct-APK release keeps its existing updater. See [PLAY_RELEASE.md](PLAY_RELEASE.md).
+
 ## Sport entry and scope
 
 The launcher opens Choose sport with distinct icons/colours for Squash, Tennis, Badminton, Padel, Table tennis and Pickleball, plus shared Players and Settings. An unfinished current match locks every other sport, including when paused or explicitly created but unplayed. The selector explains the lock and disables the other sport rows; stale selection/create callbacks also enforce it. Finish or cancel the match to unlock selection. A completed match permits another sport. Close app exits without silently opening another sport’s scoreboard. Each sport remembers its new-match rules and length.

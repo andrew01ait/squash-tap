@@ -1,5 +1,11 @@
 # Releases
 
+## Google Play preparation — 2026-11-12 (public watch v0.16.4 unchanged)
+
+- Add a separate API-35 AAB candidate, 0.17.0-play.1/code 23, using the original package/signer and locked official build tools. Preserve all published APK/feed bytes.
+- Use Play-managed update navigation and exclude the APK installer permissions, receiver and implementation from the Play package. Retain direct distribution separately.
+- Add Play-only black launch/scoreboard backgrounds, matching splash icon, native distribution/state tests, both-channel verification, store/privacy drafts and an explicit launch/test checklist. Account setup, final privacy publication, upload-key enrollment, physical upgrade acceptance, closed testing and Store review remain pending.
+
 ## Live streaming feature section — 2026-11-11 (watch v0.16.4 unchanged)
 
 - Give live result streaming a dedicated landing-page section with navigation/hero links, watch-to-QR-to-share setup, an illustrative audience scoreboard, previous-meeting details and ten-minute final results. Explain connection and link-access requirements alongside the feature.

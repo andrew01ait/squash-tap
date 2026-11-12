@@ -4,6 +4,8 @@ A standalone, offline racket-sport scorekeeper for Wear OS. Current watch releas
 
 [Download the watch app](https://squash-tap-andrew.endruuu.chatgpt.site/) · [GitHub source](https://github.com/andrew01ait/squash-tap) · [Install using your phone](INSTALLATION.md)
 
+A separate **0.17.0-play.1/code 23** candidate prepares Google Play distribution with API 35, AAB output and Play-managed updates. It is not the public watch release or a Play Store launch. See [Google Play preparation and remaining gates](PLAY_RELEASE.md).
+
 ## Features
 
 - Choose alphabetically: Badminton, Padel, Pickleball, Squash, Table tennis or Tennis. Results and statistics are separated by sport; eligible sports have singles/doubles filters.
@@ -88,6 +90,7 @@ Updates are requested manually in Settings. There is no background update pollin
 | [DEPLOYMENT.md](DEPLOYMENT.md) | Maintainer build, signing, retained APKs, website publication and release procedure. |
 | [TESTING.md](TESTING.md) | Reproducible checks, recorded release evidence and physical-device acceptance. |
 | [VERSIONING.md](VERSIONING.md) | Watch versus website versions, compatibility, rollback and documentation-only changes. |
+| [PLAY_RELEASE.md](PLAY_RELEASE.md) | Play candidate, reproducible bundle verification, account/privacy/testing gates and listing drafts. |
 | [GITHUB.md](GITHUB.md) | Source layout, public/internal differences, contribution/sync procedure and fork prerequisites. |
 | [AGENTS.md](AGENTS.md) | Maintenance constraints for future coding work. |
 | [CHANGELOG.md](CHANGELOG.md) | Release and documentation history. |

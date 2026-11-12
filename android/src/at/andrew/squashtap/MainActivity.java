@@ -109,8 +109,8 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         persistScore();counter=new ScoreView(this,book.current(),this);setContentView(counter);
         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_CREATE);
         AppDiagnostics.record(this,"Activity create");
-        updater=new UpdateClient(this);
-        updateStatus=preferences.getString("update_status",updateStatus);
+        if(!BuildConfig.PLAY_DISTRIBUTION)updater=new UpdateClient(this);
+        updateStatus=BuildConfig.PLAY_DISTRIBUTION?"Updates are managed by Google Play.":preferences.getString("update_status",updateStatus);
         selectedSport=preferences.getString("selected_sport",book.current().format().sport);if(!java.util.Arrays.asList(MatchFormat.SPORTS).contains(selectedSport))selectedSport="squash";
         if(sportLocked())selectedSport=book.current().format().sport;
         if(!handleWidgetIntent(getIntent())&&Intent.ACTION_MAIN.equals(getIntent().getAction()))showSports();
@@ -938,6 +938,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         });backButton(content,"Cancel",this::showTransfer);
     }
     private void showUpdates(){
+        if(BuildConfig.PLAY_DISTRIBUTION){showPlayUpdates();return;}
         LinearLayout content=panel("App updates");updatePanel=true;updateText=paragraph(content,updateDescription());
         settingsButton(content,checking?"Checking…":"Check for updates",this::checkUpdates);
         if(latest!=null&&latest.newerThan(BuildConfig.VERSION_CODE)&&latest.supports(Build.VERSION.SDK_INT)){
@@ -947,6 +948,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         settingsButton(content,"Phone install help",this::phoneHelp);backButton(content,"Back to Settings",this::showSettings);
     }
     private void checkUpdates(){
+        if(BuildConfig.PLAY_DISTRIBUTION){showPlayUpdates();return;}
         if(checking||downloading)return;checking=true;setUpdateStatus("Checking release website…");
         preferences.edit().putLong("last_check",System.currentTimeMillis()).apply();
         tasks.execute(()->{
@@ -963,6 +965,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         });
     }
     private void downloadUpdate(){
+        if(BuildConfig.PLAY_DISTRIBUTION){showPlayUpdates();return;}
         if(downloading||latest==null)return;
         if(!getPackageManager().canRequestPackageInstalls()){allowUpdates();return;}
         downloading=true;persistScore();setUpdateStatus("Downloading verified update…");
@@ -981,12 +984,14 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     private void onUi(Runnable work){runOnUiThread(()->{if(!isFinishing()&&!isDestroyed())work.run();});}
     private void setUpdateStatus(String value){updateStatus=value;preferences.edit().putString("update_status",value).apply();if(updatePanel&&updateText!=null)updateText.setText(updateDescription());}
     private void allowUpdates(){
+        if(BuildConfig.PLAY_DISTRIBUTION){showPlayUpdates();return;}
         try{
             Intent settings=new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,Uri.parse("package:"+getPackageName()));
             startActivity(settings);
         }catch(Exception absent){showPermissionHelp();}
     }
     private void showPermissionHelp(){
+        if(BuildConfig.PLAY_DISTRIBUTION){showPlayUpdates();return;}
         LinearLayout help=panel("Direct updates");
         paragraph(help,"This watch hides the install permission screen. A paired phone's ADB tool may enable it once. No PC is needed.\n\nCommand:\nappops set at.andrew.squashtap REQUEST_INSTALL_PACKAGES allow\n\nIf this firmware cannot enable it, use the phone installer fallback.");
         settingsButton(help,"Copy command",()->{
@@ -994,9 +999,22 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         });settingsButton(help,"Phone install help",this::phoneHelp);backButton(help,"Back to App updates",this::showUpdates);
     }
     private void phoneHelp(){
+        if(BuildConfig.PLAY_DISTRIBUTION){showPlayUpdates();return;}
         LinearLayout help=panel("Update by phone");
         paragraph(help,"Open the Keep Score release page on your Android phone. Download the latest watch APK.\n\nIn Wear Installer 2, connect to this watch, choose Custom APK and install the download.\n\nUse the same Wi-Fi network or your phone's hotspot. Your score is kept when installing an update over the existing app.\n\nRelease address:\n"+BuildConfig.SITE_URL);
         backButton(help,"Back to App updates",this::showUpdates);
+    }
+    private void showPlayUpdates(){
+        LinearLayout content=panel("App updates");updatePanel=true;
+        updateText=paragraph(content,"Installed: v"+BuildConfig.VERSION_NAME+"\n\nUpdates are managed by Google Play. Open Keep Score in the Play Store on your watch to check for an update.");
+        settingsButton(content,"Open Google Play",this::openPlayStore);
+        backButton(content,"Back to Settings",this::showSettings);
+    }
+    private void openPlayStore(){
+        Intent store=new Intent(Intent.ACTION_VIEW,Uri.parse("market://details?id="+getPackageName())).setPackage("com.android.vending");
+        try{startActivity(store);}catch(android.content.ActivityNotFoundException missing){
+            message("Google Play unavailable","Open the Play Store on your watch and search for Keep Score. Your match and saved results are kept.",this::showPlayUpdates);
+        }
     }
     private void showDiagnostics(){
         LinearLayout details=panel("Diagnostics");

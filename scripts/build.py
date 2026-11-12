@@ -57,7 +57,7 @@ def build(sdk,junit,hamcrest):
         classes=out/'classes';classes.mkdir(exist_ok=True)
         dex=out/'dex';dex.mkdir(exist_ok=True)
         config=out/'generated/at/andrew/squashtap/BuildConfig.java';config.parent.mkdir(parents=True,exist_ok=True)
-        config.write_text(f'package {PKG}; public final class BuildConfig {{ public static final String VERSION_NAME="{version}"; public static final int VERSION_CODE={code}; public static final String SITE_URL="{SITE}"; public static final String RELEASE_URL="{SITE}/release.properties"; }}\n')
+        config.write_text(f'package {PKG}; public final class BuildConfig {{ public static final String VERSION_NAME="{version}"; public static final int VERSION_CODE={code}; public static final String SITE_URL="{SITE}"; public static final String RELEASE_URL="{SITE}/release.properties"; public static final boolean PLAY_DISTRIBUTION=false; }}\n')
         resource_archives=[]
         for index,resources in enumerate([*library_resources,ROOT/'android/res']):
             destination=out/f'resources-{index}.zip'

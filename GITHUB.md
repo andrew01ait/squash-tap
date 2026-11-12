@@ -64,3 +64,7 @@ The v0.16.2 patch replaces All Sports identity badges and app section labels wit
 The v0.16.3 mirror adds alphabetical watch/phone sports, bounded matching-player head-to-head/last meeting, accessible audience share/copy icons and ten-minute final results with stable expiry, Undo and reconnect behavior. Include the deadline migration and native/browser tests; keep the existing draft PR without merging main.
 
 The v0.16.4 patch promotes Reset all filters on watch/phone, clears match mode as well as player/dates, restores page one/top, and refreshes phone statistics while retaining the sport and staged edits. Keep source, guides and the existing draft PR aligned without merging main.
+
+## Play preparation source
+
+The mirror also includes the preparation-only Play manifest/bundle generator, compile-time distribution guard, Play UpdateClient source set, API-34/35 native tests, checksum-pinned build-tool lock and review drafts. Generated AAB/APKS/test APKs and all private keys remain excluded. Keep the public watch release at v0.16.4/code 22 until an explicit release; source/site publication does not submit or launch the app on Google Play. Continue using draft PR #1 without merging main. See [PLAY_RELEASE.md](PLAY_RELEASE.md).

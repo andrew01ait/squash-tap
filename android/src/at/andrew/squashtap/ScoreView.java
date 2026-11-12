@@ -57,7 +57,7 @@ public final class ScoreView extends View {
         ScoreState state=match.game();
         paint.setAntiAlias(!ambient||!lowBit);
         if(ambient){drawAmbient(canvas,w,h,s);return;}
-        canvas.drawColor(Color.rgb(8, 13, 23));
+        canvas.drawColor(BuildConfig.PLAY_DISTRIBUTION?Color.BLACK:Color.rgb(8, 13, 23));
         int server=knownServer();
         sportHeading(canvas,w,h,s);
         text(canvas,(match.format().nested()?"SETS ":"GAMES ")+match.gamesWon(0)+"–"+match.gamesWon(1)+" · BO"+match.bestOf()+(match.format().nested()?" · GAMES "+state.blue()+"–"+state.red():" · GAME "+match.gameCount())+(updateAvailable?" •":""),

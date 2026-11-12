@@ -65,3 +65,9 @@ Settings selectors must save in place, update their tick and leave only by expli
 Keep watch/phone sport lists alphabetical by displayed name. Previous-meeting matching uses saved identities, the same sport/mode and exact doubles teams (opponent positions may swap); omit unknown identities and the current result. Keep final retry queues bounded and memory-only, and clear every rendered history field on discard/expiry.
 
 Reset all result filters clears player/date/mode together, retains the sport and returns to page one/top. Keep the action first in Result filters and visible in filtered Results. Phone reset refreshes the all-mode statistics without changing staged edits; never treat it as match data deletion or a sport switch.
+
+## Google Play preparation
+
+Keep the public v0.16.4/code 22 APK/update feed distinct from the 0.17.0-play.1/code 23 preparation candidate. Build Play with `scripts/build_play.py`, verify with `scripts/verify_play.py` and retain the original signer/package/preference namespace. Never package the real APK downloader/installer or install permissions in Play. Keep compile-time guards on every legacy update entry point and test the direct and Play source sets separately. Reserve version codes across channels.
+
+Do not generate a replacement app signing key, register a new publisher, submit declarations or claim Play approval automatically. Signing enrollment must use the original app key; a separate upload key is a different role. Review publisher/contact/provider details before publishing the privacy-policy draft. Preserve clear remaining release gates and physical-testing limits in [PLAY_RELEASE.md](PLAY_RELEASE.md). Keep build-tool hashes locked and source exports free of AAB/APKS/signing artifacts.
