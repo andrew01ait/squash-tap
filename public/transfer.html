@@ -8,8 +8,8 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
   <title>Keep Score · Match journal</title>
   <link rel="icon" href="/favicon.svg">
-  <link rel="stylesheet" href="/transfer.css?v=3">
-  <script type="module" src="/transfer.mjs?v=3"></script>
+  <link rel="stylesheet" href="/transfer.css?v=5">
+  <script type="module" src="/transfer.mjs?v=5"></script>
 </head>
 <body>
 <main>
@@ -57,7 +57,8 @@
           <button type="button" id="reset-filter" class="quiet" data-i="Reset all filters">Reset all filters</button>
         </details>
         <div class="history-column">
-          <div class="section-head"><h2 id="history-heading" tabindex="-1" data-i="Match history">Match history</h2><span class="counter" id="count"></span></div>
+          <div class="section-head"><h2 id="history-heading" tabindex="-1" data-i="Match history">Match history</h2><span class="counter" id="count"></span><button type="button" id="add-result" data-i="Add result">Add result</button></div>
+          <p id="editor-upgrade" class="muted" data-i="To edit results already on the watch, update Keep Score to v0.19.0 and scan a new QR code." hidden></p>
           <p id="filtered-summary" class="summary-line" aria-live="polite"></p>
           <div id="result-list"></div>
           <div id="result-pages" class="pagination" hidden>
@@ -141,6 +142,36 @@
         </div>
       </div>
     </section>
+    <dialog id="result-editor" aria-labelledby="entry-title">
+      <form id="entry-form">
+        <h2 id="entry-title" tabindex="-1"></h2>
+        <div class="entry-columns">
+          <fieldset><legend data-i="Match details">Match details</legend>
+            <div class="entry-fields">
+              <label><span data-i="Sport">Sport</span><select id="entry-sport"></select></label>
+              <label><span data-i="Match date">Match date</span><input id="entry-date" type="date" required aria-describedby="entry-date-note"></label>
+              <p id="entry-date-note" class="entry-wide muted" data-i="The recorded match time determines this date." hidden></p>
+              <label><span data-i="Mode">Mode</span><select id="entry-mode"></select></label>
+              <label><span data-i="Match length">Match length</span><select id="entry-best"></select></label>
+              <label><span data-i="Points per game">Points per game</span><select id="entry-target"></select></label>
+              <label><span data-i="Scoring">Scoring</span><select id="entry-deuce"></select></label>
+              <label><span data-i="Deciding set">Deciding set</span><select id="entry-decider"></select></label>
+              <label class="entry-wide"><span data-i="Opponent">Opponent</span><input id="entry-opponent" list="entry-names" autocomplete="off" maxlength="120" data-placeholder="Choose or type a name"></label>
+              <label><span data-i="Partner">Partner</span><input id="entry-partner" list="entry-names" autocomplete="off" maxlength="120" data-placeholder="Choose or type a name"></label>
+              <label><span data-i="Opponent 2">Opponent 2</span><input id="entry-other" list="entry-names" autocomplete="off" maxlength="120" data-placeholder="Choose or type a name"></label>
+            </div>
+            <datalist id="entry-names"></datalist>
+          </fieldset>
+          <fieldset><legend data-i="Score">Score</legend>
+            <p class="muted" id="entry-score-help"></p>
+            <div id="entry-scores" class="entry-scores"></div>
+            <label><span data-i="Match finish">Match finish</span><select id="entry-retired"><option value="" data-i="Played to completion">Played to completion</option><option value="me" data-i="You retired">You retired</option><option value="opponent" data-i="Opponent retired">Opponent retired</option></select></label>
+          </fieldset>
+        </div>
+        <p id="entry-error" tabindex="-1" class="entry-error" role="alert" hidden></p>
+        <div class="entry-actions"><button type="button" class="secondary" id="entry-cancel" data-i="Cancel">Cancel</button><button type="submit" data-i="Stage result">Stage result</button></div>
+      </form>
+    </dialog>
     <aside id="send-changes" hidden>
       <div><h2 data-i="Send to your watch">Send to your watch</h2><p id="changes"></p><p id="sent-help" data-i="On your watch, choose Receive changes to review and confirm.">On your watch, choose Receive changes to review and confirm.</p></div>
       <button type="button" id="send" data-i="Send changes" disabled>Send changes</button>

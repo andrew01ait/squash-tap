@@ -9,6 +9,7 @@ import java.util.*;
 final class TransferClient {
     static final class Session {
         final String id,key,owner,guest;long expiresAt;
+        final Set<String> sharedResults = new HashSet<>();
         Session(){id=UUID.randomUUID().toString().replace("-","");key=TransferCrypto.random(32);owner=TransferCrypto.random(32);guest=TransferCrypto.random(32);}
         String link(){return BuildConfig.SITE_URL+"/transfer.html#id="+id+"&p="+guest+"&k="+key;}
         boolean expired(){return System.currentTimeMillis()>=expiresAt;}
@@ -18,8 +19,10 @@ final class TransferClient {
         JSONArray out=new JSONArray();for(OpponentDirectory.Entry e:directory.list(true))out.put(new JSONObject().put("id",e.id).put("name",e.name).put("archived",e.archived));return out;
     }
     static JSONObject snapshot(Session session,MatchBook book,OpponentDirectory directory,List<MatchResult> selected)throws Exception{
+        session.sharedResults.clear();
+        for (MatchResult result : selected) session.sharedResults.add(result.id);
         return new JSONObject().put("schema",1).put("sessionId",session.id).put("baseDirectory",base(book,directory))
-            .put("currentMatchId",book.current().id()).put("currentMatchComplete",book.current().complete()).put("supportsMultisport",true).put("supportsPickleball",true).put("supportsYourName",true).put("supportsFullBackup",true).put("supportsRetirement",true).put("totalResults",book.count()).put("currentOpponentId",directory.opponentId(book.current().id())).put("opponents",catalogSports(directory,book)).put("csv",MatchCsv.export(selected,directory));
+            .put("currentMatchId",book.current().id()).put("currentMatchComplete",book.current().complete()).put("supportsResultEdits",true).put("supportsMultisport",true).put("supportsPickleball",true).put("supportsYourName",true).put("supportsFullBackup",true).put("supportsRetirement",true).put("totalResults",book.count()).put("currentOpponentId",directory.opponentId(book.current().id())).put("opponents",catalogSports(directory,book)).put("csv",MatchCsv.export(selected,directory));
     }
     static JSONArray catalogSports(OpponentDirectory directory,MatchBook book)throws Exception{JSONArray out=catalog(directory);for(int i=0;i<out.length();i++){JSONObject e=out.getJSONObject(i);e.put("sports",new JSONArray(directory.sportsFor(e.getString("id"),book.newestFirst())));}return out;}
     static Session create(MatchBook book,OpponentDirectory directory,List<MatchResult> selected)throws Exception{return create(book,directory,selected,book.current().format().sport);}
@@ -39,14 +42,26 @@ final class TransferClient {
         JSONObject payload=new JSONObject(TransferCrypto.open(session.id,"in",session.key,reply.getString("cipher")));
         if(payload.getInt("schema")!=1||!payload.getString("sessionId").equals(session.id))throw new IllegalArgumentException("Invalid transfer context");return payload;
     }
-    static MatchCsv.Plan preview(JSONObject payload,MatchBook book,OpponentDirectory directory)throws Exception{
+    static MatchCsv.Plan preview(JSONObject payload,MatchBook book,OpponentDirectory directory,Set<String> sharedResults)throws Exception{
         if(!payload.getString("baseDirectory").equals(base(book,directory))||!payload.getString("currentMatchId").equals(book.current().id()))throw new IllegalArgumentException("Opponents or the current match changed. Start a fresh phone transfer.");
         JSONArray catalog=payload.getJSONArray("opponents");if(catalog.length()>OpponentDirectory.MAX_OPPONENTS)throw new IllegalArgumentException("Too many opponents");
         List<OpponentDirectory.Entry> entries=new ArrayList<>();for(int i=0;i<catalog.length();i++){JSONObject e=catalog.getJSONObject(i);entries.add(new OpponentDirectory.Entry(e.getString("id"),e.getString("name"),e.getBoolean("archived")));}
         OpponentDirectory modified=OpponentDirectory.decode(directory.encode());modified.replaceCatalog(entries);
         String id=Boolean.TRUE.equals(payload.opt("changeCurrentOpponent"))?payload.getString("currentOpponentId"):directory.opponentId(book.current().id());OpponentDirectory.Entry entry=modified.get(id);
         if(!id.isEmpty()&&(entry==null||entry.archived&&!directory.opponentId(book.current().id()).equals(id)))throw new IllegalArgumentException("Choose a saved opponent or No name");
-        modified.assignTeam(book.current().id(),id,modified.roleId(book.current().id(),1),modified.roleId(book.current().id(),2));String csv=payload.getString("csv");return MatchCsv.plan(book,modified,csv.isEmpty()?Collections.emptyList():MatchCsv.parse(csv));
+        modified.assignTeam(book.current().id(),id,modified.roleId(book.current().id(),1),modified.roleId(book.current().id(),2));
+        String csv = payload.getString("csv");
+        MatchCsv.Plan plan = MatchCsv.plan(book, modified, csv.isEmpty() ? Collections.emptyList() : MatchCsv.parse(csv));
+        if (payload.has("resultEdits")) {
+            JSONObject edits = payload.getJSONObject("resultEdits");
+            List<MatchCsv.Row> before = MatchCsv.parse(edits.getString("before"));
+            for (MatchCsv.Row row : before) if (!sharedResults.contains(row.result.id))
+                throw new IllegalArgumentException("This match was not included in the phone link.");
+            MatchCsv.correct(plan, book, directory, before, MatchCsv.parse(edits.getString("after")));
+            if (Boolean.TRUE.equals(payload.opt("changeCurrentOpponent")) && !id.equals(plan.directory.opponentId(book.current().id())))
+                throw new IllegalArgumentException("Two different opponents were chosen for the same match");
+        }
+        return plan;
     }
     static void end(Session session)throws Exception{request("DELETE","/"+session.id,session.owner,null);}
     private static JSONObject request(String method,String path,String token,JSONObject body)throws Exception{

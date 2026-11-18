@@ -1,6 +1,10 @@
 # Testing and verification
 
-Current watch release: **v0.18.1 / code 25**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
+Current watch release: **v0.19.0 / code 26**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
+
+## Direct v0.19.0 · 2026-11-18
+
+The release passed 339 core, 215 watch UI and 95 web/relay tests (649 total). The original signing certificate, Android package and SDK, alignment and all 22 previously published APK hashes were verified. Journal regression checks cover all six sports, invalid and incomplete scores, retirement, doubles identities, date changes and original tennis timing/tie-break detail. Native tests cover fresh and stale corrections, the shared match scope, unchanged live rallies, M5 persistence, cancellation, atomic application and Undo. A synthetic browser session staged a new tennis match (6–4, 7–5), corrected an existing first set from 6–3 to 6–4 and submitted both changes in one encrypted transfer. The form fit the 320 px and 393 px phone frames and 768 px portrait tablet frame without horizontal scrolling. The tablet showed the match details and score inputs side by side. Physical watch installation and optical QR scanning remain hardware checks.
 
 ## Direct v0.18.1 · 2026-11-18
 

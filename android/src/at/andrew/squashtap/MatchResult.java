@@ -60,7 +60,7 @@ public final class MatchResult {
     }
     public int gameCount(){return scores.length;}
     public int points(int game,int player){return scores[game][player];}
-    private static boolean validPartial(MatchFormat f,boolean tie,int a,int b){
+    static boolean validPartial(MatchFormat f,boolean tie,int a,int b){
         if(a<0||b<0)return false;if(f.nested()&&!tie)return a<=6&&b<=6&&!ScoreState.finalScore(f,false,a,b);
         int target=tie?10:f.target,cap=tie?Integer.MAX_VALUE:f.cap();return Math.max(a,b)<cap&&(Math.max(a,b)<target||Math.abs(a-b)<2);
     }

@@ -1,4 +1,4 @@
-# Navigation and match flows — v0.18.1
+# Navigation and match flows — v0.19.0
 
 The separate Play preparation candidate retains these scoring/navigation flows. Its Settings → Check for updates opens a Google Play explanation, Open Google Play and Back to Settings. All website update/download/install/setup entry points route there in that build; a missing Store produces an actionable message and keeps the match. The public direct-APK release keeps its existing updater. See [PLAY_RELEASE.md](PLAY_RELEASE.md).
 
@@ -151,3 +151,7 @@ Live sharing & referee appears above the sports on the launcher, near the top of
 A receiving watch opens Live sharing & referee → Join with watch code and enters the two groups of five characters. The scoreboard and its accessibility action open the room menu. After confirmation, the host chooses Save to my results. A follower also selects their player position. An interrupted session reopens with its last received score. Leaving a followed game preserves local history. Cancelling an unfinished referee-hosted game discards its frozen local draft.
 
 The language selector is in Settings and in the read-only room menu. All phone pages have a language menu. Changing language preserves the referee queue and unsent roster changes.
+
+## Match journal entry and correction
+
+Scan the Results phone QR. **Add result** opens the sport, mode, rules, date, team and game/set fields. **Edit result** in a saved match opens its existing scores. Leave unused game rows blank. Choose a side under Match finish if someone retired. The recorded format and recorded timestamps are retained. Stage a result to see its effect in the journal and statistics. A staged result can be reopened or discarded before sending. **Send changes → Receive changes → Apply changes** saves the batch to the watch.

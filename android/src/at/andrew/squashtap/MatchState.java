@@ -9,6 +9,7 @@ public final class MatchState {
     private int bestOf;
     private final MatchFormat format;
     private int retiredPlayer=-1;
+    private ScoreState retiredSummary;
     private final int[] firstServers={-1,-1,-1,-1,-1,-1,-1},firstReceivers={-1,-1,-1,-1,-1,-1,-1};
     private final List<ScoreState> games=new ArrayList<>();
     public MatchState(String id,int bestOf){this(id,bestOf,MatchFormat.squash());}
@@ -28,8 +29,9 @@ public final class MatchState {
     public int bestOf(){return bestOf;}
     public int needed(){return bestOf/2+1;}
     public int gameCount(){return games.size();}
-    public ScoreState game(){return games.get(games.size()-1);}
-    public ScoreState game(int index){return games.get(index);}
+    public ScoreState game(){return game(games.size()-1);}
+    public ScoreState game(int index){return retiredSummary!=null && index==games.size()-1 ? retiredSummary : games.get(index);}
+    boolean hasRetirementCorrection(){return retiredSummary!=null;}
     public int gamesWon(int player){int count=0;for(ScoreState game:games)if(game.winner()==player)count++;return count;}
     public int retiredPlayer(){return retiredPlayer;}
     public boolean retired(){return retiredPlayer!=-1;}
@@ -68,12 +70,49 @@ public final class MatchState {
         else if(format.nested()&&firstServers[index-1]>=0){int step=game().serviceStep();int old=firstServers[index-1],receive=firstReceivers[index-1];if(format.doubles&&receive>=0){int[] order={old,receive,ServiceOrder.partner(old),ServiceOrder.partner(receive)};firstServers[index]=order[step%4];firstReceivers[index]=order[(step+1)%4];}else if(!format.doubles)firstServers[index]=(old+step)%2;}
         games.add(new ScoreState(format,matchTie(index)));if(format.pickleball())game().pickleServing(firstServers[index],firstReceivers[index]);return true;}
     public boolean undo(){
-        if(retired()){retiredPlayer=-1;return true;}
+        if(retired()){retiredPlayer=-1;retiredSummary=null;return true;}
         if(game().rallies()==0&&games.size()>1)games.remove(games.size()-1);
         if(game().entered()){games.set(games.size()-1,new ScoreState(format,matchTie(games.size()-1)));if(format.pickleball())game().pickleServing(firstServers[games.size()-1],firstReceivers[games.size()-1]);return true;}
         return game().undo();
     }
+    /** Reuse recorded rallies for untouched games on the finished scoreboard. */
+    MatchState corrected(MatchResult result) {
+        if (!complete() || !id.equals(result.id) || !format.equals(result.format) || bestOf != result.bestOf)
+            throw new IllegalArgumentException("The finished match format changed");
+        MatchState next = new MatchState(id, bestOf, format);
+        next.games.clear();
+        for (int i = 0; i < result.gameCount(); i++) {
+            int a = result.points(i, 0), b = result.points(i, 1);
+            ScoreState previous = i < games.size() ? games.get(i) : null;
+            if (previous != null) {
+                next.firstServers[i] = firstServers[i];
+                next.firstReceivers[i] = firstReceivers[i];
+            }
+            if (previous != null && previous.blue() == a && previous.red() == b) {
+                next.games.add(previous);
+                continue;
+            }
+            ScoreState replacement;
+            if (result.setComplete(i)) {
+                replacement = ScoreState.completedSet(format, matchTie(i), a, b);
+            } else {
+                // The reported score and the rallies available to Undo are independent.
+                replacement = previous != null && previous.winner() == -1 ? previous : new ScoreState(format, matchTie(i));
+                if (replacement.blue() != a || replacement.red() != b)
+                    next.retiredSummary = ScoreState.retiredSummary(format, matchTie(i), a, b);
+            }
+            if (format.pickleball() && replacement != previous)
+                replacement.pickleServing(next.firstServers[i], next.firstReceivers[i]);
+            next.games.add(replacement);
+        }
+        next.retiredPlayer = result.retiredPlayer;
+        return next;
+    }
     public String encode(){
+        String recorded = encodeRecorded();
+        return retiredSummary == null ? recorded : "M5|" + retiredSummary.blue() + "|" + retiredSummary.red() + "|" + recorded;
+    }
+    private String encodeRecorded(){
         if(!format.legacy()||hasService()){StringBuilder out=new StringBuilder("M4|").append(id).append('|').append(bestOf).append('|').append(retiredPlayer).append('|').append(format.encode()).append('|');for(int i=0;i<7;i++){if(i>0)out.append(',');out.append(firstServers[i]).append(',').append(firstReceivers[i]);}out.append('|');for(int i=0;i<games.size();i++){if(i>0)out.append('~');out.append(games.get(i).encode());}return out.toString();}
         boolean entered=hasEnteredSets();StringBuilder out=new StringBuilder(entered?"M3|":retired()?"M2|":"M1|").append(id).append('|').append(bestOf).append('|');
         if(entered||retired())out.append(retiredPlayer).append('|');
@@ -81,6 +120,15 @@ public final class MatchState {
         return out.toString();
     }
     public static MatchState decode(String text){
+        if (text != null && text.startsWith("M5|")) {
+            if (text.length() > 75000) throw new IllegalArgumentException("Oversized match");
+            String[] parts = text.split("\\|", 4);
+            if (parts.length != 4 || parts[3].startsWith("M5|")) throw new IllegalArgumentException("Invalid retirement correction");
+            MatchState m = decode(parts[3]);
+            if (!m.retired() || m.game().winner() != -1) throw new IllegalArgumentException("Invalid retirement correction");
+            m.retiredSummary = ScoreState.retiredSummary(m.format, m.matchTie(m.gameCount()-1), Integer.parseInt(parts[1]), Integer.parseInt(parts[2]));
+            return m;
+        }
         if(text!=null&&text.startsWith("M4|")){
             if(text.length()>75000)throw new IllegalArgumentException("Oversized match");
             String[] p=text.split("\\|",7);if(p.length!=7)throw new IllegalArgumentException("Invalid match");

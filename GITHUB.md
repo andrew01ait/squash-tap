@@ -1,6 +1,6 @@
 # Internal and GitHub source workflow
 
-Public repository: <https://github.com/andrew01ait/squash-tap>. Official download/update site: <https://squash-tap-andrew.endruuu.chatgpt.site/>. Current watch release: **v0.18.1 / code 25**.
+Public repository: <https://github.com/andrew01ait/squash-tap>. Official download/update site: <https://squash-tap-andrew.endruuu.chatgpt.site/>. Current watch release: **v0.19.0 / code 26**.
 
 ## Two copies and their responsibilities
 
@@ -67,6 +67,8 @@ The v0.16.4 patch promotes Reset all filters on watch/phone, clears match mode a
 
 ## Play preparation source
 
-The mirror also includes the preparation-only Play manifest/bundle generator, compile-time distribution guard, Play UpdateClient source set, API-34/35 native tests, checksum-pinned build-tool lock and review drafts. Generated AAB/APKS/test APKs and all private keys remain excluded. The public direct release uses v0.18.1/code 25; source/site publication does not submit or launch the app on Google Play. Continue using draft PR #1 without merging main. See [PLAY_RELEASE.md](PLAY_RELEASE.md).
+The mirror also includes the preparation-only Play manifest/bundle generator, compile-time distribution guard, Play UpdateClient source set, API-34/35 native tests, checksum-pinned build-tool lock and review drafts. Generated AAB/APKS/test APKs and all private keys remain excluded. The public direct release uses v0.19.0/code 26; source/site publication does not submit or launch the app on Google Play. Continue using draft PR #1 without merging main. See [PLAY_RELEASE.md](PLAY_RELEASE.md).
 
 The v0.18.0 mirror includes the watch room client, referee offline shell, role-scoped Worker, localized watch and web UIs, and results journal. Historical Play preparation uses its previously reserved code 23.
+
+The v0.19.0 direct release adds browser match entry and correction, the watch preview and regression cases for saved results, retired games and Undo.

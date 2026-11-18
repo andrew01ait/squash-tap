@@ -1,8 +1,8 @@
 JUnit version 4.13.2
-...............................................................................................................................................................................................................................................................................................................................................
-Time: 0.724
+...................................................................................................................................................................................................................................................................................................................................................
+Time: 1.322
 
-OK (335 tests)
+OK (339 tests)
 
 
 Android navigation/session/power checks (Robolectric, API 34, compiled AAPT resources):
@@ -420,6 +420,9 @@ Intent = Intent { act=android.support.wearable.complications.ACTION_REQUEST_UPDA
 .Invalid ID 0x00000000.
 Intent = Intent { act=androidx.wear.tiles.action.REQUEST_TILE_UPDATE pkg=at.andrew.squashtap }; Matching wrappers: []
 Intent = Intent { act=android.support.wearable.complications.ACTION_REQUEST_UPDATE_ALL pkg=com.google.android.wearable.app (has extras) }; Matching wrappers: []
+.Invalid ID 0x00000000.
+Intent = Intent { act=androidx.wear.tiles.action.REQUEST_TILE_UPDATE pkg=at.andrew.squashtap }; Matching wrappers: []
+Intent = Intent { act=android.support.wearable.complications.ACTION_REQUEST_UPDATE_ALL pkg=com.google.android.wearable.app (has extras) }; Matching wrappers: []
 Invalid ID 0x00000000.
 Intent = Intent { act=androidx.wear.tiles.action.REQUEST_TILE_UPDATE pkg=at.andrew.squashtap }; Matching wrappers: []
 Intent = Intent { act=android.support.wearable.complications.ACTION_REQUEST_UPDATE_ALL pkg=com.google.android.wearable.app (has extras) }; Matching wrappers: []
@@ -792,111 +795,115 @@ Intent = Intent { act=android.support.wearable.complications.ACTION_REQUEST_UPDA
 Intent = Intent { act=androidx.wear.tiles.action.REQUEST_TILE_UPDATE pkg=at.andrew.squashtap }; Matching wrappers: []
 Intent = Intent { act=android.support.wearable.complications.ACTION_REQUEST_UPDATE_ALL pkg=com.google.android.wearable.app (has extras) }; Matching wrappers: []
 
-Time: 56.505
+Time: 58.543
 
-OK (214 tests)
+OK (215 tests)
 
 
 Browser interchange and relay/storage checks (Node Web Crypto and Miniflare D1/R2):
-✔ native full backup is validated by the phone without changing its bytes (740.210367ms)
-✔ backup encryption works in both directions between watch and browser (1311.104203ms)
-✔ own-name edits require explicit support and retain the baseline for watch review (1.524309ms)
-✔ browser opens its golden vector and uses different random IVs (52.748892ms)
-✔ watch-generated encrypted payload is readable by browser (2079.535556ms)
-✔ direction and session ID prevent replay (48.93998ms)
-✔ tampered and truncated envelopes fail authentication (38.040077ms)
-✔ CSV preserves names, quoting, times and scores (50.315394ms)
-✔ spreadsheet formula escapes roundtrip including apostrophes (8.436049ms)
-✔ semicolon files and empty template are accepted (0.437341ms)
-✔ malformed quotes, dates, scores and duration are rejected (9.218238ms)
-✔ names normalize, accept emoji and reject controls and broken surrogates (0.732862ms)
-✔ oversized plaintext is rejected before encryption (91.384917ms)
-✔ fixed UTC offsets roundtrip and filter by the recorded local day (12.856025ms)
-✔ native retirement CSV is readable in the browser without inventing sets (260.956566ms)
-✔ browser retirement CSV is accepted by native parser with the same outcomes and totals (109.261302ms)
-✔ audience can read only this opaque snapshot and never edit or end it (1604.909486ms)
-✔ updates are ordered so a delayed score cannot overwrite a newer score (789.943768ms)
-✔ parallel updates leave the highest accepted revision (631.395866ms)
-✔ watch stop revokes the audience link (2090.582791ms)
-✔ expiry refuses reads and expired snapshots are removed on later creation (605.106173ms)
-✔ missing or unrelated capabilities cannot read scores and there is no listing (956.344199ms)
-✔ plaintext, oversized input, invalid revisions and cross-origin requests are refused (811.155425ms)
-✔ responses prevent caching and cross-origin access (927.023171ms)
-✔ link creation has a bounded per-IP rate without retaining raw IP (873.681695ms)
-✔ viewer validates sport, display values and bounds before rendering (927.29962ms)
-✔ discard notices contain no names, scores or history (583.695258ms)
-✔ discard replaces the old ciphertext while preserving audience read-only access (536.528059ms)
-✔ finished results get ten minutes and repeated updates do not extend the deadline (622.481767ms)
-✔ completion near the live expiry still leaves a full ten-minute final window (891.17367ms)
-✔ a delayed offline completion expires against the completion time (737.376313ms)
-✔ old links retain their live expiry and recover it on Undo (758.728455ms)
-✔ starting a finished broadcast gives ten minutes rather than eight hours (810.593939ms)
-✔ previous meetings and final results are validated with bounded scores and dates (490.692917ms)
-✔ landing navigation uses the watch launcher artwork and translates the sharing route (5.993635ms)
-✔ choose an explicit supported language, then the first supported browser language, then English (0.756932ms)
-✔ picker re-renders the active page, persists only the preference, and returns to browser language (10.089424ms)
-✔ language templates retain their parameter list in every translation (50.923285ms)
-✔ static page translation captures the initial template only and supports new version numbers (1.471254ms)
-✔ native multisport CSV preserves every sport, mode and old/new preset (944.680642ms)
-✔ browser multisport CSV is accepted by native validation (1056.339983ms)
-✔ sport and mode filters do not mix results (210.8549ms)
-✔ manually entered tennis scores have games, without invented points (267.773357ms)
-✔ both opposing doubles players have individual records (188.945672ms)
-✔ invalid sport/rule combinations and malformed detail arrays are rejected (2230.665362ms)
-✔ mixed legacy and multisport exports preserve legacy scoring (182.125401ms)
-✔ 21-point badminton and all padel deuce options remain explicit (193.454765ms)
-✔ phone results require an explicit finish, match timing and source metadata survive Undo (106.189966ms)
-✔ retirement before any rally keeps the start unknown, as do legacy active matches (2.222651ms)
-✔ pickleball requires explicit starters and changes server on non-scoring rallies (4.089768ms)
-✔ native and browser replay agree on real encoded scores, service, Undo and winners across all sports (2096.513366ms)
-✔ offline runs coalesce to one final snapshot, including after the local database is reopened (2.476216ms)
-✔ an accepted update with a lost response is acknowledged before later offline rallies (1.552712ms)
-✔ a failed upload with uncertain delivery retries the persisted ciphertext exactly (1.422402ms)
-✔ competing referee devices retain both branches and a confirmed remote outcome is immutable (2.772855ms)
-✔ concurrent edits in two tabs apply once each, with a monotone shared local revision (2.526399ms)
-✔ stale network reads from another tab cannot roll back a newer acknowledgement (0.703889ms)
-✔ AES-GCM authenticates each room ID and keeps every snapshot readable with its referee QR (33.342513ms)
-✔ offline installation precaches the referee page, styles, icon and modules and excludes room responses (1.646667ms)
-✔ creates opaque expiring payload, hashes tokens and exposes neither key nor data (1401.147957ms)
-✔ phone can fetch outgoing content but cannot receive watch-side input (803.046534ms)
-✔ unknown and absent capabilities cannot read content (2253.11733ms)
-✔ incoming changes are one-shot and owner receives exactly the encrypted data (692.374053ms)
-✔ watch can end and erase a transfer, phone cannot erase pending changes (965.954641ms)
-✔ expired sessions are inaccessible and expired objects are cleaned on traffic (686.74427ms)
-✔ untrusted origins and malformed envelopes are refused (734.144466ms)
-✔ oversized bodies are bounded before storage (1081.068753ms)
-✔ creation rate is bounded without storing raw IP addresses (1290.892128ms)
-✔ responses forbid caching and do not expose CORS access (1410.335492ms)
-✔ only the referee writes, both watches see the same final after a delayed offline batch (1577.987944ms)
-✔ simultaneous writers with identical base revision cannot erase another accepted score (1066.559419ms)
-✔ creating after a lost response is idempotent and a pairing-code collision cannot replace another match (700.87045ms)
-✔ only the host can enable codes or revoke and previously paired readers survive code hiding (957.916253ms)
-✔ expired rooms, unpaired capabilities, oversized updates, cross-origin requests and room enumeration are rejected (639.906329ms)
-✔ phone launch intent selects only the supported local tabs (4.908876ms)
-✔ old links and untrusted phone launch values fall back to results (0.522086ms)
-✔ adding multiple names preserves the previous match assignment in the outgoing payload (6.177465ms)
-✔ adding to an unnamed match never silently names that match (0.833223ms)
-✔ restoring an existing name is a catalog edit and does not assign a match (0.697299ms)
-✔ explicit match reassignment and explicit clearing remain supported (5.040855ms)
-✔ retirement winner overrides set lead and partial sets are not counted (1.649804ms)
-✔ head-to-head groups by stable player identity including unnamed and removed names (1.499419ms)
-✔ empty overall history has zero totals without a made-up win percentage (0.473074ms)
-✔ retirement CSV is gated for older watches while ordinary CSV still works (1.549173ms)
-✔ schema-two retired history roundtrips and invalid partial set progression is rejected (3.623104ms)
-✔ all-match history sorts newest first without mutating the underlying snapshot (15.930607ms)
-✔ a doubles player can appear as teammate and adversary in distinct filtered results (2.110831ms)
-✔ phone journal filters intersect and order by the recorded local day and time (75.47051ms)
-✔ streaks use actual outcomes; deciders exclude retirements and averages exclude untimed matches (3.894807ms)
-✔ all static phone labels and fixed-offset dates render in all four supported languages (47.822666ms)
-✔ all-sports browsing respects mode and can filter historical identities outside the current roster (1.099003ms)
-ℹ tests 91
+✔ native full backup is validated by the phone without changing its bytes (402.57595ms)
+✔ backup encryption works in both directions between watch and browser (1158.551133ms)
+✔ own-name edits require explicit support and retain the baseline for watch review (8.004268ms)
+✔ browser opens its golden vector and uses different random IVs (89.046474ms)
+✔ watch-generated encrypted payload is readable by browser (1327.562145ms)
+✔ direction and session ID prevent replay (18.689445ms)
+✔ tampered and truncated envelopes fail authentication (24.251484ms)
+✔ CSV preserves names, quoting, times and scores (49.807707ms)
+✔ spreadsheet formula escapes roundtrip including apostrophes (4.185278ms)
+✔ semicolon files and empty template are accepted (1.946557ms)
+✔ malformed quotes, dates, scores and duration are rejected (5.487737ms)
+✔ names normalize, accept emoji and reject controls and broken surrogates (0.920349ms)
+✔ oversized plaintext is rejected before encryption (21.098277ms)
+✔ fixed UTC offsets roundtrip and filter by the recorded local day (1.073746ms)
+✔ native retirement CSV is readable in the browser without inventing sets (1018.922689ms)
+✔ browser retirement CSV is accepted by native parser with the same outcomes and totals (130.038434ms)
+✔ audience can read only this opaque snapshot and never edit or end it (2101.352074ms)
+✔ updates are ordered so a delayed score cannot overwrite a newer score (550.307383ms)
+✔ parallel updates leave the highest accepted revision (941.507283ms)
+✔ watch stop revokes the audience link (1843.229856ms)
+✔ expiry refuses reads and expired snapshots are removed on later creation (1785.935754ms)
+✔ missing or unrelated capabilities cannot read scores and there is no listing (1571.460731ms)
+✔ plaintext, oversized input, invalid revisions and cross-origin requests are refused (364.765766ms)
+✔ responses prevent caching and cross-origin access (378.565634ms)
+✔ link creation has a bounded per-IP rate without retaining raw IP (666.600241ms)
+✔ viewer validates sport, display values and bounds before rendering (484.743388ms)
+✔ discard notices contain no names, scores or history (614.426937ms)
+✔ discard replaces the old ciphertext while preserving audience read-only access (959.037559ms)
+✔ finished results get ten minutes and repeated updates do not extend the deadline (448.666321ms)
+✔ completion near the live expiry still leaves a full ten-minute final window (519.643168ms)
+✔ a delayed offline completion expires against the completion time (396.477358ms)
+✔ old links retain their live expiry and recover it on Undo (801.807243ms)
+✔ starting a finished broadcast gives ten minutes rather than eight hours (469.328941ms)
+✔ previous meetings and final results are validated with bounded scores and dates (357.765156ms)
+✔ landing navigation uses the watch launcher artwork and translates the sharing route (4.165616ms)
+✔ choose an explicit supported language, then the first supported browser language, then English (0.42121ms)
+✔ picker re-renders the active page, persists only the preference, and returns to browser language (30.415896ms)
+✔ language templates retain their parameter list in every translation (61.202388ms)
+✔ static page translation captures the initial template only and supports new version numbers (5.789249ms)
+✔ native multisport CSV preserves every sport, mode and old/new preset (447.24822ms)
+✔ browser multisport CSV is accepted by native validation (1249.322223ms)
+✔ sport and mode filters do not mix results (881.378176ms)
+✔ manually entered tennis scores have games, without invented points (231.106095ms)
+✔ both opposing doubles players have individual records (172.029803ms)
+✔ invalid sport/rule combinations and malformed detail arrays are rejected (927.38466ms)
+✔ mixed legacy and multisport exports preserve legacy scoring (116.641008ms)
+✔ 21-point badminton and all padel deuce options remain explicit (110.19313ms)
+✔ phone results require an explicit finish, match timing and source metadata survive Undo (52.187311ms)
+✔ retirement before any rally keeps the start unknown, as do legacy active matches (1.553103ms)
+✔ pickleball requires explicit starters and changes server on non-scoring rallies (14.56827ms)
+✔ native and browser replay agree on real encoded scores, service, Undo and winners across all sports (2296.7262ms)
+✔ offline runs coalesce to one final snapshot, including after the local database is reopened (37.894915ms)
+✔ an accepted update with a lost response is acknowledged before later offline rallies (1.242644ms)
+✔ a failed upload with uncertain delivery retries the persisted ciphertext exactly (3.790299ms)
+✔ competing referee devices retain both branches and a confirmed remote outcome is immutable (1.524686ms)
+✔ concurrent edits in two tabs apply once each, with a monotone shared local revision (8.500327ms)
+✔ stale network reads from another tab cannot roll back a newer acknowledgement (0.876039ms)
+✔ AES-GCM authenticates each room ID and keeps every snapshot readable with its referee QR (31.929549ms)
+✔ offline installation precaches the referee page, styles, icon and modules and excludes room responses (2.327263ms)
+✔ creates opaque expiring payload, hashes tokens and exposes neither key nor data (2811.217194ms)
+✔ phone can fetch outgoing content but cannot receive watch-side input (491.951941ms)
+✔ unknown and absent capabilities cannot read content (1248.598044ms)
+✔ incoming changes are one-shot and owner receives exactly the encrypted data (568.967036ms)
+✔ watch can end and erase a transfer, phone cannot erase pending changes (520.905301ms)
+✔ expired sessions are inaccessible and expired objects are cleaned on traffic (473.466696ms)
+✔ untrusted origins and malformed envelopes are refused (508.958912ms)
+✔ oversized bodies are bounded before storage (1568.642455ms)
+✔ creation rate is bounded without storing raw IP addresses (2056.375587ms)
+✔ responses forbid caching and do not expose CORS access (752.664367ms)
+✔ a completed browser result for every sport round-trips with its scoring rules, roles and date (17.992891ms)
+✔ invalid scores, unfinished matches, duplicates, gaps, dates, retirement and trailing games are rejected (8.42007ms)
+✔ correcting historical tennis retains matching rally/tie-break details and recorded timing (49.613884ms)
+✔ mixed additions and corrections use distinct payloads and preserve the original match for conflict checks (1.250556ms)
+✔ only the referee writes, both watches see the same final after a delayed offline batch (2808.499641ms)
+✔ simultaneous writers with identical base revision cannot erase another accepted score (701.072253ms)
+✔ creating after a lost response is idempotent and a pairing-code collision cannot replace another match (1745.034793ms)
+✔ only the host can enable codes or revoke and previously paired readers survive code hiding (1210.99691ms)
+✔ expired rooms, unpaired capabilities, oversized updates, cross-origin requests and room enumeration are rejected (546.400097ms)
+✔ phone launch intent selects only the supported local tabs (3.904715ms)
+✔ old links and untrusted phone launch values fall back to results (0.25894ms)
+✔ adding multiple names preserves the previous match assignment in the outgoing payload (7.772111ms)
+✔ adding to an unnamed match never silently names that match (0.389698ms)
+✔ restoring an existing name is a catalog edit and does not assign a match (1.615031ms)
+✔ explicit match reassignment and explicit clearing remain supported (0.349744ms)
+✔ retirement winner overrides set lead and partial sets are not counted (2.071568ms)
+✔ head-to-head groups by stable player identity including unnamed and removed names (5.657839ms)
+✔ empty overall history has zero totals without a made-up win percentage (0.868087ms)
+✔ retirement CSV is gated for older watches while ordinary CSV still works (8.239116ms)
+✔ schema-two retired history roundtrips and invalid partial set progression is rejected (7.667679ms)
+✔ all-match history sorts newest first without mutating the underlying snapshot (23.31264ms)
+✔ a doubles player can appear as teammate and adversary in distinct filtered results (1.661417ms)
+✔ phone journal filters intersect and order by the recorded local day and time (52.819149ms)
+✔ streaks use actual outcomes; deciders exclude retirements and averages exclude untimed matches (0.639294ms)
+✔ all static phone labels and fixed-offset dates render in all four supported languages (27.389807ms)
+✔ all-sports browsing respects mode and can filter historical identities outside the current roster (2.26624ms)
+ℹ tests 95
 ℹ suites 0
-ℹ pass 91
+ℹ pass 95
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 16841.435789
+ℹ duration_ms 15861.317428
 
 New release APK signature, manifest identity and ZIP alignment: verified. Retained APK hashes verified; public history starts at v0.3.0.
 Historical device report (2026-11-03, OnePlus Watch 2R, update 0.1.0 to 0.2.0). These checks are user-reported and are not rerun by this build.
@@ -914,4 +921,4 @@ User report 2026-11-03 (v0.5.0): User approved the cleaner navigation/design and
 User report 2026-11-04 (v0.8.0): After the v0.8 release the user reported that the workflow worked and requested distinct name styling plus optional opponent selection during new-match setup. This general confirmation does not identify every CSV/import, dictation or battery scenario as individually tested.
 User report 2026-11-10 (v0.15.0): User reported that the new navigation is much easier to understand. Subsequently reported that serving information was difficult to see or clipped with missing or long opponent names. This does not validate the v0.15.1 serving fix, ambient behavior or battery use.
 User report 2026-11-11 (v0.16.0): User reported that some setting selections, including vibrations, immediately return to the previous menu; live sharing does not automatically present its ready QR; a discarded watch match leaves the audience scoreboard looking active. These are reported defects, not acceptance of the v0.16.1 corrections.
-No Wear OS emulator run is claimed. The user reports working foreground retention since v0.3 and successful v0.4 QR export. v0.18.1 appearance, speech availability, phone file picking/QR scan, detailed ambient transitions and real battery consumption require physical validation. Battery snapshots reflect the whole watch, not attributed app consumption.
+No Wear OS emulator run is claimed. The user reports working foreground retention since v0.3 and successful v0.4 QR export. v0.19.0 appearance, speech availability, phone file picking/QR scan, detailed ambient transitions and real battery consumption require physical validation. Battery snapshots reflect the whole watch, not attributed app consumption.

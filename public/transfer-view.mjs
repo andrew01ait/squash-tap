@@ -23,6 +23,13 @@ function sportMark(sport) {
 function statRow(parent,label,value) {
   const el=node('div');el.append(node('dt',label),node('dd',value));parent.append(el);
 }
+export function pointSummary(rows,totals) {
+  const hasPoints=rows.some(row=>details(row).some(([points])=>points>=0));
+  if(!hasPoints) return {value:'—',note:tx('Not recorded')};
+  const value=totals.pointsFor+' – '+totals.pointsAgainst;
+  const note=totals.unknownPointMatches?tx('Unknown points omitted in {0} matches.',totals.unknownPointMatches):'';
+  return {value,note};
+}
 function playerLine(name,score,side) {
   const line=node('span',undefined,'competitor '+side);
   line.append(node('span',name),node('b',score));return line;
@@ -127,7 +134,8 @@ function renderPlayers(rows,catalog,role,onPlayer,selectedSport) {
       if(acrossSports) {
         for(const sport of orderedSports(new Set(meetings.map(rowSport)))) statRow(table,sportText(sport),record(statistics(meetings.filter(r=>rowSport(r)===sport))));
       } else {
-        statRow(table,tx('Points'),g.pointsFor+' – '+g.pointsAgainst+(g.unknownPointMatches?' · '+tx('Unknown points omitted in {0} matches.',g.unknownPointMatches):''));
+        const points=pointSummary(meetings,g);
+        statRow(table,tx('Points'),[points.value,points.note].filter(Boolean).join(' · '));
       }
       statRow(table,tx('Current streak'),insights.current+' · '+tx(insights.last===0?'Consecutive wins':'Consecutive losses'));
       if(insights.timed)statRow(table,tx('Average duration'),durationText(insights.averageSeconds)+' · '+tx('{0} timed matches',insights.timed));
@@ -149,7 +157,8 @@ export function renderStatistics({rows,allRows,catalog,mode,selectedSport,totalR
   if(!acrossSports) {
     metric(summary,tx(nested?'Sets':'Games'),overall.setsFor+' – '+overall.setsAgainst,tx('For · against'));
     if(nested) metric(summary,tx('Games'),overall.gamesFor+' – '+overall.gamesAgainst,tx('For · against'));
-    metric(summary,tx('Points'),overall.pointsFor+' – '+overall.pointsAgainst,overall.unknownPointMatches?tx('Unknown points omitted in {0} matches.',overall.unknownPointMatches):tx('For · against'));
+    const points=pointSummary(rows,overall);
+    metric(summary,tx('Points'),points.value,points.note||tx('For · against'));
   }
 
   const recent=$('recent-form');recent.replaceChildren();

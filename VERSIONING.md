@@ -1,6 +1,6 @@
 # Versions and compatibility
 
-Current official watch release: **v0.18.1**, Android version code **25**; package **`at.andrew.squashtap`**. `public/release.properties` is the machine-readable update feed; `public/builds.json` and `SHA256SUMS.txt` record retained artifacts.
+Current official watch release: **v0.19.0**, Android version code **26**; package **`at.andrew.squashtap`**. `public/release.properties` is the machine-readable update feed; `public/builds.json` and `SHA256SUMS.txt` record retained artifacts.
 
 ## Independent version numbers
 
@@ -13,7 +13,7 @@ Current official watch release: **v0.18.1**, Android version code **25**; packag
 
 ## Current formats
 
-Read B1–B5 books. Preserve B4 for unchanged squash-only state; use B5 for multisport/explicit serving or extended results. Preserve old M1/M2/M3 squash encodings; M4 stores format/initial service data. O1 remains readable, O2 separates team roles, and both use the same stable player catalog. Retain once-only B1/B2/B3/B4/O1 backups. CSV schemas 1/2 remain squash-compatible; schema 3 adds explicit sport/mode/rules, seven-game results, team roles and known point/tie-break details. Schema 3 requires the updated watch. Ordinary envelope-1 encryption/session direction remains unchanged; envelope 2 adds bounded complete-backup payloads with separate version-bound AAD. See [RULES.md](RULES.md) for frozen rule presets.
+Read B1–B5 books. Preserve B4 for unchanged squash-only state; use B5 for multisport/explicit serving or extended results. Preserve old M1/M2/M3 squash encodings; M4 stores format/initial service data. M5 preserves the actual rallies behind a corrected partial retirement score. O1 remains readable, O2 separates team roles, and both use the same stable player catalog. Retain once-only B1/B2/B3/B4/O1 backups. CSV schemas 1/2 remain squash-compatible; schema 3 adds explicit sport/mode/rules, seven-game results, team roles and known point/tie-break details. Schema 3 requires the updated watch. Ordinary envelope-1 encryption/session direction remains unchanged; envelope 2 adds bounded complete-backup payloads with separate version-bound AAD. See [RULES.md](RULES.md) for frozen rule presets.
 
 Older versions may not understand new preferences or retirement/manual CSV. Do not promise safe downgrades. For corrections, normally deliver a higher-version-code APK with compatible readers and the same package/key. Never fabricate legacy timing, rally order, winning sets or reused references during migration.
 
@@ -54,3 +54,7 @@ The separate `play-release.json` reserves 0.17.0-play.1/code 23 for a preparatio
 The v0.18.0 direct APK uses code 24 and the existing package and signer. Code 23 remains assigned to the earlier Play preparation artifact. The separate room schema uses migration 0003. Existing B1–B5 books, transfer QR protocols, CSV schemas, and audience links remain readable.
 
 The v0.18.1 direct APK uses code 25 and the original signer. Its navigation and responsive interface updates use the existing room, audience and transfer protocols. All 21 prior direct APKs retain their published checksums.
+
+## Browser result entry · direct v0.19.0 / code 26
+
+Older watches continue to accept supported new results through their existing CSV import. Editing an existing result requires the explicit result-edit capability. CSV schemas and encryption envelopes keep their existing versions. When the currently displayed retired match receives a different partial score, its B5 book can contain an M5 state. M5 wraps the original retired state and the two corrected partial totals. Undoing that retirement restores the recorded rallies after confirmation. All other current states continue using their existing encodings. A v0.19.0 or newer watch is required to restore a backup that contains M5.

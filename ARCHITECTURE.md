@@ -1,6 +1,6 @@
 # Architecture
 
-Current watch release: **v0.18.1**, code **25**. This document describes the implemented system; release changes are in [CHANGELOG.md](CHANGELOG.md).
+Current watch release: **v0.19.0**, code **26**. This document describes the implemented system; release changes are in [CHANGELOG.md](CHANGELOG.md).
 
 ## Components and responsibilities
 
@@ -136,3 +136,7 @@ The referee service worker caches only the application shell. IndexedDB commits 
 RoomClient protects the watch recovery record in no-backup storage using Android Keystore. A scoring watch offers updates on changes or reconnect. A receiving watch checks while Keep Score is visible and reloads its encrypted cached snapshot after restart. Host and follower input is read-only. The tile and watch-face complication show the last received match revision without starting network requests. SharedResult converts the confirmed result into the chosen player's perspective, preserves retirement, timing, tie-breaks, doubles roles and previous local match state, and deduplicates by match ID. A host's completed shared scoreboard becomes a history item after explicit confirmation. Standard phone transfers, legacy live broadcasts and the local match book retain their independent lifetimes.
 
 The native launcher, sport menu and current-match menu share one role-aware live-sharing entry. It preserves its caller through sport selection and new-match setup. Only an explicit hosting action creates a room or audience link. Local and linked scoreboards render the same period panel. The phone referee, audience broadcast and private transfer pages use responsive document layouts and the same Keep Score launcher artwork.
+
+## Journal corrections
+
+The phone journal stages additions as ordinary CSV rows. A watch advertising supportsResultEdits accepts explicit before/after CSV in the encrypted incoming payload. The watch checks the IDs shared in this session, the original result including time, score details and reference, and all three roster assignments. Corrections and imports are planned on cloned books. Confirmation rechecks the current books, local name and expiry before committing them together. Historical edits retain the match ID and daily reference on the original date. A date-only entry moved to another day consumes a fresh number on that day. A corrected completed scoreboard reuses unchanged rally histories and stores changed completed games as entered totals. See [VERSIONING.md](VERSIONING.md) for the corrected retirement representation.

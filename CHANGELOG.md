@@ -1,5 +1,11 @@
 # Releases
 
+## v0.19.0 · 2026-11-18 · direct APK code 26
+
+- Add results in the phone or tablet journal for all six sports, including doubles, deciding tie-breaks and retirements.
+- Open a saved match to correct players, scores or a date-only entry. Review and confirm the batch on the watch. Concurrent changes prompt a fresh transfer.
+- A correction updates the existing match and its statistics. The latest finished scoreboard keeps the actual rallies for unchanged games. Undo of a corrected retirement can restore the original live score.
+
 ## v0.18.1 · 2026-11-18 · direct APK code 25
 
 - Open Live sharing & referee from the sports launcher, a sport menu or an active match. Share an audience link, invite a phone referee, or pair additional watches with a short code. A new host selects the sport and confirms the match before sharing.

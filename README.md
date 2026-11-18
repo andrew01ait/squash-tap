@@ -1,6 +1,6 @@
 # Keep Score
 
-A standalone, offline racket-sport scorekeeper for Wear OS. Current watch release: **v0.18.1**, Android version code **25**. No account is required; scores and saved history live on the watch.
+A standalone, offline racket-sport scorekeeper for Wear OS. Current watch release: **v0.19.0**, Android version code **26**. No account is required; scores and saved history live on the watch.
 
 [Download the watch app](https://squash-tap-andrew.endruuu.chatgpt.site/) · [GitHub source](https://github.com/andrew01ait/squash-tap) · [Install using your phone](INSTALLATION.md)
 
@@ -11,6 +11,8 @@ A separate **0.17.0-play.1/code 23** candidate prepares Google Play distribution
 Open **Live sharing & referee** from the sports launcher, a sport menu or **Current match**. During play, tap the sport name and **Menu** at the top of the scoreboard. Choose **Referee on phone** to let a referee scan the private QR. The watch shows the score and offers **Save to my results** after the referee confirms the finish. Open the link online before play. The referee can record rallies, undo a mistake and finish offline. If the browser suspends uploads, reopen the same link on the same phone after reconnecting. The page shows when the score has been uploaded.
 
 Choose **Share with watches** when scoring yourself, or **Invite other watches** while the referee scores. On another Keep Score watch, choose **Live sharing & referee → Join with watch code** on the sports screen and enter the two groups of five characters. Both modes use the same room. Followers can save the result once and choose the player whose perspective to record. Hiding the code stops new joins. Already joined watches can keep following. Open the app to catch up. A room expires after 14 days, with a fresh 14-day window when the final reaches the service. A confirmed result already received stays on that watch until you decide what to do.
+
+**Enter or correct a result on a phone or tablet.** On the watch choose **Results → Options → View results on phone → Show phone QR** and scan it. In the browser choose **Add result**, or expand a saved match and choose **Edit result**. Enter the players and scores for each game or set. Choose **Stage result → Send changes**, then **Receive changes → Apply changes** on the watch. A correction keeps the original match in your history. Date-only entries can also be moved to another day.
 
 **Results → Options → View results on phone** opens a private match journal with sport, player, role, date and outcome filters. The insights include winning streaks, deciding games or sets, known durations and separate partner and opponent records. **Players → Edit names on phone** opens the roster editor. Language follows the watch or browser and can be set independently in watch Settings or on each web page. Available languages are English (fallback), German, French and Spanish.
 
@@ -104,7 +106,7 @@ Updates are requested manually in Settings. There is no background update pollin
 | [AGENTS.md](AGENTS.md) | Maintenance constraints for future coding work. |
 | [CHANGELOG.md](CHANGELOG.md) | Release and documentation history. |
 
-The v0.18.1 direct release passed **335 core + 214 watch UI + 91 web/relay tests = 640**. The previous v0.18.0 release passed **335 core + 206 watch UI + 90 web/relay tests = 631**. The historical v0.16.4 suite passed **331 core + 191 Android UI + 64 web/relay checks = 586**. The historical v0.13 release suite was **265 core + 100 Android UI + 35 web/relay checks = 400**. This is release evidence, not a claim that every documentation update reruns or physically validates the watch. See [TESTING.md](TESTING.md) for current verification.
+The v0.19.0 direct release passed **339 core + 215 watch UI + 95 web/relay tests = 649**. The v0.18.1 direct release passed **335 core + 214 watch UI + 91 web/relay tests = 640**. The previous v0.18.0 release passed **335 core + 206 watch UI + 90 web/relay tests = 631**. The historical v0.16.4 suite passed **331 core + 191 Android UI + 64 web/relay checks = 586**. The historical v0.13 release suite was **265 core + 100 Android UI + 35 web/relay checks = 400**. This is release evidence, not a claim that every documentation update reruns or physically validates the watch. See [TESTING.md](TESTING.md) for current verification.
 
 Full backups use the local export date and application name: `YYYYMMDD_ApplicationName_Description.json`, for example `20261111_KeepScore_Backup.json`. Completed-result interchange remains CSV; full backup JSON also preserves current rallies and Undo.
 

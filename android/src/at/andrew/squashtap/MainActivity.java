@@ -385,7 +385,16 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         undoPoint(this::closePanel);
     }
     private void undoPoint(Runnable cancel){
-        if(book.current().undoEnteredSet()){
+        if (book.current().hasRetirementCorrection()) {
+            final String before = book.encode();
+            LinearLayout content = panel("Undo retirement");
+            paragraph(content, tr("Reopening restores the recorded rallies from before the phone correction."));
+            button(content, tr("Undo retirement"), ()->{
+                if (!before.equals(book.encode())) { message(tr("Match changed"), tr("Review the match before undoing."), this::showMatchControls); return; }
+                if (book.undo() && afterMatchChange()) closePanel();
+            });
+            backButton(content, tr("Cancel"), cancel);
+        } else if(book.current().undoEnteredSet()){
             final String before=book.encode();LinearLayout content=panel("Undo entered set?");paragraph(content,tr("This set was entered as a final score. Its point order was not recorded, so Undo removes the whole entered set. Other sets are kept."));
             button(content,tr("Undo entered set"),()->{if(!before.equals(book.encode())){message(tr("Match changed"),tr("Review the match before undoing."),this::showMatchControls);return;}if(book.undo()&&afterMatchChange())closePanel();});backButton(content,tr("Cancel"),cancel);
         }else if(book.undo()&&afterMatchChange())closePanel();
@@ -1097,7 +1106,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
             button(content,tr("Create phone link"),()->{transfer=null;beginTransfer(transferFiltered);});
         }else{
             button(content,tr("Show phone QR"),()->showQr(phoneLink(),tr("Scan with phone"),this::showTransfer,"Back to phone link"));
-            String purpose=transferView.equals("backup")?tr("Download a complete backup, or select a backup file to restore. Restore requires a separate watch confirmation."):transferView.equals("opponents")?tr("Edit saved names in your phone browser."):transferView.equals("import")?tr("Select a Keep Score CSV in your phone browser."):tr("Browse results, statistics or download CSV in your phone browser.");
+            String purpose=transferView.equals("backup")?tr("Download a complete backup, or select a backup file to restore. Restore requires a separate watch confirmation."):transferView.equals("opponents")?tr("Edit saved names in your phone browser."):transferView.equals("import")?tr("Select a Keep Score CSV in your phone browser."):tr("Add or edit results, browse statistics or download CSV in your browser.");
             paragraph(content,purpose+tr("\n\nExpires ")+java.time.Instant.ofEpochMilli(transfer.expiresAt).atZone(java.time.ZoneId.systemDefault()).format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))+tr(". Send edits on the phone, then receive them here."));
             Button receive=navigationButton(content,transferBusy?tr("Receiving…"):tr("Receive changes"),this::receiveTransfer);receive.setEnabled(!transferBusy);
             navigationButton(content,tr("End transfer"),()->{if(transferBusy)return;final TransferClient.Session ending=transfer;transfer=null;tasks.execute(()->{try{TransferClient.end(ending);}catch(Exception ignored){}});showTransfer();});
@@ -1112,8 +1121,15 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         if(payload.has("restoreBackup")){previewBackupRestore(payload,session);return;}
         final String oldMyName=preferences.getString("my_name","");final boolean changeMyName=payload.optBoolean("changeMyName",false);final String nextMyName=changeMyName?payload.getString("myName").trim():oldMyName;
         if(changeMyName){if(!oldMyName.equals(payload.getString("baseMyName")))throw new IllegalArgumentException(tr("Your name changed. Start a fresh phone link."));if(!nextMyName.isEmpty())OpponentDirectory.validName(nextMyName);}
-        final String before=book.encode(),names=opponents.encode();final MatchCsv.Plan plan=TransferClient.preview(payload,book,opponents);
-        LinearLayout content=panel("Review phone changes");if(changeMyName)paragraph(content,tr("Your name: ")+(oldMyName.isEmpty()?tr("Me"):oldMyName)+" → "+(nextMyName.isEmpty()?tr("Me"):nextMyName));paragraph(content,plan.added+tr(" new results\n")+plan.duplicates+tr(" duplicates skipped\n")+plan.conflicts+tr(" conflicts skipped\n")+plan.renumbered+tr(" local references adjusted\n\n")+plan.directory.list(false).size()+tr(" saved opponent names\n\nNames may be added, renamed or removed from selection. Past results and the ongoing score are kept."));
+        final String before=book.encode(),names=opponents.encode();final MatchCsv.Plan plan=TransferClient.preview(payload,book,opponents,session.sharedResults);
+        LinearLayout content=panel("Review phone changes");if(changeMyName)paragraph(content,tr("Your name: ")+(oldMyName.isEmpty()?tr("Me"):oldMyName)+" → "+(nextMyName.isEmpty()?tr("Me"):nextMyName));paragraph(content,plan.added+tr(" new results\n")+plan.duplicates+tr(" duplicates skipped\n")+plan.conflicts+tr(" conflicts skipped\n")+plan.renumbered+tr(" local references adjusted\n\n")+plan.directory.list(false).size()+(plan.editedIds.isEmpty()?tr(" saved opponent names\n\nNames may be added, renamed or removed from selection. Past results and the ongoing score are kept."):tr(" saved opponent names")));
+        if (!plan.editedIds.isEmpty()) {
+            paragraph(content, tr("Edited results") + " · " + plan.editedIds.size());
+            for (String id : plan.editedIds.subList(0, Math.min(10, plan.editedIds.size()))) {
+                MatchResult old = book.result(id), updated = plan.book.result(id);
+                paragraph(content, old.referenceText() + "\n" + resultReview(old, opponents) + "\n→ " + resultReview(updated, plan.directory));
+            }
+        }
         boolean personChanged=!opponents.opponentId(book.current().id()).equals(plan.directory.opponentId(book.current().id()));
         if(personChanged)paragraph(content,(book.current().complete()?tr("Last completed match"):tr("Current match"))+tr(" opponent change:\n")+opponentName(book.current().id())+" → "+(plan.directory.nameFor(book.current().id()).isEmpty()?tr("No name"):plan.directory.nameFor(book.current().id())));
         else paragraph(content,tr("Match opponent assignment is unchanged."));
@@ -1126,8 +1142,17 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
             if(!preferences.edit().putString("match_book",plan.book.encode()).putString("opponent_book",plan.directory.encode()).putString("my_name",nextMyName).commit()){message(tr("Save failed"),tr("Nothing was confirmed. Keep the app open and retry."),this::showTransfer);return;}
             book=plan.book;opponents=plan.directory;counter.match(book.current());updateDisplay();transfer=null;
             tasks.execute(()->{try{TransferClient.end(session);}catch(Exception ignored){}});
-            message(tr("Changes saved"),plan.added+tr(" results added. Opponents updated. Duplicate and conflicting results were skipped."),transferReturn);
+            message(tr("Changes saved"),plan.added+tr(" results added. Opponents updated. Duplicate and conflicting results were skipped.")+(plan.editedIds.isEmpty()?"":"\n"+tr("Edited results")+" · "+plan.editedIds.size()),transferReturn);
         });backButton(content,tr("Cancel"),this::showTransfer);
+    }
+    private String resultReview(MatchResult result, OpponentDirectory names) {
+        java.util.ArrayList<String> scores = new java.util.ArrayList<>();
+        for (int i = 0; i < result.gameCount(); i++) scores.add(result.points(i, 0) + "–" + result.points(i, 1));
+        String partner = names.roleName(result.id, 1), rival = names.roleName(result.id, 0), other = names.roleName(result.id, 2);
+        String teams = tr("Me") + (partner.isEmpty() ? "" : " + " + partner) + " / " +
+                (rival.isEmpty() ? tr("Opponent") : rival) + (other.isEmpty() ? "" : " + " + other);
+        return result.date + " · " + teams + "\n" + android.text.TextUtils.join(", ", scores) +
+                (result.retired() ? " · " + tr(result.retiredPlayer == 0 ? "Me retired" : "Opponent retired") : "");
     }
     private void showUpdates(){
         if(BuildConfig.PLAY_DISTRIBUTION){showPlayUpdates();return;}

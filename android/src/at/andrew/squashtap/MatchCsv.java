@@ -59,7 +59,26 @@ public final class MatchCsv {
     }
     public static final class Plan {
         public final MatchBook book;public final OpponentDirectory directory;public int added,duplicates,conflicts,renumbered;public final List<String> conflictIds=new ArrayList<>();
+        public final List<String> editedIds=new ArrayList<>();
         private Plan(MatchBook b,OpponentDirectory d){book=b;directory=d;}
+    }
+    static void correct(Plan plan, MatchBook original, OpponentDirectory originalNames, List<Row> before, List<Row> after) {
+        if (before.size() != after.size()) throw new IllegalArgumentException("Incomplete result corrections");
+        Set<String> seen = new HashSet<>();
+        for (int i = 0; i < before.size(); i++) {
+            Row base = before.get(i), edit = after.get(i);
+            String id = base.result.id;
+            MatchResult stored = original.result(id);
+            if (!id.equals(edit.result.id) || !seen.add(id) || stored == null || stored.number != base.result.number ||
+                    !same(stored, base.result) || !originalNames.opponentId(id).equals(base.opponentId) ||
+                    !originalNames.roleId(id, 1).equals(base.partnerId) || !originalNames.roleId(id, 2).equals(base.otherId))
+                throw new IllegalArgumentException("A result changed or was removed. Start a fresh phone transfer.");
+            plan.book.correctResult(edit.result);
+            plan.directory.assignTeam(id, plan.directory.importOpponent(edit.opponentId, edit.name),
+                    plan.directory.importOpponent(edit.partnerId, edit.partnerName),
+                    plan.directory.importOpponent(edit.otherId, edit.otherName));
+            plan.editedIds.add(id);
+        }
     }
     public static Plan plan(MatchBook original,OpponentDirectory directory,List<Row> rows){
         Plan plan=new Plan(MatchBook.decode(original.encode()),OpponentDirectory.decode(directory.encode()));

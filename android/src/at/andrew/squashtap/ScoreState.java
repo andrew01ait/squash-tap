@@ -30,6 +30,16 @@ public final class ScoreState {
         if(!finalScore(f,tie,a,b))throw new IllegalArgumentException("Enter a valid final "+f.unit().toLowerCase()+" score");
         ScoreState s=new ScoreState(f,tie);s.blue=a;s.red=b;s.entered=true;return s;
     }
+    /** Display-only score of the unfinished last game of a manually corrected retirement. */
+    static ScoreState retiredSummary(MatchFormat format, boolean tie, int a, int b) {
+        if ((long)a + b > MAX_RALLIES || !MatchResult.validPartial(format, tie, a, b) || finalScore(format, tie, a, b))
+            throw new IllegalArgumentException("Invalid retired game score");
+        ScoreState summary = new ScoreState(format, tie);
+        summary.entered = true;
+        summary.blue = a;
+        summary.red = b;
+        return summary;
+    }
     public static boolean finalScore(MatchFormat f,boolean tie,int a,int b){
         int high=Math.max(a,b),low=Math.min(a,b);if(low<0||(long)a+b>MAX_RALLIES)return false;
         if(tie)return low<9?high==10:high==low+2;
@@ -38,7 +48,7 @@ public final class ScoreState {
     }
     private boolean tieBreak(){return matchTie||format.nested()&&blue==6&&red==6;}
     public int winner(){
-        if(entered)return blue>red?BLUE:RED;
+        if(entered)return finalScore(format,matchTie,blue,red)?(blue>red?BLUE:RED):NONE;
         if(format.nested()&&!matchTie){if((blue>=6&&blue-red>=2)||blue==7)return BLUE;if((red>=6&&red-blue>=2)||red==7)return RED;return NONE;}
         int target=matchTie?10:format.target,cap=matchTie?Integer.MAX_VALUE:format.cap();
         if(Math.max(blue,red)<target||Math.abs(blue-red)<2&&Math.max(blue,red)<cap)return NONE;return blue>red?BLUE:RED;

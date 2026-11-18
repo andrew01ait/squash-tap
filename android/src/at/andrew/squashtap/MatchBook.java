@@ -104,19 +104,43 @@ public final class MatchBook {
     public MatchResult importResult(MatchResult result){
         if(result.id.equals(current.id())||results.containsKey(result.id))throw new IllegalArgumentException("Match ID already exists");
         if(results.size()>=MAX_RESULTS)throw new IllegalArgumentException("Result storage is full");
-        int old=dailyNumbers.containsKey(result.date)?dailyNumbers.get(result.date):0;
-        if(old==Integer.MAX_VALUE)throw new IllegalArgumentException("Daily match number limit reached");
-        int number=old+1;
-        int[][] scores=new int[result.gameCount()][2];for(int i=0;i<scores.length;i++){scores[i][0]=result.points(i,0);scores[i][1]=result.points(i,1);}
-        MatchResult imported=result.renumber(number);
-        if(!dailyNumbers.containsKey(result.date)&&dailyNumbers.size()>=10000)throw new IllegalArgumentException("Date storage is full");
-        dailyNumbers.put(result.date,number);results.put(result.id,imported);return imported;
+        MatchResult imported = result.renumber(nextNumber(result.date));
+        results.put(imported.id, imported);
+        return imported;
+    }
+    private int nextNumber(String date) {
+        int last = dailyNumbers.getOrDefault(date, 0);
+        if (last == Integer.MAX_VALUE) throw new IllegalArgumentException("Daily match number limit reached");
+        if (last == 0 && dailyNumbers.size() >= 10000) throw new IllegalArgumentException("Date storage is full");
+        dailyNumbers.put(date, last + 1);
+        return last + 1;
+    }
+    /** A corrected result keeps its identity. Moving to a different day consumes a new daily reference. */
+    void correctResult(MatchResult value) {
+        MatchResult old = result(value.id);
+        if (old == null) throw new IllegalArgumentException("This result was removed. Start a fresh phone transfer.");
+        if (!old.format.equals(value.format) || old.bestOf != value.bestOf ||
+                old.startedAt != value.startedAt || old.finishedAt != value.finishedAt || !old.zoneId.equals(value.zoneId) ||
+                (old.startedAt != 0 || old.finishedAt != 0) && !old.date.equals(value.date))
+            throw new IllegalArgumentException("Recorded rules and timing must be preserved");
+        boolean onScoreboard = current.id().equals(value.id);
+        MatchState corrected = onScoreboard ? current.corrected(value) : null;
+        int number = old.date.equals(value.date) ? old.number : nextNumber(value.date);
+        MatchResult saved = value.renumber(number);
+        if (onScoreboard) {
+            current = corrected;
+            completionDate = saved.date;
+            completionNumber = saved.number;
+            saved = MatchResult.from(current, saved.date, saved.number, startedAt, finishedAt, zoneId);
+        }
+        results.put(saved.id, saved);
     }
     public String encode(){
         try{
             ByteArrayOutputStream bytes=new ByteArrayOutputStream();DataOutputStream out=new DataOutputStream(bytes);
-            boolean multi=current.encode().startsWith("M4|");for(MatchResult result:results.values())if(!result.format.legacy())multi=true;
-            if(multi){byte[] state=current.encode().getBytes(java.nio.charset.StandardCharsets.UTF_8);out.writeInt(state.length);out.write(state);}else out.writeUTF(current.encode());out.writeUTF(completionDate);out.writeInt(completionNumber);out.writeBoolean(deletedCurrent);
+            String currentState=current.encode();
+            boolean multi=currentState.startsWith("M4|")||currentState.startsWith("M5|");for(MatchResult result:results.values())if(!result.format.legacy())multi=true;
+            if(multi){byte[] state=currentState.getBytes(java.nio.charset.StandardCharsets.UTF_8);out.writeInt(state.length);out.write(state);}else out.writeUTF(currentState);out.writeUTF(completionDate);out.writeInt(completionNumber);out.writeBoolean(deletedCurrent);
             out.writeLong(startedAt);out.writeLong(finishedAt);out.writeUTF(zoneId);out.writeBoolean(timingEligible);
             out.writeInt(dailyNumbers.size());for(Map.Entry<String,Integer> entry:dailyNumbers.entrySet()){out.writeUTF(entry.getKey());out.writeInt(entry.getValue());}
             out.writeInt(results.size());for(MatchResult result:results.values()){if(multi)result.writeExtended(out);else result.write(out);}out.flush();
