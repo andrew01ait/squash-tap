@@ -1,5 +1,7 @@
 /** Development-only synthetic watch. This module is removed from production builds. */
 import {handleLive} from '../worker/live.mjs';
+import {handleRooms} from '../worker/rooms.mjs';
+import {roomKey,sealSnapshot} from '../public/referee-store.mjs';
 import {handleTransfer} from '../worker/relay.mjs';
 import {seal,open,b64,writeCsv} from '../public/interchange.mjs';
 const fullBackup="{\"application\":\"Keep Score\",\"package\":\"at.andrew.squashtap\",\"schema\":1,\"createdAt\":\"2026-11-11T07:33:35.112601130Z\",\"payload\":\"S1NCMQAAAFtCNDpBQmROTVh4amRYSnlaVzUwTFdKaFkydDFjSHd6ZkRGOFFnQUFBQUFBQUFBQUFBR2h5WWJFMVFBQUFBQUFBQUFBQUFkRmRHTXZWVlJEQVFBQUFBQUFBQUFBAAAAn08xOkFBQUFBUUFrTXpWbE5HUm1NV0V0Tm1Ga1lTMDBNalV4TFRnM05UQXRORFJsTjJNMlpESXpZall5QUE1S3c3eHlaMlZ1SU8yZ3ZPMi91QUFBQUFBQkFBNWpkWEp5Wlc1MExXSmhZMnQxY0FBa016VmxOR1JtTVdFdE5tRmtZUzAwTWpVeExUZzNOVEF0TkRSbE4yTTJaREl6WWpZeQAAAAEAAAAHbXlfbmFtZQAAAAZBbmRyw6k\",\"sha256\":\"F3s7rVBVOXaPgU7d8raKMOXzf1wipO06-nysLKwtMiA\"}";
@@ -9,6 +11,21 @@ function audienceScore(phase='playing'){
 }
 export async function preview(request,env){
  const url=new URL(request.url);
+ if(url.pathname==='/__transfer-preview/referee'){
+  const id=crypto.randomUUID().replaceAll('-',''), random=()=>b64(crypto.getRandomValues(new Uint8Array(32)));
+  const writer=random(),reader=random(),secret=random(),joinCode=id.slice(0,10).toUpperCase();
+  const snapshot={schema:1,match:'M1|'+id+'|3|1|',labels:['Cameron','Noémie','',''],startedAt:0,finishedAt:0,zone:'',final:false};
+  const cipher=await sealSnapshot(await roomKey(secret),id,snapshot);
+  const context='KeepScore:pair:1:'+joinCode;
+  const pairingKey=await crypto.subtle.importKey('raw',await crypto.subtle.digest('SHA-256',new TextEncoder().encode(context)),'AES-GCM',false,['encrypt']);
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const encrypted=await crypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:new TextEncoder().encode(context)},pairingKey,new TextEncoder().encode(JSON.stringify({id,token:reader,key:secret})));
+  const pairing='1.'+b64(iv)+'.'+b64(new Uint8Array(encrypted));
+  const create=await handleRooms(new Request(url.origin+'/api/rooms',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,writer,reader,admin:random(),joinCode,pairing,watchJoin:false,cipher,revision:0,final:false})}),env);
+  if(!create.ok)return create;
+  return Response.redirect(url.origin+'/referee.html#'+new URLSearchParams({id,token:writer,key:secret}),302);
+ }
+
  if(url.pathname.endsWith('/landing-layouts')){
   const width=url.searchParams.get('narrow')==='1'?320:393,src=url.origin+'/index.html?landing-preview='+width+'#live-scores';
   return new Response('<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Live streaming section layout QA</title><style>body{margin:16px;background:#253148;color:white;font:14px system-ui;display:flex;gap:18px}iframe{border:1px solid #63738a;border-radius:14px;display:block}h2{font-size:14px;margin:0 0 8px}</style><section><h2>Portrait · '+width+' × 852 CSS px</h2><iframe title="Portrait landing" width="'+width+'" height="852" src="'+src+'"></iframe></section><section><h2>Landscape · 852 × 393 CSS px</h2><iframe title="Landscape landing" width="852" height="393" src="'+src+'"></iframe></section>',{headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});

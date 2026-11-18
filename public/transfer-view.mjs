@@ -1,29 +1,158 @@
-import {downloadResultCard,shareResultCard} from './result-card.mjs?v=0.16.0';
-import {sportName,rowSport,rowMode,rowRules,scorePairs,finalScore,details} from './sports.mjs?v=0.16.3';
-import {localDate,localMoment,rowWinner,rowOutcome,statistics} from './interchange.mjs?v=0.16.0';
-import {opponentStatistics} from './transfer-state.mjs?v=0.16.0';
+import {downloadResultCard,shareResultCard} from './result-card.mjs?v=2';
+import {rowSport,rowMode,rowRules,scorePairs,finalScore,details,SPORTS,sportMarkup} from './sports.mjs?v=0.16.3';
+import {rowWinner,statistics} from './interchange.mjs?v=0.16.0';
+import {byPlayer,matchInsights,matchesPerson,newest} from './transfer-state.mjs?v=2';
+import {tx,modeText,sportText,durationText,errorText,momentText,outcomeText} from './transfer-copy.mjs';
+import {language} from './locale.mjs';
+export {newest};
 const $=id=>document.getElementById(id);
-export const newest=rows=>[...rows].sort((a,b)=>(b[7]||b[2]).localeCompare(a[7]||a[2])||Number(b[3])-Number(a[3]));
-const line=(parent,text,tag='p')=>{const e=document.createElement(tag);e.textContent=text;parent.append(e);return e;};
-const balance=n=>n>0?'+'+n:String(n);
-export function shortRecord(s){return s.played+' matches · '+s.won+' won / '+s.lost+' lost'+(s.winRate===null?'':' · '+s.winRate+'% wins');}
-function moment(row,index){if(!row[index])return 'Not recorded';const copy=[...row];copy[7]=row[index];return localMoment(copy);}
-export function resultCard(row,opponent,myName='Me'){
- const card=document.createElement('details');card.className='result'+(rowWinner(row)===1?' lost':'');card.dataset.matchId=row[1];
- const summary=document.createElement('summary');line(summary,localMoment(row)+' · '+sportName(rowSport(row))+' · '+rowMode(row)+' · vs '+opponent+(row[0]==='3'&&row[35]?' + '+row[35]:''));line(summary,'Sets · '+myName+' '+row[11]+'–'+row[12]+' '+opponent,'strong');line(summary,rowOutcome(row),'span');card.append(summary);
- const detail=document.createElement('div');detail.className='result-detail';line(detail,'Best of '+row[6]+' · Match '+row[3]);line(detail,'Start: '+moment(row,7)+'\nEnd: '+moment(row,8));line(detail,'Duration: '+(row[10]?Math.floor(Number(row[10])/60)+' min '+Number(row[10])%60+' sec':'Not recorded'));
- const f=rowRules(row),ds=details(row),sets=[];scorePairs(row).filter(Boolean).forEach(([a,b],i)=>{const tie=f.finalTie&&i===Number(row[6])-1;sets.push((tie?'Match tie-break':f.nested?'Set':'Game')+' '+(i+1)+': '+a+'–'+b+(ds[i][2]>=0?' (TB '+ds[i][2]+'–'+ds[i][3]+')':'')+(finalScore(f,tie,a,b)?'':' · unfinished'+(ds[i].length===6&&ds[i][4]>=0?' · points '+[0,1].map(side=>{const p=ds[i][4+side],q=ds[i][5-side];return a===6&&b===6?p:p>=3&&q>=3?p>q?'AD':'40':['0','15','30','40'][Math.min(p,3)];}).join('–'):'')));});if(f.doubles)line(detail,'Our team: '+myName+' + '+(row[33]||'Partner')+'\nOpposing team: '+opponent+' + '+(row[35]||'Opponent 2'));line(detail,sets.join('\n'));const actions=document.createElement('div');actions.className='actions';for(const [text,action] of [['Download result card',downloadResultCard],['Share result card',shareResultCard]]){const button=document.createElement('button');button.textContent=text;button.addEventListener('click',async()=>{button.disabled=true;try{await action(row,opponent,myName);}catch(e){if(e.name!=='AbortError')alert(e.message);}finally{button.disabled=false;}});actions.append(button);}detail.append(actions);card.append(detail);return card;
+export function node(tag,text,className) {
+  const el=document.createElement(tag);
+  if(text!==undefined) el.textContent=text;
+  if(className) el.className=className;
+  return el;
 }
-function metric(parent,title,value,detail){const c=document.createElement('article');c.className='metric';line(c,title,'h3');line(c,String(value),'strong');line(c,detail);parent.append(c);}
-export function renderStatistics(rows,catalog,totalResults,onOpponent,onMatch){
- const overall=statistics(rows),summary=$('overall-summary');summary.replaceChildren();
- $('statistics-scope').textContent=(Number.isInteger(totalResults)&&totalResults===rows.length?'All saved matches':'All transferred matches')+' · selected sport and mode. Date/player filters do not apply.'+(Number.isInteger(totalResults)&&totalResults!==rows.length?' This transfer includes '+rows.length+' of '+totalResults+' saved results. Use Browse on phone on the watch for your complete history.':'');
- metric(summary,'Matches',overall.played,overall.won+' won / '+overall.lost+' lost\nWin rate: '+(overall.winRate===null?'—':overall.winRate+'%')+'\nBalance: '+balance(overall.balance));
- metric(summary,rows.some(r=>rowRules(r).nested)?'Sets':'Games',overall.setsFor+overall.setsAgainst,overall.setsFor+' won / '+overall.setsAgainst+' lost');
- metric(summary,'Points',overall.pointsFor+overall.pointsAgainst,overall.pointsFor+' for / '+overall.pointsAgainst+' against'+(overall.unknownPointMatches?' · unknown points omitted in '+overall.unknownPointMatches+' manually entered matches':''));if(rows.some(r=>rowRules(r).nested))metric(summary,'Games',overall.gamesFor+overall.gamesAgainst,overall.gamesFor+' won / '+overall.gamesAgainst+' lost');
- const form=$('recent-form');form.replaceChildren();const recent=newest(rows).slice(0,12).reverse();
- for(const r of recent){const b=document.createElement('button');b.textContent=rowWinner(r)===0?'W':'L';if(rowWinner(r)===1)b.className='lost';b.setAttribute('aria-label',rowOutcome(r)+' against '+(catalog.find(e=>e.id===r[4])?.name||r[5]||'Unnamed')+' · '+localMoment(r));b.title=b.getAttribute('aria-label');b.addEventListener('click',()=>onMatch(r[1]));form.append(b);}if(!rows.length)line(form,'No saved matches in this transfer yet.');
- const list=$('opponent-balances');list.replaceChildren();const groups=opponentStatistics(rows).sort((a,b)=>b.played-a.played||a.fallback.localeCompare(b.fallback));
- for(const s of groups){const card=document.createElement('article');card.className='opponent-balance';const b=document.createElement('button');b.className='person-link';b.textContent=s.id?(catalog.find(e=>e.id===s.id)?.name||s.fallback):'Unnamed';b.addEventListener('click',()=>onOpponent(s.id));card.append(b);line(card,shortRecord(s)+'\nMatch balance: '+balance(s.balance)+'\nSets: '+s.setsFor+'–'+s.setsAgainst+' · Points: '+s.pointsFor+'–'+s.pointsAgainst);list.append(card);}
- const partners=$('partner-balances');if(partners){partners.replaceChildren();const ids=[...new Set(rows.filter(r=>r[0]==='3'&&r[32]).map(r=>r[32]))];for(const id of ids){const stats=statistics(rows.filter(r=>r[32]===id));line(partners,(catalog.find(e=>e.id===id)?.name||'Partner')+' · '+shortRecord(stats));}if(!ids.length)line(partners,'No named partners in this selection.');}
+const record=s=>tx('{0} won · {1} lost',s.won,s.lost);
+export const shortRecord=s=>[tx('{0} matches',s.played),record(s),s.winRate===null?'':s.winRate+'%'].filter(Boolean).join(' · ');
+export function orderedSports(ids=SPORTS) {
+  return [...ids].sort((a,b)=>sportText(a).localeCompare(sportText(b),language()));
+}
+function sportMark(sport) {
+  const el=node('span',undefined,'sport-mark');el.innerHTML=sportMarkup(sport);el.setAttribute('aria-hidden','true');return el;
+}
+function statRow(parent,label,value) {
+  const el=node('div');el.append(node('dt',label),node('dd',value));parent.append(el);
+}
+function playerLine(name,score,side) {
+  const line=node('div',undefined,'competitor '+side);
+  line.append(node('span',name),node('b',score));return line;
+}
+function tennisPoints(a,b) { return a>=3&&b>=3?(a>b?'AD':'40'):['0','15','30','40'][Math.min(a,3)]; }
+export function resultCard(row,opponent,myName=tx('Me')) {
+  const rules=rowRules(row),gameDetails=details(row),pairs=scorePairs(row).filter(Boolean);
+  const mine=rules.doubles?myName+' + '+(row[33]||tx('Partner')):myName;
+  const other=rules.doubles?opponent+' + '+(row[35]||tx('Opponent 2')):opponent;
+  const won=rowWinner(row)===0;
+  const card=node('details',undefined,'result');card.dataset.matchId=row[1];
+  if(!won) card.classList.add('lost');
+  const summary=node('summary');
+  const heading=node('span',undefined,'result-heading');
+  heading.append(node('span',momentText(row)+' · '+modeText(rowMode(row))),node('span',outcomeText(row),'outcome'));
+  summary.append(heading,playerLine(mine,row[11],'mine'),playerLine(other,row[12],'other'));
+  card.append(summary);
+  const detail=node('div',undefined,'result-detail');
+  detail.append(node('p',sportText(rules.sport)+' · '+tx('Best of {0}',row[6])+' · '+tx('Match {0}',row[3]),'muted'));
+  const gameList=node('ol',undefined,'set-list');
+  pairs.forEach(([a,b],i)=>{
+    const tie=rules.finalTie&&i===Number(row[6])-1;
+    const item=node('li');
+    item.append(node('span',tx(tie?'Match tie-break':rules.nested?'Set':'Game')+' '+(i+1)),node('strong',a+' – '+b));
+    const more=[];
+    if(gameDetails[i][2]>=0) more.push('TB '+gameDetails[i][2]+' – '+gameDetails[i][3]);
+    if(!finalScore(rules,tie,a,b)) {
+      more.push(tx('Unfinished'));
+      if(gameDetails[i][4]>=0) {
+        const x=gameDetails[i][4],y=gameDetails[i][5];
+        const score=a===6&&b===6?x+' – '+y:tennisPoints(x,y)+' – '+tennisPoints(y,x);
+        more.push(tx('Points')+' '+score);
+      }
+    }
+    if(more.length) item.append(node('small',more.join(' · ')));
+    gameList.append(item);
+  });
+  detail.append(gameList);
+  const times=node('dl',undefined,'timing');
+  statRow(times,tx('Start'),momentText(row,7,'required'));statRow(times,tx('End'),momentText(row,8,'required'));
+  statRow(times,tx('Duration'),row[10]?durationText(Number(row[10])):tx('Not recorded'));
+  detail.append(times);
+  const actions=node('div',undefined,'actions');
+  for(const [title,action] of [['Download result card',downloadResultCard],['Share result card',shareResultCard]]) {
+    const b=node('button',tx(title),'secondary');
+    b.addEventListener('click',async()=>{b.disabled=true;try{await action(row,opponent,myName);}catch(e){if(e.name!=='AbortError')alert(errorText('image'));}finally{b.disabled=false;}});
+    actions.append(b);
+  }
+  detail.append(actions);card.append(detail);return card;
+}
+function metric(parent,title,value,note) {
+  const article=node('article',undefined,'metric');
+  article.append(node('h4',title),node('strong',value));if(note)article.append(node('p',note));parent.append(article);
+}
+function recordButton(parent,title,sub,value,action,icon=null) {
+  const b=node('button',undefined,'record-row');
+  const label=node('span',undefined,'record-label');label.append(node('strong',title),node('small',sub));
+  if(icon) b.append(icon);
+  b.append(label,node('b',value,'record-value'));b.addEventListener('click',action);parent.append(b);
+}
+function renderPlayers(rows,catalog,role,onPlayer,selectedSport) {
+  const list=$(role==='partner'?'partner-balances':'opponent-balances');
+  list.replaceChildren();
+  const display=entry=>catalog.get(entry.id)?.name||entry.fallback||tx('Unnamed');
+  const groups=byPlayer(rows,role).sort((a,b)=>b.played-a.played||display(a).localeCompare(display(b),language()));
+  for(const g of groups) {
+    const acrossSports=selectedSport==='all';
+    const score=acrossSports?'':tx(['tennis','padel'].includes(selectedSport)?'Sets':'Games')+' '+g.setsFor+'–'+g.setsAgainst;
+    const disclosure=node('details',undefined,'player-record'),summary=node('summary',undefined,'record-row');
+    const label=node('span',undefined,'record-label');
+    label.append(node('strong',display(g)),node('small',[record(g),score].filter(Boolean).join(' · ')));
+    summary.append(label,node('b',g.winRate+'%','record-value'));
+    disclosure.append(summary);list.append(disclosure);
+    disclosure.addEventListener('toggle',()=>{
+      if(!disclosure.open||disclosure.children.length>1) return;
+      const meetings=rows.filter(r=>matchesPerson(r,g.id,role));
+      const last=newest(meetings)[0],insights=matchInsights(meetings);
+      const detail=node('div',undefined,'player-detail'),table=node('dl',undefined,'timing');
+      statRow(table,tx('Last meeting'),momentText(last)+' · '+outcomeText(last)+' · '+last[11]+'–'+last[12]);
+      if(acrossSports) {
+        for(const sport of orderedSports(new Set(meetings.map(rowSport)))) statRow(table,sportText(sport),record(statistics(meetings.filter(r=>rowSport(r)===sport))));
+      } else {
+        statRow(table,tx('Points'),g.pointsFor+' – '+g.pointsAgainst+(g.unknownPointMatches?' · '+tx('Unknown points omitted in {0} matches.',g.unknownPointMatches):''));
+      }
+      statRow(table,tx('Current streak'),insights.current+' · '+tx(insights.last===0?'Consecutive wins':'Consecutive losses'));
+      if(insights.timed)statRow(table,tx('Average duration'),durationText(insights.averageSeconds)+' · '+tx('{0} timed matches',insights.timed));
+      const browse=node('button',tx('See match history'),'secondary');browse.addEventListener('click',()=>onPlayer(g.id,role));
+      detail.append(table,browse);disclosure.append(detail);
+    });
+  }
+  if(!groups.length) list.append(node('p',tx(role==='partner'?'No named partners in this selection.':'No matches in this selection.'),'muted'));
+}
+export function renderStatistics({rows,allRows,catalog,mode,selectedSport,totalResults,onPlayer,onMatch,onSport}) {
+  const summary=$('overall-summary'),overall=statistics(rows),nested=['tennis','padel'].includes(selectedSport);
+  $('stats-title').textContent=sportText(selectedSport)+' · '+tx('Your record');
+  const acrossSports=selectedSport==='all';
+  const scope=[tx(acrossSports?'All transferred matches for the selected mode across every sport.':'All transferred matches for the selected sport and mode.')];
+  if(Number.isInteger(totalResults)&&allRows.length<totalResults) scope.push(tx('This transfer contains {0} of {1} saved matches. Open a full results link on the watch for your whole history.',allRows.length,totalResults));
+  $('statistics-scope').textContent=scope.join(' ');summary.replaceChildren();
+  metric(summary,tx('Matches'),overall.played,record(overall));
+  metric(summary,tx('Win rate'),overall.winRate===null?'—':overall.winRate+'%');
+  if(!acrossSports) {
+    metric(summary,tx(nested?'Sets':'Games'),overall.setsFor+' – '+overall.setsAgainst,tx('For · against'));
+    if(nested) metric(summary,tx('Games'),overall.gamesFor+' – '+overall.gamesAgainst,tx('For · against'));
+    metric(summary,tx('Points'),overall.pointsFor+' – '+overall.pointsAgainst,overall.unknownPointMatches?tx('Unknown points omitted in {0} matches.',overall.unknownPointMatches):tx('For · against'));
+  }
+
+  const recent=$('recent-form');recent.replaceChildren();
+  for(const r of newest(rows).slice(0,12).reverse()) {
+    const won=rowWinner(r)===0, b=node('button',tx(won?'W':'L'),won?'win':'loss');
+    const opponent=catalog.get(r[4])?.name||r[5]||tx('Unnamed');
+    b.title=tx('{0} against {1}',outcomeText(r),opponent)+' · '+momentText(r);
+    b.setAttribute('aria-label',b.title);b.addEventListener('click',()=>onMatch(r[1]));recent.append(b);
+  }
+  if(!rows.length) recent.append(node('p',tx('No matches in this selection.'),'muted'));
+  const insights=$('match-insights');insights.replaceChildren();
+  if(rows.length) {
+    const s=matchInsights(rows);
+    metric(insights,tx('Current streak'),s.current,tx(s.last===0?'Consecutive wins':'Consecutive losses'));
+    metric(insights,tx('Longest win streak'),s.best,tx('Consecutive wins'));
+    if(s.deciding) metric(insights,tx(acrossSports?'Deciding matches won':nested?'Deciding sets won':'Deciding games won'),s.decidingWon+' / '+s.deciding,tx('Went the full distance'));
+    if(s.timed) metric(insights,tx('Average duration'),durationText(s.averageSeconds),tx('{0} timed matches',s.timed));
+  }
+  const sportList=$('sport-records');sportList.replaceChildren();
+  const sameMode=allRows.filter(r=>mode==='all'||rowMode(r)===mode);
+  for(const sport of orderedSports(new Set(sameMode.map(rowSport)))) {
+    const stat=statistics(sameMode.filter(r=>rowSport(r)===sport));
+    recordButton(sportList,sportText(sport),tx('{0} matches',stat.played)+' · '+record(stat),stat.winRate+'%',()=>onSport(sport),sportMark(sport));
+  }
+  if(!sameMode.length) sportList.append(node('p',tx('No matches in this selection.'),'muted'));
+  renderPlayers(rows,catalog,'opponent',onPlayer,selectedSport);
+  renderPlayers(rows,catalog,'partner',onPlayer,selectedSport);
 }

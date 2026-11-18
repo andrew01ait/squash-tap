@@ -19,3 +19,8 @@
   X-Frame-Options: DENY
 /backup.mjs
   Cache-Control: no-cache
+
+/referee*
+  Cache-Control: no-cache
+  Referrer-Policy: no-referrer
+  X-Frame-Options: DENY

@@ -1,6 +1,20 @@
 # Testing and verification
 
-Current watch release: **v0.16.4 / code 22**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
+Current watch release: **v0.18.0 / code 24**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
+
+## Direct v0.18.0 · 2026-11-18
+
+The direct release passed 335 JUnit core tests, 206 Robolectric watch UI tests and 90 browser/relay tests (631 total). An additional 31 checks exercised the Play source set. The direct APK was checked for the original signer, package, minimum API 30, target API 34, code 24, aligned ZIP, embedded language resources, feed size and SHA-256. All 20 older APKs matched their original release records.
+
+A synthetic end-to-end run connected the native host and a second native room client to the actual Worker running on local D1. A browser referee confirmed a 2–0 match without a connection. A lost upload response, client restart and reconnect yielded the same final on both watches. Both imports were explicit, deduplicated and reflected each player's selected side. The separate referee-rule suite compares 213 traces against the Java match engine.
+
+On the browser preview, a staged roster name survived a language switch, and the results journal and per-player insights displayed the synthetic watch transfer. With the preview service stopped, the referee completed two squash games, confirmed the final, and reloaded the page offline with both game scores intact. Physical watch pairing, radio behaviour and power consumption still require a real-device trial.
+
+## Play contact documentation — 2026-11-12
+
+Record endruuu@hotmail.com as the owner-confirmed public support and privacy contact in both Play drafts and the release checklist, with account verification still pending. Verify documentation links/release identity, exact guide and draft parity with the sanitized export, and that only these five Markdown files change in the public source. Regenerate the source download. Runtime code, retained APKs, release feeds, signing identity and Play candidate configuration stay byte-for-byte; native/physical tests are not rerun for this documentation-only update. No Play Console change or policy approval is claimed.
+
+The documentation checker passes for 12 guides and 73 local links, with exact export parity. All 299 public-source hashes/modes match the reviewed GitHub head before editing; the reviewed update changes only five Markdown files. The generated ZIP matches that export. The local frontend build cannot run because this restored checkout has no Vinext dependencies; source-download publication requires the supported remote build of the exact pushed source.
 
 ## Google Play preparation — 2026-11-12
 

@@ -1,6 +1,6 @@
 # Versions and compatibility
 
-Current official watch release: **v0.16.4**; Android version code **22**; package **`at.andrew.squashtap`**. `public/release.properties` is the machine-readable update feed; `public/builds.json` and `SHA256SUMS.txt` record retained artifacts.
+Current official watch release: **v0.18.0**, Android version code **24**; package **`at.andrew.squashtap`**. `public/release.properties` is the machine-readable update feed; `public/builds.json` and `SHA256SUMS.txt` record retained artifacts.
 
 ## Independent version numbers
 
@@ -47,4 +47,8 @@ The v0.16.4/code 22 release changes result-filter presentation/reset only: playe
 
 ## Play preparation candidate
 
-The separate `play-release.json` reserves 0.17.0-play.1/code 23 for a preparation-only Play AAB targeting API 35/minimum API 30. The current official website APK/feed stays v0.16.4/code 22/API 34. This is a distribution profile, not a package rename or data/schema migration. Future official versions across both channels must use monotonically increasing codes; do not publish a different app under code 23 or overwrite an existing APK. Play App Signing must retain the original app certificate for existing installations. Physical APK-to-Play upgrade and Console review remain pending; see [PLAY_RELEASE.md](PLAY_RELEASE.md).
+The separate `play-release.json` reserves 0.17.0-play.1/code 23 for a preparation-only Play AAB targeting API 35/minimum API 30. The historical direct release at the time of that preparation was v0.16.4/code 22/API 34. This is a distribution profile, not a package rename or data/schema migration. Future official versions across both channels must use monotonically increasing codes; do not publish a different app under code 23 or overwrite an existing APK. Play App Signing must retain the original app certificate for existing installations. Physical APK-to-Play upgrade and Console review remain pending; see [PLAY_RELEASE.md](PLAY_RELEASE.md).
+
+## Linked matches release
+
+The v0.18.0 direct APK uses code 24 and the existing package and signer. Code 23 remains assigned to the earlier Play preparation artifact. The separate room schema uses migration 0003. Existing B1–B5 books, transfer QR protocols, CSV schemas, and audience links remain readable.

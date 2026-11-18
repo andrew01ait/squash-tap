@@ -1,5 +1,17 @@
 # Releases
 
+## v0.18.0 · 2026-11-18 · direct APK code 24
+
+- Hand over scoring to a phone referee by private QR. An offline rally, correction or confirmed finish is stored locally and uploaded on reconnect. Both the host watch and other watches follow read-only and can save the confirmed result independently.
+- Pair spectator watches with a ten-character code. Handing an already shared match to a referee keeps existing readers connected. Follower imports use the selected player's side, position and retirement outcome.
+- Browse phone results across sports and filter by player, role, mode, date or outcome. Explore form, streaks, deciding sets, time played and separate partner and opponent records. Redesigned roster editing keeps drafts across language changes.
+- Add automatic language detection and a persistent override for English, German, French and Spanish on the watch and throughout the web interfaces.
+
+## Play contact confirmation — 2026-11-12 (public watch v0.16.4 unchanged)
+
+- Record the owner's confirmed public support and privacy email, endruuu@hotmail.com, in both Play drafts and the release checklist. Account registration is user-reported; account verification remains pending.
+- Keep publisher identity, provider/request-handling review, policy publication, signing enrollment, testing and Google approval as outstanding gates. This documentation update does not change Play Console settings or submit a release.
+
 ## Google Play preparation — 2026-11-12 (public watch v0.16.4 unchanged)
 
 - Add a separate API-35 AAB candidate, 0.17.0-play.1/code 23, using the original package/signer and locked official build tools. Preserve all published APK/feed bytes.

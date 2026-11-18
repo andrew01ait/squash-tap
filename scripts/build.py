@@ -6,8 +6,8 @@ import argparse, hashlib, json, os, secrets, shutil, subprocess, sys, zipfile
 ROOT=Path(__file__).resolve().parents[1]
 PKG='at.andrew.squashtap'
 SITE='https://squash-tap-andrew.endruuu.chatgpt.site'
-RELEASES=((22,'0.16.4'),)
-RELEASE_NOTES='Reset all filters is now prominent in Results and at the top of Result filters. It clears player, dates and match mode, returns to the first page, and keeps the selected sport. Phone reset also refreshes all-mode statistics.'
+RELEASES=((24,'0.18.0'),)
+RELEASE_NOTES='Hand scoring to a referee with an offline-ready phone QR, share live scores with other watches by code, and save confirmed results. Browse match and player insights on your phone. English, German, French and Spanish with automatic or manual language selection.'
 
 def run(args, env=None):
     result=subprocess.run([str(x) for x in args],cwd=ROOT,env=env,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
@@ -25,7 +25,7 @@ def build(sdk,junit,hamcrest):
         if jvm.exists(): env['JAVA_HOME']=str(jvm)
     work=ROOT/'build';work.mkdir(exist_ok=True)
     test_classes=work/'test-classes';test_classes.mkdir(exist_ok=True)
-    core=[ROOT/'android/src/at/andrew/squashtap'/f'{name}.java' for name in ('HeadToHead','ScorePalette','BackupArchive','MatchPresets','MatchReminders','PickleballGame','ServiceOrder','MatchFormat','ScoreState','TouchTargets','UpdatePolicy','VerifiedDownload','MatchState','MatchResult','MatchStatistics','ManualMatchEntry','MatchBook','MatchDisplayPolicy','DiagnosticTransfer','OpponentDirectory','ResultFilter','MatchCsv','TransferCrypto')]
+    core=[ROOT/'android/src/at/andrew/squashtap'/f'{name}.java' for name in ('SharedResult','HeadToHead','ScorePalette','BackupArchive','MatchPresets','MatchReminders','PickleballGame','ServiceOrder','MatchFormat','ScoreState','TouchTargets','UpdatePolicy','VerifiedDownload','MatchState','MatchResult','MatchStatistics','ManualMatchEntry','MatchBook','MatchDisplayPolicy','DiagnosticTransfer','OpponentDirectory','ResultFilter','MatchCsv','TransferCrypto')]
     tests=sorted((ROOT/'android/test').rglob('*Test.java'))
     cp=os.pathsep.join((str(junit),str(hamcrest)))
     print('Compiling and running local JUnit tests',flush=True)
@@ -33,7 +33,7 @@ def build(sdk,junit,hamcrest):
     result=run(['java','-cp',str(test_classes)+os.pathsep+cp,'org.junit.runner.JUnitCore',*('at.andrew.squashtap.'+t.stem for t in tests)],env)
     (work/'test-results.txt').write_text(result)
     print('Running browser interchange and relay/storage tests',flush=True)
-    web_result=run(['node','--test',ROOT/'web-test/interchange.test.mjs',ROOT/'web-test/transfer-state.test.mjs',ROOT/'web-test/relay.test.mjs',ROOT/'web-test/multisport.test.mjs',ROOT/'web-test/backup.test.mjs',ROOT/'web-test/live.test.mjs'],env)
+    web_result=run(['node','--test',*sorted((ROOT/'web-test').glob('*.test.mjs'))],env)
     (work/'web-test-results.txt').write_text(web_result)
     signing=ROOT/'.local/signing';signing.mkdir(parents=True,exist_ok=True)
     key=signing/'squash-tap.p12';password=signing/'key.password'

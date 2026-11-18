@@ -1,0 +1,251 @@
+import {language, t} from './locale.mjs';
+import {rowWinner, localMoment} from './interchange.mjs?v=0.16.0';
+
+const messages = {
+  'Navigate': ['Navigation','Navigation','Navegación'],
+  'Match journal': ['Partienübersicht','Carnet de matchs','Historial de partidos'],
+  'Results from your watch': ['Ergebnisse von deiner Uhr','Les résultats de votre montre','Resultados de tu reloj'],
+  'Results': ['Ergebnisse','Résultats','Resultados'],
+  'Statistics': ['Statistik','Statistiques','Estadísticas'],
+  'Players': ['Spieler','Joueurs','Jugadores'],
+  'Import CSV': ['CSV importieren','Importer un CSV','Importar CSV'],
+  'Backup': ['Sicherung','Sauvegarde','Copia de seguridad'],
+  'All sports': ['Alle Sportarten','Tous les sports','Todos los deportes'],
+  'Sport': ['Sportart','Sport','Deporte'],
+  'Mode': ['Modus','Mode','Modalidad'],
+  'All modes': ['Alle Modi','Tous les modes','Todas las modalidades'],
+  'Singles': ['Einzel','Simple','Individual'],
+  'Doubles': ['Doppel','Double','Dobles'],
+  'Table tennis': ['Tischtennis','Tennis de table','Tenis de mesa'],
+  'Badminton': ['Badminton','Badminton','Bádminton'],
+  'Tennis': ['Tennis','Tennis','Tenis'],
+  'Padel': ['Padel','Padel','Pádel'],
+  'Squash': ['Squash','Squash','Squash'],
+  'Pickleball': ['Pickleball','Pickleball','Pickleball'],
+  'Match history': ['Spielverlauf','Historique des matchs','Historial de partidos'],
+  'Filters': ['Filter','Filtres','Filtros'],
+  'Player': ['Spieler','Joueur','Jugador'],
+  'All players': ['Alle Spieler','Tous les joueurs','Todos los jugadores'],
+  'Unnamed': ['Ohne Namen','Sans nom','Sin nombre'],
+  'Player role': ['Rolle','Rôle du joueur','Papel del jugador'],
+  'Any role': ['Alle Rollen','Tous les rôles','Cualquier papel'],
+  'Opponent': ['Gegner','Adversaire','Rival'],
+  'Partner': ['Partner','Partenaire','Pareja'],
+  'Opponent 2': ['Gegner 2','Adversaire 2','Rival 2'],
+  'Opponent retired': ['Gegner hat aufgegeben','Abandon adverse','Retirada del rival'],
+  'You retired': ['Du hast aufgegeben','Vous avez abandonné','Te retiraste'],
+  'Outcome': ['Ausgang','Issue','Resultado'],
+  'All outcomes': ['Alle Ergebnisse','Toutes les issues','Todos los resultados'],
+  'Won': ['Gewonnen','Victoire','Victoria'],
+  'Lost': ['Verloren','Défaite','Derrota'],
+  'From': ['Von','Du','Desde'],
+  'To': ['Bis','Au','Hasta'],
+  'Reset all filters': ['Alle Filter zurücksetzen','Réinitialiser les filtres','Restablecer filtros'],
+  'Newer': ['Neuere','Plus récents','Más recientes'],
+  'Older': ['Ältere','Plus anciens','Anteriores'],
+  'Download filtered CSV': ['Auswahl als CSV laden','Exporter la sélection en CSV','Descargar selección en CSV'],
+  'Your record': ['Deine Bilanz','Votre bilan','Tu balance'],
+  'Recent form': ['Deine letzten Partien','Forme récente','Racha reciente'],
+  'Last 12 matches, oldest first. Select a result for the score.': ['Die letzten 12 Partien, älteste zuerst. Tippe auf ein Ergebnis für den Spielstand.','Les 12 derniers matchs, du plus ancien au plus récent. Touchez un résultat pour afficher le score.','Los últimos 12 partidos, del más antiguo al más reciente. Toca un resultado para ver el marcador.'],
+  'See match history': ['Partien ansehen','Voir l’historique','Ver historial'],
+  'By sport': ['Nach Sportart','Par sport','Por deporte'],
+  'Last meeting': ['Letzte Begegnung','Dernière rencontre','Último encuentro'],
+  'Against each opponent': ['Bilanz gegen jeden Gegner','Bilan par adversaire','Balance frente a cada rival'],
+  'With each partner': ['Bilanz mit jedem Partner','Bilan par partenaire','Balance con cada pareja'],
+  'Your display name': ['Dein Anzeigename','Votre nom affiché','Tu nombre en el marcador'],
+  'Shown on your scoreboard. Leave blank to use the default name.': ['So heißt du auf der Anzeigetafel. Leer lassen für den Standardnamen.','Ce nom apparaît sur le tableau de score. Laissez vide pour utiliser le nom par défaut.','Aparece en el marcador. Déjalo en blanco para usar el nombre predeterminado.'],
+  'Me': ['Ich','Moi','Yo'],
+  'Saved players': ['Gespeicherte Spieler','Joueurs enregistrés','Jugadores guardados'],
+  'New player': ['Neuer Spieler','Nouveau joueur','Nuevo jugador'],
+  'Player name': ['Name des Spielers','Nom du joueur','Nombre del jugador'],
+  'Add player': ['Hinzufügen','Ajouter','Añadir'],
+  'Include archived players': ['Archivierte Spieler anzeigen','Afficher les joueurs archivés','Mostrar jugadores archivados'],
+  'Assign an opponent to a match': ['Einer Partie einen Gegner zuweisen','Attribuer un adversaire à un match','Asignar un rival a un partido'],
+  'Change match opponent': ['Gegner der Partie ändern','Changer l’adversaire du match','Cambiar el rival del partido'],
+  'Match opponent': ['Gegner der Partie','Adversaire du match','Rival del partido'],
+  'Import completed matches': ['Abgeschlossene Partien importieren','Importer des matchs terminés','Importar partidos finalizados'],
+  'Select an exported Keep Score CSV. Your watch checks for duplicates and asks you to confirm the import.': ['Wähle eine exportierte Keep Score-CSV. Deine Uhr prüft auf Duplikate und bittet dich, den Import zu bestätigen.','Choisissez un CSV exporté par Keep Score. Votre montre vérifie les doublons et vous demande de confirmer l’importation.','Elige un CSV exportado por Keep Score. El reloj comprueba los duplicados y te pide que confirmes la importación.'],
+  'CSV file': ['CSV-Datei','Fichier CSV','Archivo CSV'],
+  'Download empty template': ['Leere Vorlage laden','Télécharger le modèle vide','Descargar plantilla vacía'],
+  'Remove file': ['Datei entfernen','Retirer le fichier','Quitar archivo'],
+  'Complete watch backup': ['Vollständige Uhrensicherung','Sauvegarde complète de la montre','Copia completa del reloj'],
+  'Includes every sport, players, favourite formats, settings and your current match with its undo history.': ['Enthält alle Sportarten, Spieler, Lieblingsformate, Einstellungen und die aktuelle Partie samt rückgängig machbaren Spielzügen.','Inclut tous les sports, joueurs, formats favoris et réglages, ainsi que le match en cours et son historique d’annulation.','Incluye todos los deportes, jugadores, formatos favoritos, ajustes y el partido en curso con su historial de acciones.'],
+  'Download backup': ['Sicherung laden','Télécharger la sauvegarde','Descargar copia'],
+  'Restore a backup': ['Sicherung wiederherstellen','Restaurer une sauvegarde','Restaurar una copia'],
+  'A restore replaces the data on your watch after you review and confirm. An unfinished match returns paused.': ['Nach deiner Prüfung und Bestätigung ersetzt die Sicherung die Daten auf der Uhr. Eine laufende Partie wird pausiert wiederhergestellt.','Après vérification et confirmation, les données de la sauvegarde remplacent celles de votre montre. Un match inachevé est restauré en pause.','Después de revisar y confirmar, los datos de la copia sustituyen los del reloj. Un partido sin terminar vuelve en pausa.'],
+  'Keep Score backup file': ['Keep Score-Sicherungsdatei','Fichier de sauvegarde Keep Score','Archivo de copia de Keep Score'],
+  'Send restore to watch': ['Wiederherstellung an Uhr senden','Envoyer la restauration à la montre','Enviar restauración al reloj'],
+  'Send to your watch': ['An deine Uhr senden','Envoyer à votre montre','Enviar a tu reloj'],
+  'On your watch, choose Receive changes to review and confirm.': ['Wähle auf der Uhr „Änderungen empfangen“, um sie zu prüfen und zu bestätigen.','Sur la montre, choisissez « Recevoir les modifications » pour les vérifier et les confirmer.','En el reloj, elige «Recibir cambios» para revisarlos y confirmarlos.'],
+  'Send changes': ['Änderungen senden','Envoyer les modifications','Enviar cambios'],
+  'Your watch and this browser exchange encrypted data. Anyone with the complete QR link can open it during its ten-minute lifetime.': ['Uhr und Browser tauschen die Daten verschlüsselt aus. Wer den vollständigen QR-Link hat, kann ihn während seiner zehnminütigen Gültigkeit öffnen.','La montre et ce navigateur échangent des données chiffrées. Toute personne disposant du lien QR complet peut l’ouvrir pendant ses dix minutes de validité.','El reloj y este navegador intercambian datos cifrados. Cualquier persona con el enlace QR completo puede abrirlo durante sus diez minutos de validez.'],
+  'On your watch, open Results → Options → View results on phone, or Players → Edit names on phone. Scan the QR code.': ['Öffne auf der Uhr Ergebnisse → Optionen → Ergebnisse am Handy ansehen oder Spieler → Namen am Handy bearbeiten. Scanne den QR-Code.','Sur la montre, ouvrez Résultats → Options → Voir les résultats sur téléphone, ou Joueurs → Modifier les noms sur téléphone. Scannez le code QR.','En el reloj, abre Resultados → Opciones → Ver resultados en el teléfono o Jugadores → Editar nombres en el teléfono. Escanea el código QR.'],
+  'Match insights': ['Partienanalyse','Analyse des matchs','Análisis de partidos'],
+  'Player directory': ['Spielerverzeichnis','Répertoire des joueurs','Directorio de jugadores'],
+  'Manage names on your watch': ['Namen für deine Uhr verwalten','Gérer les noms de votre montre','Gestiona los nombres del reloj'],
+  'Browse history and scores': ['Deine Partien und Spielstände','Consultez votre historique et vos scores','Consulta tu historial y tus marcadores'],
+  'Compare sports and players': ['Sportarten und Spieler vergleichen','Comparez vos sports et vos joueurs','Compara deportes y jugadores'],
+  'Bring saved results to your watch': ['Gespeicherte Ergebnisse auf die Uhr übertragen','Transférez des résultats sur votre montre','Lleva tus resultados guardados al reloj'],
+  'Save or restore your watch data': ['Uhrendaten sichern oder wiederherstellen','Enregistrez ou restaurez les données de la montre','Guarda o restaura los datos del reloj'],
+  'Expires at {0}': ['Gültig bis {0}','Expire à {0}','Caduca a las {0}'],
+  'No name': ['Kein Name','Aucun nom','Sin nombre'],
+  '{0} (archived)': ['{0} (archiviert)','{0} (archivé)','{0} (archivado)'],
+  'No saved matches in this transfer.': ['Diese Übertragung enthält keine gespeicherten Partien.','Ce transfert ne contient aucun match enregistré.','Esta transferencia no contiene partidos guardados.'],
+  'No matches fit these filters.': ['Keine Partien für diese Filter.','Aucun match ne correspond aux filtres.','Ningún partido coincide con los filtros.'],
+  'Page {0} of {1}': ['Seite {0} von {1}','Page {0} sur {1}','Página {0} de {1}'],
+  '{0} selected': ['{0} ausgewählt','{0} sélectionné(s)','{0} seleccionados'],
+  'Edit': ['Bearbeiten','Modifier','Editar'],
+  'Archived': ['Archiviert','Archivé','Archivado'],
+  'Rename': ['Umbenennen','Renommer','Cambiar nombre'],
+  'Archive': ['Archivieren','Archiver','Archivar'],
+  'Restore player': ['Spieler reaktivieren','Réintégrer le joueur','Restaurar jugador'],
+  'Cancel': ['Abbrechen','Annuler','Cancelar'],
+  'Save name': ['Namen übernehmen','Enregistrer le nom','Guardar nombre'],
+  'Name for {0}': ['Name für {0}','Nom de {0}','Nombre de {0}'],
+  'Archive {0}? Their past results will keep this name.': ['{0} archivieren? Bisherige Ergebnisse behalten diesen Namen.','Archiver {0} ? Les anciens résultats conserveront ce nom.','¿Archivar a {0}? Sus resultados anteriores conservarán este nombre.'],
+  'No players yet. Add a name above.': ['Noch keine Spieler. Füge oben einen Namen hinzu.','Aucun joueur. Ajoutez un nom ci-dessus.','Aún no hay jugadores. Añade un nombre arriba.'],
+  'Results in {0}': ['Ergebnisse in {0}','Résultats en {0}','Resultados en {0}'],
+  'Changes prepared for your watch.': ['Änderungen für deine Uhr vorbereitet.','Modifications prêtes pour votre montre.','Cambios listos para el reloj.'],
+  'No changes prepared.': ['Keine Änderungen vorbereitet.','Aucune modification en attente.','No hay cambios pendientes.'],
+  'Changes sent.': ['Änderungen gesendet.','Modifications envoyées.','Cambios enviados.'],
+  'These names or assignments have been edited.': ['Namen oder Zuordnungen wurden bearbeitet.','Des noms ou des affectations ont été modifiés.','Has editado nombres o asignaciones.'],
+  'CSV results ready to send: {0}': ['CSV-Ergebnisse zum Senden: {0}','Résultats CSV à envoyer : {0}','Resultados CSV listos para enviar: {0}'],
+  'Changes here apply to your last completed match.': ['Diese Zuordnung gilt für deine letzte abgeschlossene Partie.','Cette affectation concerne votre dernier match terminé.','Esta asignación se aplica al último partido finalizado.'],
+  'Changes here apply to your current match.': ['Diese Zuordnung gilt für deine aktuelle Partie.','Cette affectation concerne votre match en cours.','Esta asignación se aplica al partido en curso.'],
+  'Changes here apply to the current or last completed match on your watch.': ['Diese Zuordnung gilt für die laufende oder zuletzt abgeschlossene Partie auf deiner Uhr.','Cette affectation concerne le match en cours ou le dernier match terminé sur votre montre.','Esta asignación se aplica al partido actual o al último que terminó en tu reloj.'],
+  'No file selected.': ['Keine Datei ausgewählt.','Aucun fichier sélectionné.','Ningún archivo seleccionado.'],
+  '{0} completed matches ready for review.': ['{0} abgeschlossene Partien zur Prüfung bereit.','{0} matchs terminés à vérifier.','{0} partidos finalizados listos para revisar.'],
+  'Keep this complete backup file private.': ['Bewahre diese vollständige Sicherung privat auf.','Conservez cette sauvegarde complète en lieu sûr.','Guarda esta copia completa en privado.'],
+  'To download a backup, open Settings → Backup & restore on the watch.': ['Öffne auf der Uhr Einstellungen → Sichern und Wiederherstellen, um eine Sicherung zu laden.','Sur la montre, ouvrez Réglages → Sauvegarde et restauration pour télécharger une sauvegarde.','Para descargar una copia, abre Ajustes → Copia y restauración en el reloj.'],
+  'Backup created {0}. Review the restore on your watch.': ['Sicherung vom {0}. Prüfe die Wiederherstellung auf deiner Uhr.','Sauvegarde créée le {0}. Vérifiez la restauration sur votre montre.','Copia creada el {0}. Revisa la restauración en tu reloj.'],
+  'Complete backup downloaded.': ['Vollständige Sicherung heruntergeladen.','Sauvegarde complète téléchargée.','Copia completa descargada.'],
+  'Backup sent. Review and confirm it on your watch.': ['Sicherung gesendet. Prüfe und bestätige sie auf der Uhr.','Sauvegarde envoyée. Vérifiez-la et confirmez sur la montre.','Copia enviada. Revísala y confírmala en el reloj.'],
+  'Opening encrypted transfer…': ['Verschlüsselte Übertragung wird geöffnet …','Ouverture du transfert chiffré…','Abriendo la transferencia cifrada…'],
+  'This transfer has expired. Scan a new QR code on your watch.': ['Die Übertragung ist abgelaufen. Scanne einen neuen QR-Code von deiner Uhr.','Ce transfert a expiré. Scannez un nouveau code QR sur votre montre.','La transferencia ha caducado. Escanea un nuevo código QR del reloj.'],
+  'Unknown time': ['Zeit unbekannt','Heure inconnue','Hora desconocida'],
+  'Not recorded': ['Nicht erfasst','Non renseigné','Sin registrar'],
+  'Start': ['Beginn','Début','Inicio'],
+  'End': ['Ende','Fin','Fin'],
+  'Duration': ['Dauer','Durée','Duración'],
+  'Best of {0}': ['Best of {0}','Au meilleur des {0}','Al mejor de {0}'],
+  'Match {0}': ['Partie {0}','Match {0}','Partido {0}'],
+  'Match tie-break': ['Match-Tiebreak','Super jeu décisif','Supertiebreak'],
+  'Set': ['Satz','Set','Set'],
+  'Game': ['Spiel','Jeu','Juego'],
+  'Sets': ['Sätze','Sets','Sets'],
+  'Games': ['Spiele','Jeux','Juegos'],
+  'Points': ['Punkte','Points','Puntos'],
+  'Final result': ['Endergebnis','Résultat final','Resultado final'],
+  'Won by retirement': ['Sieg durch Aufgabe','Victoire par abandon','Victoria por retirada'],
+  'Unfinished': ['Unvollständig','Inachevé','Inacabado'],
+  'Our team': ['Unser Team','Notre équipe','Nuestro equipo'],
+  'Opposing team': ['Gegnerisches Team','Équipe adverse','Equipo rival'],
+  'Download result card': ['Ergebniskarte laden','Télécharger la fiche','Descargar tarjeta'],
+  'Share result card': ['Ergebniskarte teilen','Partager la fiche','Compartir tarjeta'],
+  'Matches': ['Partien','Matchs','Partidos'],
+  'Win rate': ['Siegquote','Taux de victoire','Victorias'],
+  '{0} won · {1} lost': ['{0} Siege · {1} Niederlagen','{0} victoires · {1} défaites','{0} victorias · {1} derrotas'],
+  '1 match': ['1 Partie','1 match','1 partido'],
+  '1 timed match': ['1 Partie mit Zeitmessung','1 match chronométré','1 partido cronometrado'],
+  '1 completed match ready for review.': ['1 abgeschlossene Partie zur Prüfung bereit.','1 match terminé à vérifier.','1 partido finalizado listo para revisar.'],
+  'Unknown points omitted in 1 match.': ['Unbekannte Punkte in 1 Partie ausgelassen.','Points inconnus exclus pour 1 match.','Se omiten los puntos desconocidos en 1 partido.'],
+  '{0} matches': ['{0} Partien','{0} matchs','{0} partidos'],
+  'For · against': ['Für · gegen','Pour · contre','A favor · en contra'],
+  'Unknown points omitted in {0} matches.': ['Unbekannte Punkte in {0} Partien ausgelassen.','Points inconnus exclus pour {0} matchs.','Se omiten los puntos desconocidos en {0} partidos.'],
+  'All transferred matches for the selected mode across every sport.': ['Alle übertragenen Partien im gewählten Modus über alle Sportarten.','Tous les matchs transférés pour le mode sélectionné, tous sports confondus.','Todos los partidos transferidos de la modalidad seleccionada, en todos los deportes.'],
+  'All transferred matches for the selected sport and mode.': ['Alle übertragenen Partien dieser Sportart und dieses Modus.','Tous les matchs transférés pour ce sport et ce mode.','Todos los partidos transferidos del deporte y la modalidad seleccionados.'],
+  'This transfer contains {0} of {1} saved matches. Open a full results link on the watch for your whole history.': ['Diese Übertragung umfasst {0} von {1} gespeicherten Partien. Öffne auf der Uhr den Link für alle Ergebnisse, um den gesamten Verlauf zu sehen.','Ce transfert inclut {0} matchs enregistrés sur {1}. Ouvrez le lien de tous les résultats sur la montre pour afficher tout l’historique.','Esta transferencia contiene {0} de {1} partidos guardados. Abre el enlace de todos los resultados en el reloj para ver el historial completo.'],
+  'No matches in this selection.': ['Keine Partien in dieser Auswahl.','Aucun match dans cette sélection.','No hay partidos en esta selección.'],
+  'No named partners in this selection.': ['Keine benannten Partner in dieser Auswahl.','Aucun partenaire nommé dans cette sélection.','No hay parejas con nombre en esta selección.'],
+  'Current streak': ['Aktuelle Serie','Série actuelle','Racha actual'],
+  'Consecutive wins': ['Siege in Folge','Victoires de suite','Victorias seguidas'],
+  'Consecutive losses': ['Niederlagen in Folge','Défaites de suite','Derrotas seguidas'],
+  'Longest win streak': ['Längste Siegesserie','Plus longue série de victoires','Mejor racha de victorias'],
+  'Deciding matches won': ['Gewonnene Entscheidungspartien','Matchs gagnés à la manche décisive','Partidos ganados en el último parcial'],
+  'Deciding games won': ['Entscheidungsspiele gewonnen','Manches décisives gagnées','Juegos decisivos ganados'],
+  'Deciding sets won': ['Entscheidungssätze gewonnen','Sets décisifs gagnés','Sets decisivos ganados'],
+  'Went the full distance': ['Über die volle Distanz','Matchs joués en totalité','Partidos que llegaron al último parcial'],
+  'Average duration': ['Durchschnittliche Dauer','Durée moyenne','Duración media'],
+  '{0} timed matches': ['{0} Partien mit Zeitmessung','{0} matchs chronométrés','{0} partidos cronometrados'],
+  '{0} h {1} min': ['{0} Std. {1} Min.','{0} h {1} min','{0} h {1} min'],
+  '{0} min {1} s': ['{0} Min. {1} Sek.','{0} min {1} s','{0} min {1} s'],
+  'W': ['S','V','V'],
+  'L': ['N','D','D'],
+  '{0} against {1}': ['{0} gegen {1}','{0} contre {1}','{0} contra {1}'],
+  'vs {0}': ['gegen {0}','contre {0}','contra {0}'],
+  'Keep score. Keep playing.': ['Punkte zählen. Weiterspielen.','Comptez les points. Jouez encore.','Lleva el marcador. Sigue jugando.'],
+};
+export function tx(english, ...values) {
+  const singularForm=['{0} matches','{0} timed matches','{0} completed matches ready for review.','Unknown points omitted in {0} matches.'];
+  if (Number(values[0])===1 && singularForm.includes(english)) {
+    const key=english.replace('{0}','1').replace('matches','match');
+    return t(key,...messages[key]);
+  }
+  if (english==='{0} won · {1} lost') {
+    const [wins,losses]=values;
+    return t(english,'{0} '+(wins===1?'Sieg':'Siege')+' · {1} '+(losses===1?'Niederlage':'Niederlagen'),
+      '{0} '+(wins===1?'victoire':'victoires')+' · {1} '+(losses===1?'défaite':'défaites'),
+      '{0} '+(wins===1?'victoria':'victorias')+' · {1} '+(losses===1?'derrota':'derrotas'),...values);
+  }
+  const translations = messages[english];
+  if (!translations) throw Error('Missing phone translation: '+english);
+  return t(english,...translations,...values);
+}
+export const sportText = sport => tx(({all:'All sports','table-tennis':'Table tennis',tennis:'Tennis',padel:'Padel',pickleball:'Pickleball',badminton:'Badminton',squash:'Squash'})[sport]);
+export const modeText = mode => tx(mode==='doubles'?'Doubles':'Singles');
+export const outcomeText = row => [tx(rowWinner(row)===0?'Won':'Lost'),row[23]&&tx(row[23]==='me'?'You retired':'Opponent retired')].filter(Boolean).join(' · ');
+export function durationText(seconds) {
+  return seconds>=3600?tx('{0} h {1} min',Math.floor(seconds/3600),Math.floor(seconds/60)%60):tx('{0} min {1} s',Math.floor(seconds/60),seconds%60);
+}
+export function momentText(row,index=7,includeTime=true) {
+  if(!row[index]) {
+    if(index!==7||includeTime==='required') return tx('Not recorded');
+    return new Intl.DateTimeFormat(language(),{dateStyle:'medium',timeZone:'UTC'}).format(new Date(row[2]+'T12:00:00Z'));
+  }
+  const options={dateStyle:'medium',...(includeTime?{timeStyle:'short'}:{})};
+  try { return new Intl.DateTimeFormat(language(),{...options,timeZone:row[9]}).format(new Date(row[index])); }
+  catch {
+    // Android also records fixed offsets such as GMT+04:30.
+    const copy=[...row];copy[7]=row[index];
+    const iso=localMoment(copy).slice(0,19).replace(' ','T')+'Z';
+    return new Intl.DateTimeFormat(language(),{...options,timeZone:'UTC'}).format(new Date(iso));
+  }
+}
+
+const errors = {
+  'name': ['Enter a name of 1–60 characters without control characters.','Gib einen Namen mit 1–60 Zeichen ohne Steuerzeichen ein.','Saisissez un nom de 1 à 60 caractères sans caractères de contrôle.','Introduce un nombre de 1 a 60 caracteres sin caracteres de control.'],
+  'duplicate': ['That name is already saved.','Dieser Name ist bereits gespeichert.','Ce nom est déjà enregistré.','Ese nombre ya está guardado.'],
+  'roster': ['The player list is full.','Die Spielerliste ist voll.','La liste des joueurs est pleine.','La lista de jugadores está llena.'],
+  'date': ['The end date must be on or after the start date.','Das Enddatum muss am oder nach dem Startdatum liegen.','La date de fin doit être égale ou postérieure à la date de début.','La fecha final debe ser igual o posterior a la fecha inicial.'],
+  'link': ['Scan a fresh QR code from your watch.','Scanne einen neuen QR-Code von deiner Uhr.','Scannez un nouveau code QR sur votre montre.','Escanea un nuevo código QR del reloj.'],
+  'crypto': ['Open the secure HTTPS link from your watch in a browser with encryption support.','Öffne den HTTPS-Link von deiner Uhr in einem Browser mit Verschlüsselungsunterstützung.','Ouvrez le lien HTTPS de votre montre dans un navigateur prenant en charge le chiffrement.','Abre el enlace HTTPS del reloj en un navegador compatible con el cifrado.'],
+  'unsupported': ['This transfer format is unsupported. Check for a watch update.','Dieses Übertragungsformat wird nicht unterstützt. Prüfe, ob ein Uhrenupdate verfügbar ist.','Ce format de transfert n’est pas pris en charge. Vérifiez les mises à jour de la montre.','Este formato de transferencia no es compatible. Comprueba si hay actualizaciones del reloj.'],
+  'sent': ['Changes were already sent. Receive them on the watch or start a new transfer.','Die Änderungen wurden bereits gesendet. Empfange sie auf der Uhr oder starte eine neue Übertragung.','Les modifications ont déjà été envoyées. Recevez-les sur la montre ou démarrez un nouveau transfert.','Los cambios ya se enviaron. Recíbelos en el reloj o inicia otra transferencia.'],
+  'size': ['This transfer is too large. Try a smaller date range.','Die Übertragung ist zu groß. Wähle einen kürzeren Zeitraum.','Ce transfert est trop volumineux. Sélectionnez une période plus courte.','La transferencia es demasiado grande. Elige un periodo más corto.'],
+  'csvSize': ['The CSV is too large. Select a file of up to 3 MiB.','Die CSV ist zu groß. Wähle eine Datei mit höchstens 3 MiB.','Le CSV est trop volumineux. Choisissez un fichier de 3 Mio maximum.','El CSV es demasiado grande. Elige un archivo de hasta 3 MiB.'],
+  'headers': ['Use a Keep Score CSV export with its original column headings.','Verwende eine exportierte Keep Score-CSV mit den ursprünglichen Spaltenüberschriften.','Utilisez un CSV exporté par Keep Score avec ses en-têtes de colonnes d’origine.','Utiliza un CSV exportado por Keep Score con los encabezados originales.'],
+  'csv': ['The CSV contains an invalid or incomplete field.','Die CSV enthält ein ungültiges oder unvollständiges Feld.','Le CSV contient un champ non valide ou incomplet.','El CSV contiene un campo no válido o incompleto.'],
+  'backupSize': ['The backup is larger than 20 MiB.','Die Sicherung ist größer als 20 MiB.','La sauvegarde dépasse 20 Mio.','La copia supera los 20 MiB.'],
+  'backup': ['Select the original Keep Score backup JSON with its matching checksum.','Wähle die ursprüngliche Keep Score-Sicherungsdatei mit passender Prüfsumme.','Sélectionnez le fichier JSON de sauvegarde Keep Score d’origine avec sa somme de contrôle correspondante.','Selecciona el JSON original de la copia de Keep Score con su suma de comprobación correcta.'],
+  'retirement': ['Update your watch to v0.11.0 or later to import retirements.','Für den Import von Aufgaben benötigt deine Uhr v0.11.0 oder neuer.','Mettez la montre à jour vers la version 0.11.0 ou ultérieure pour importer des abandons.','Actualiza el reloj a la versión 0.11.0 o posterior para importar retiradas.'],
+  'multi': ['Update your watch to v0.14.0 or later to import multisport results.','Für den Import mehrerer Sportarten benötigt deine Uhr v0.14.0 oder neuer.','Mettez la montre à jour vers la version 0.14.0 ou ultérieure pour importer plusieurs sports.','Actualiza el reloj a la versión 0.14.0 o posterior para importar varios deportes.'],
+  'pickle': ['Update your watch to v0.16.0 or later to import pickleball.','Für den Pickleball-Import benötigt deine Uhr v0.16.0 oder neuer.','Mettez la montre à jour vers la version 0.16.0 ou ultérieure pour importer du pickleball.','Actualiza el reloj a la versión 0.16.0 o posterior para importar pickleball.'],
+  'image': ['Could not create the result image in this browser.','Die Ergebniskarte konnte in diesem Browser nicht erstellt werden.','Impossible de créer l’image du résultat dans ce navigateur.','No se pudo crear la imagen del resultado en este navegador.'],
+  'network': ['Connection interrupted. Check your internet connection and try again.','Verbindung unterbrochen. Prüfe die Internetverbindung und versuche es erneut.','Connexion interrompue. Vérifiez votre connexion Internet et réessayez.','Se interrumpió la conexión. Comprueba internet y vuelve a intentarlo.'],
+  'busy': ['The transfer service is busy. Try again later.','Der Übertragungsdienst ist ausgelastet. Versuche es später erneut.','Le service de transfert est occupé. Réessayez plus tard.','El servicio de transferencia está ocupado. Inténtalo más tarde.'],
+  'failed': ['The transfer could not be completed. Please try again.','Die Übertragung konnte nicht abgeschlossen werden. Versuche es erneut.','Impossible de terminer le transfert. Veuillez réessayer.','No se pudo completar la transferencia. Vuelve a intentarlo.'],
+};
+export function errorText(error) {
+  const message=String(error?.message||error||''),row=message.match(/^CSV row (\d+): (.+)$/);
+  if(row) return t('CSV row {0}: {1}','CSV-Zeile {0}: {1}','Ligne CSV {0} : {1}','Fila {0} del CSV: {1}',row[1],errorText(/name|control char/i.test(row[2])?'name':'csv'));
+  if(/expired or ended/.test(message)) return tx('This transfer has expired. Scan a new QR code on your watch.');
+  const matches=[
+    [/1–60|control characters/,'name'],[/storage is full/,'roster'],[/already sent/,'sent'],
+    [/CSV is too large/,'csvSize'],[/Backup is too large/,'backupSize'],[/too large/,'size'],
+    [/original headings/,'headers'],[/CSV|quoted|whole number/,'csv'],[/backup/i,'backup'],
+    [/v0.11.0/,'retirement'],[/QR code|authorized|allowed|Invalid (key|transfer)|OperationError/,'link'],
+    [/fetch|network|load failed|offline/i,'network'],[/busy|unavailable|Too many transfers/i,'busy'],
+  ];
+  const key=Object.hasOwn(errors,message)?message:(matches.find(([pattern])=>pattern.test(message))?.[1]||'failed');
+  return t(...errors[key]);
+}

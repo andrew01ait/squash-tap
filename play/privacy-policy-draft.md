@@ -1,8 +1,8 @@
 # Keep Score privacy policy — draft for review
 
-**Not ready for publication.** Confirm the publisher/legal entity, privacy contact, actual hosting/provider arrangements and retention/logging details before turning this draft into a public policy and adding in-app access. The landing page's short privacy explanation does not replace this release gate.
+**Not ready for publication.** Confirm the publisher/legal entity, actual hosting/provider arrangements and retention/logging details before turning this draft into a public policy and adding in-app access. The landing page's short privacy explanation does not replace this release gate.
 
-Publisher: **to be confirmed by the owner**. Privacy contact: **to be supplied by the owner**. Effective date: **set when the reviewed policy is published**.
+Publisher: **to be confirmed by the owner**. Privacy contact: **[endruuu@hotmail.com](mailto:endruuu@hotmail.com)** (confirmed by the owner on 2026-11-12). Effective date: **set when the reviewed policy is published**.
 
 ## Local scorekeeping
 
@@ -32,4 +32,11 @@ CSV, backup JSON, diagnostics and result-card images you download or share stay 
 
 ## Inquiries and changes
 
-Insert the confirmed privacy contact and a usable inquiry/deletion process. Describe applicable user rights and the actual processor arrangements after review. State how policy changes will be communicated and keep the policy consistent with the app and Play Console declarations.
+For privacy questions or requests concerning your data, contact **[endruuu@hotmail.com](mailto:endruuu@hotmail.com)**.
+
+Before publication, complete the inquiry/deletion handling process, describe applicable user rights and the actual processor arrangements after review, and state how policy changes will be communicated. Keep the policy consistent with the app and Play Console declarations.
+
+
+### Direct v0.18.0 and future Play builds containing linked matches
+
+Starting a watch room shares the selected match, display names, score and available times with the devices admitted to that room. A referee link permits scoring. A spectator code permits watching and local result import after confirmation. Room capabilities and match data are encrypted in private watch storage. A referee browser caches the scoring interface and retains an encrypted local copy for offline scoring and retry. The relay stores the encrypted score, hashed capabilities, code lookup, revision and expiry. Access to an unfinished room lasts 14 days from setup. Uploading a confirmed final starts a fresh 14-day window for disconnected watches. Ending an unfinished room requests revocation. Expired server rows are cleaned on subsequent room creation or joining. Each watch owner chooses whether to keep a result in their own history.

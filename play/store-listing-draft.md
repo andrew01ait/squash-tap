@@ -1,6 +1,8 @@
 # Keep Score Play listing — draft
 
-Status: preparation copy. Confirm publisher, support contact, final release identity, languages, screenshots and availability before submission.
+Status: preparation copy. Confirm publisher, final release identity, languages, screenshots and availability before submission.
+
+Public support email: **[endruuu@hotmail.com](mailto:endruuu@hotmail.com)** — confirmed by the owner on 2026-11-12. Use this address in the Play Console store listing; it has not been entered there by this source update.
 
 Title: **Keep Score – Racket Sports**
 
@@ -26,7 +28,7 @@ Keep Score records points and results; it does not make referee decisions or rep
 
 ## Assets and Console details to finish
 
-- Public support email and reviewed public privacy-policy URL; in-app privacy access.
+- Reviewed public privacy-policy URL and in-app privacy access. Enter the confirmed support email above in Play Console.
 - 512×512 listing icon and 1024×500 feature graphic using the established Keep Score branding.
 - Recommended 4–6 genuine current watch screenshots, square and at least 384×384, no device frames/promotional overlays/transparent masking. Show the score, sport choices, history, settings and Tile.
 - Feature explanations must match the submitted candidate. Label live results accurately; this is score sharing, not video streaming.

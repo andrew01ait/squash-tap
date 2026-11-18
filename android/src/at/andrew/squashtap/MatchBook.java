@@ -21,6 +21,7 @@ public final class MatchBook {
     private boolean deletedCurrent;
     public MatchBook(MatchState current){this(current,Clock.systemDefaultZone());}
     public MatchBook(MatchState current,Clock clock){this.current=Objects.requireNonNull(current);this.clock=Objects.requireNonNull(clock);timingEligible=!current.hasPoints();}
+    public String currentZoneId(){return zoneId;}
     public long currentStartedAt(){return startedAt;}
     public long currentFinishedAt(){return finishedAt;}
     public String currentStartedText(){return startedAt>0?MatchResult.formatMoment(startedAt,zoneId,"dd.MM.yyyy HH:mm:ss z"):timingEligible?"Starts with first point":"Not recorded";}

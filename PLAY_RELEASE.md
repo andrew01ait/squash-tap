@@ -1,6 +1,8 @@
 # Google Play preparation
 
-The public watch release remains **v0.16.4 / code 22**. The separate **0.17.0-play.1 / code 23** candidate is preparation only, targets API 35 and has not been submitted to Play Console. Its version code is reserved across distribution channels; any later official release must advance monotonically.
+The current direct watch release is **v0.18.0 / code 24**. The separate **0.17.0-play.1 / code 23** candidate is preparation only, targets API 35 and has not been submitted to Play Console. Its version code is reserved across distribution channels; any later official release must advance monotonically.
+
+The code 23 bundle predates the referee and watch-room release. The next Play candidate must use a free code above 24.
 
 ## Prepared implementation
 
@@ -36,10 +38,11 @@ Test an actual Play-delivered update over the installed APK on a backed-up test 
 
 | Item | State / next action |
 | --- | --- |
-| Developer owner and account | Owner must choose the actual publisher, complete identity/device verification, accept Google's agreement and pay the one-time registration fee. Organization accounts generally need a D-U-N-S number. |
+| Developer owner and account | Owner reports registration submitted and account verification still pending as of 2026-11-12. Confirm the actual publisher/legal entity and completion of all Console identity/device, agreement and payment tasks; registration is not evidence of approval. Organization accounts generally need a D-U-N-S number. |
+| Public support and privacy contact | Owner confirmed **[endruuu@hotmail.com](mailto:endruuu@hotmail.com)** on 2026-11-12. Recorded in the listing and privacy-policy drafts; enter it in Play Console when completing setup. No Console contact update is claimed. |
 | Trader status | Declare accurately for the actual activity; new accounts must do this at creation. Confirm public contact details before publication. |
 | Play App Signing/upload key | Complete enrollment using the original app signing certificate, with a separate upload key. |
-| Privacy policy | Review [the draft](play/privacy-policy-draft.md), supply publisher/contact details, audit provider logs/retention, publish a complete public HTML policy and add its in-app access. This is still a submission blocker. |
+| Privacy policy | Contact email is confirmed. Review [the draft](play/privacy-policy-draft.md), supply publisher details, complete request handling and provider logs/retention review, publish a complete public HTML policy and add its in-app access. This is still a submission blocker. |
 | Data safety | Audit encrypted payloads separately from metadata, IP/rate-limit records, provider logs, speech services and dependencies. Qualifying end-to-end encryption has an exception; do not infer a blanket no-data claim. |
 | App content | Complete content rating, audience, ads, app access and health declarations accurately. Scorekeeping is not a claim to record workouts or measure health. |
 | Foreground service | Review specialUse eligibility and submit its declaration plus a demonstration video. Current manifest use is not an approval. |

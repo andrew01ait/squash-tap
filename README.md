@@ -1,10 +1,18 @@
 # Keep Score
 
-A standalone, offline racket-sport scorekeeper for Wear OS. Current watch release: **v0.16.4**, Android version code **22**. No account is required; scores and saved history live on the watch.
+A standalone, offline racket-sport scorekeeper for Wear OS. Current watch release: **v0.18.0**, Android version code **24**. No account is required; scores and saved history live on the watch.
 
 [Download the watch app](https://squash-tap-andrew.endruuu.chatgpt.site/) · [GitHub source](https://github.com/andrew01ait/squash-tap) · [Install using your phone](INSTALLATION.md)
 
 A separate **0.17.0-play.1/code 23** candidate prepares Google Play distribution with API 35, AAB output and Play-managed updates. It is not the public watch release or a Play Store launch. See [Google Play preparation and remaining gates](PLAY_RELEASE.md).
+
+## Referee, spectator watches and phone results
+
+In **Current match → Referee & watches**, choose **Referee on phone** to let a referee scan the private QR. The watch shows the score and offers **Save to my results** after the referee confirms the finish. Open the link online before play. The referee can record rallies, undo a mistake and finish offline. If the browser suspends uploads, reopen the same link on the same phone after reconnecting. The page shows when the score has been uploaded.
+
+Choose **Share with watches** when scoring yourself, or **Invite other watches** while the referee scores. On another Keep Score watch, choose **Follow with a code** on the sports screen and enter the two groups of five characters. Both modes use the same room. Followers can save the result once and choose the player whose perspective to record. Hiding the code stops new joins. Already joined watches can keep following. Open the app to catch up. A room expires after 14 days, with a fresh 14-day window when the final reaches the service. A confirmed result already received stays on that watch until you decide what to do.
+
+**Results → Options → View results on phone** opens a private match journal with sport, player, role, date and outcome filters. The insights include winning streaks, deciding games or sets, known durations and separate partner and opponent records. **Players → Edit names on phone** opens the roster editor. Language follows the watch or browser and can be set independently in watch Settings or on each web page. Available languages are English (fallback), German, French and Spanish.
 
 ## Features
 
@@ -95,7 +103,7 @@ Updates are requested manually in Settings. There is no background update pollin
 | [AGENTS.md](AGENTS.md) | Maintenance constraints for future coding work. |
 | [CHANGELOG.md](CHANGELOG.md) | Release and documentation history. |
 
-The current v0.16.4 release suite passes **331 core + 191 Android UI + 64 web/relay checks = 586**. The historical v0.13 release suite was **265 core + 100 Android UI + 35 web/relay checks = 400**. This is release evidence, not a claim that every documentation update reruns or physically validates the watch. See [TESTING.md](TESTING.md) for current verification.
+The v0.18.0 direct release passed **335 core + 206 watch UI + 90 web/relay tests = 631**. The historical v0.16.4 suite passed **331 core + 191 Android UI + 64 web/relay checks = 586**. The historical v0.13 release suite was **265 core + 100 Android UI + 35 web/relay checks = 400**. This is release evidence, not a claim that every documentation update reruns or physically validates the watch. See [TESTING.md](TESTING.md) for current verification.
 
 Full backups use the local export date and application name: `YYYYMMDD_ApplicationName_Description.json`, for example `20261111_KeepScore_Backup.json`. Completed-result interchange remains CSV; full backup JSON also preserves current rallies and Undo.
 

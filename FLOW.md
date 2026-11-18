@@ -1,4 +1,4 @@
-# Navigation and match flows — v0.16.4
+# Navigation and match flows — v0.18.0
 
 The separate Play preparation candidate retains these scoring/navigation flows. Its Settings → Check for updates opens a Google Play explanation, Open Google Play and Back to Settings. All website update/download/install/setup entry points route there in that build; a missing Store produces an actionable message and keeps the match. The public direct-APK release keeps its existing updater. See [PLAY_RELEASE.md](PLAY_RELEASE.md).
 
@@ -142,3 +142,11 @@ Completion shows the winner and final games/sets, preserves actual partial score
 ## v0.16.4 reset all result filters
 
 Results → Filters → Reset all filters is the first filter action. Filtered Results also offers a direct Reset all filters row, including empty result lists. It clears opponent/player, From, To and Singles/Doubles mode, retains the selected sport, and shows page one at the top. Ordinary Back/details navigation still preserves filters and position. The phone action uses the same label, resets mode/player/dates within the shared snapshot, and refreshes all-mode statistics.
+
+## Linked matches and language
+
+From Current match, Referee & watches opens two choices. Referee on phone shows a private scoring QR after the current state reaches the server and locks local score actions immediately. Share with watches starts a ten-character read-only code. A watch scorer can hand the same match to a referee while followers stay connected. In referee mode, Invite other watches enables the same code. The host can redisplay the QR and enable or disable new joins.
+
+A receiving watch enters the code from the sports screen. The scoreboard and its accessibility action open the room menu. After confirmation, the host chooses Save to my results. A follower also selects their player position. An interrupted session reopens with its last received score. Leaving a followed game preserves local history. Cancelling an unfinished referee-hosted game discards its frozen local draft.
+
+The language selector is in Settings and in the read-only room menu. All phone pages have a language menu. Changing language preserves the referee queue and unsent roster changes.

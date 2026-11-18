@@ -1,63 +1,297 @@
+import {mountLanguage,language} from './locale.mjs';
 import {validateBackup,datedFile} from './backup.mjs?v=0.16.0';
-import {SPORTS,sportName,sportIcon,sportMarkup,rowSport,rowMode,sportRows,participants} from './sports.mjs?v=0.16.3';
-import {open,seal,name,parseCsv,writeCsv,HEADER,localDate,localMoment} from './interchange.mjs?v=0.16.0';
-import {addName,incomingPayload,checkRetirementSupport,initialView} from './transfer-state.mjs?v=0.16.0';
-import {newest,resultCard,shortRecord,renderStatistics} from './transfer-view.mjs?v=0.16.0';
-import {statistics} from './interchange.mjs?v=0.16.0';
-const $=id=>document.getElementById(id);let link,snapshot,catalog=[],rows=[],importCsv='',importRows=[],sent=false,current='',changeCurrent=false,resultPage=0,myName='',restoreBackup='';const PAGE_SIZE=25;
-function status(text,error=false){$('status').textContent=text;$('status').classList.toggle('error',error);}
-async function api(path,options={}){if(!link)throw Error('Scan a fresh QR code from your watch');const response=await fetch('/api/transfer/'+link.id+path,{...options,cache:'no-store',credentials:'omit',headers:{Authorization:'Bearer '+link.token,'Content-Type':'application/json',...options.headers}});const value=await response.json();if(!response.ok)throw Error(value.error||'Transfer failed');return value;}
-const active=()=>catalog.filter(e=>!e.archived).sort((a,b)=>a.name.localeCompare(b.name));
-function changed(){if(!snapshot)return false;return JSON.stringify(catalog)!==JSON.stringify(snapshot.opponents)||changeCurrent&&current!==(snapshot.currentOpponentId||'')||!!importCsv||myName!==(snapshot.myName||'');}
-function updateChanges(){const changes=changed();$('changes').textContent=sent?'Changes sent. Receive and confirm them on your watch.':changes?'Saved names and '+importRows.length+' CSV result'+(importRows.length===1?'':'s')+' prepared. '+(changeCurrent&&current!==(snapshot.currentOpponentId||'')?'Match opponent change requested.':'Match opponent assignment stays unchanged.'):'No changes prepared.';$('send').disabled=sent||!changes;}
-function option(select,value,label){const o=document.createElement('option');o.value=value;o.textContent=label;select.append(o);}
-function choices(){const f=$('opponent-filter'),old=f.value;f.replaceChildren();option(f,'*','All players');option(f,'','Unnamed');for(const e of [...catalog].sort((a,b)=>a.name.localeCompare(b.name)))option(f,e.id,e.name+(e.archived?' (removed)':''));f.value=[...f.options].some(o=>o.value===old)?old:'*';const c=$('current-opponent');c.replaceChildren();option(c,'','No name');for(const e of catalog.filter(e=>!e.archived||e.id===current).sort((a,b)=>a.name.localeCompare(b.name)))option(c,e.id,e.name+(e.archived?' (removed)':''));c.value=current;c.disabled=sent||!changeCurrent;$('change-current').disabled=sent;}
-function opponent(row){return catalog.find(e=>e.id===row[4])?.name||row[5]||'Opponent';}
-function resultDate(row){return localDate(row);}
-const contextRows=()=>sportRows(rows,$('sport-select').value||'squash',$('mode-select').value||'all');
-function filtered(){const id=$('opponent-filter').value,from=$('from').value,to=$('to').value;if(from&&to&&from>to)throw Error('From date must not follow To date');return newest(contextRows().filter(r=>(id==='*'||id===''&&!participants(r).length||participants(r).includes(id))&&(!from||resultDate(r)>=from)&&(!to||resultDate(r)<=to)));}
-function renderResults(reset=true){try{
- if(reset!==false)resultPage=0;const selected=filtered(),pages=Math.max(1,Math.ceil(selected.length/PAGE_SIZE));resultPage=Math.max(0,Math.min(resultPage,pages-1));
- $('count').textContent=selected.length+' / '+rows.length;$('filtered-summary').textContent=shortRecord(statistics(selected));const list=$('result-list');list.replaceChildren();
- for(const row of selected.slice(resultPage*PAGE_SIZE,(resultPage+1)*PAGE_SIZE))list.append(resultCard(row,opponent(row),myName||'Me'));
- if(!selected.length){const p=document.createElement('p');p.textContent=rows.length?'No matches fit these filters.':'No saved matches in this transfer yet.';list.append(p);}
- $('result-pages').hidden=pages<=1;$('result-page').textContent='Page '+(resultPage+1)+' of '+pages;$('prev-results').disabled=resultPage===0;$('next-results').disabled=resultPage===pages-1;
- }catch(e){status(e.message,true);}}
-function tab(id){$('sport-select').closest('.sport-scope').hidden=!['results','statistics'].includes(id);for(const b of document.querySelectorAll('[data-tab]'))b.classList.toggle('selected',b.dataset.tab===id);$('send-changes').hidden=id==='backup';for(const page of ['results','statistics','opponents','import','backup'])$(page).hidden=page!==id;}
-function showMatches(opponentId='*',matchId=null){$('opponent-filter').value=opponentId;$('from').value='';$('to').value='';resultPage=matchId?Math.floor(newest(contextRows()).findIndex(r=>r[1]===matchId)/PAGE_SIZE):0;tab('results');renderResults(false);if(matchId)for(const detail of document.querySelectorAll('details.result'))if(detail.dataset.matchId===matchId){detail.open=true;detail.scrollIntoView({block:'nearest'});}}
-function renderPeople(){const list=$('opponent-list');list.replaceChildren();for(const e of [...catalog].sort((a,b)=>a.name.localeCompare(b.name))){if(e.archived&&!$('show-removed').checked)continue;const row=document.createElement('div');row.className='person';const field=document.createElement('input');field.value=e.name;field.maxLength=120;field.setAttribute('aria-label','Name for '+e.name);field.disabled=sent;const save=document.createElement('button');save.textContent='Save name';save.disabled=sent;save.addEventListener('click',()=>tryAction(()=>{const n=name(field.value);if(catalog.some(x=>x.id!==e.id&&x.name.toLowerCase()===n.toLowerCase()))throw Error('That name is already saved');e.name=n;render();status('Name prepared. Send changes when you finish.');}));const remove=document.createElement('button');remove.textContent=e.archived?'Restore':'Delete';remove.className=e.archived?'back':'delete';remove.disabled=sent;remove.addEventListener('click',()=>{if(!e.archived&&!confirm('Remove '+e.name+' from future selection? Past results are kept.'))return;e.archived=!e.archived;render();});row.append(field,save,remove);const sports=SPORTS.filter(s=>(e.sports||[]).includes(s)||rows.some(r=>rowSport(r)===s&&participants(r).includes(e.id)));if(sports.length){const badges=document.createElement('span');badges.className='sport-badges';badges.setAttribute('aria-label','Results in '+sports.map(sportName).join(', '));for(const sport of sports){const mark=document.createElement('span');mark.innerHTML=sportMarkup(sport);mark.title=sportName(sport);mark.setAttribute('aria-label',sportName(sport));badges.append(mark);}row.append(badges);}list.append(row);}}
-function renderScopedStatistics(){renderStatistics(contextRows(),catalog,snapshot.totalResults===rows.length?contextRows().length:null,id=>showMatches(id),id=>showMatches('*',id));}
-function render(){choices();renderPeople();renderResults();renderScopedStatistics();updateChanges();}
-function tryAction(fn){try{return fn();}catch(e){status(e.message,true);}}
-function download(file,text,type='text/csv;charset=utf-8'){const url=URL.createObjectURL(new Blob([text],{type})),a=document.createElement('a');a.href=url;a.download=file;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
-for(const button of document.querySelectorAll('[data-tab]'))button.addEventListener('click',()=>tab(button.dataset.tab));
+import {SPORTS,sportMarkup,rowSport} from './sports.mjs?v=0.16.3';
+import {open,seal,name,parseCsv,writeCsv,HEADER,statistics} from './interchange.mjs?v=0.16.0';
+import {addName,incomingPayload,checkRetirementSupport,initialView,filteredRows,sportsByPlayer,inScope,filterPlayers} from './transfer-state.mjs?v=2';
+import {newest,resultCard,shortRecord,renderStatistics,orderedSports,node} from './transfer-view.mjs?v=2';
+import {tx,errorText,sportText} from './transfer-copy.mjs';
+
+const $=id=>document.getElementById(id);
+const PAGE_SIZE=25;
+const pageTitles={
+  results:['Match journal','Browse history and scores'], statistics:['Match insights','Compare sports and players'],
+  opponents:['Player directory','Manage names on your watch'],import:['Import CSV','Bring saved results to your watch'],
+  backup:['Backup','Save or restore your watch data'],
+};
+let link=null, snapshot=null, expiry=0, tabId='results', resultPage=0, catalog=[], directory=new Map(), sportsIndex=new Map(), rows=[];
+let importCsv='', importRows=[], restoreBackup='', restoreDate=null, sent=false, sending=false;
+let myName='', invalidOwnName=false, current='', changeCurrent=false, editPerson=null, editValue='';
+let notice=['On your watch, open Results → Options → View results on phone, or Players → Edit names on phone. Scan the QR code.'], error=false;
+function setNotice(message='',isError=false) {
+  notice=message?[message]:[];error=isError;renderNotice();
+}
+function renderNotice() {
+  const element=$('status');
+  element.hidden=!notice.length;element.classList.toggle('error',error);
+  element.textContent=notice.length?(error?errorText(notice[0]):tx(...notice)):'';
+}
+function report(err) {setNotice(err,true);}
+function tryAction(fn) {try{return fn();}catch(err){report(err);}}
+function option(select,value,label){const entry=node('option',label);entry.value=value;select.append(entry);}
+const byName=(a,b)=>a.name.localeCompare(b.name,language());
+const playerName=(id,fallback='')=>directory.get(id)?.name||fallback;
+function roleName(entry){return entry.archived?tx('{0} (archived)',entry.name):entry.name;}
+function initials(value){return value.trim().split(/\s+/u).slice(0,2).map(s=>[...s][0]||'').join('').toLocaleUpperCase(language());}
+function fillPlayers() {
+  directory=new Map(catalog.map(e=>[e.id,e]));
+  const filter=$('opponent-filter'),previous=filter.value,sorted=[...catalog].sort(byName);
+  filter.replaceChildren();option(filter,'*',tx('All players'));option(filter,'',tx('Unnamed'));
+  const candidates=filterPlayers(catalog,rows).sort(byName);
+  for(const e of candidates) option(filter,e.id,roleName(e));
+  filter.value=candidates.some(e=>e.id===previous)||previous===''?previous:'*';
+  const picker=$('current-opponent');picker.replaceChildren();option(picker,'',tx('No name'));
+  for(const e of sorted) if(!e.archived||e.id===current) option(picker,e.id,roleName(e));
+  picker.value=current;picker.disabled=sent||sending||!changeCurrent;
+}
+function contextRows() {return inScope(rows,$('sport-select').value,$('mode-select').value);}
+function filters() {
+  return {id:$('opponent-filter').value,role:$('role-filter').value,outcome:$('outcome-filter').value,from:$('from').value,to:$('to').value};
+}
+function exportNames(row) {
+  const copy=[...row];
+  for(const index of row[0]==='3'?[4,32,34]:[4]) if(copy[index]) copy[index+1]=playerName(copy[index],copy[index+1]);
+  return copy;
+}
+function renderResults(reset=true) {
+  const f=filters(),list=$('result-list'),context=contextRows(),active=[f.id!=='*',Boolean(f.id!=='*'&&f.role!=='all'),f.outcome!=='all',!!f.from,!!f.to,$('mode-select').value!=='all'].filter(Boolean).length;
+  $('role-field').hidden=f.id==='*';
+  $('filters-applied').textContent=active?tx('{0} selected',active):'';
+  let selected;
+  try {selected=newest(filteredRows(context,f));} catch(err) {
+    list.replaceChildren();$('filtered-summary').textContent=errorText(err);$('count').textContent='—';
+    $('result-pages').hidden=true;$('download').disabled=true;return;
+  }
+  $('download').disabled=!selected.length;
+  if(reset) resultPage=0;
+  const pages=Math.max(1,Math.ceil(selected.length/PAGE_SIZE));
+  resultPage=Math.max(0,Math.min(resultPage,pages-1));
+  $('count').textContent=selected.length+' / '+context.length;
+  $('filtered-summary').textContent=shortRecord(statistics(selected));
+  list.replaceChildren();
+  for(const row of selected.slice(resultPage*PAGE_SIZE,(resultPage+1)*PAGE_SIZE)) {
+    const r=exportNames(row);list.append(resultCard(r,r[5]||tx('Opponent'),myName||tx('Me')));
+  }
+  if(!selected.length) list.append(node('p',tx(rows.length?'No matches fit these filters.':'No saved matches in this transfer.'),'empty'));
+  $('result-pages').hidden=pages<=1;$('result-page').textContent=tx('Page {0} of {1}',resultPage+1,pages);
+  $('prev-results').disabled=resultPage===0;$('next-results').disabled=resultPage>=pages-1;
+}
+function showMatches(id='*',role='all',matchId=null) {
+  $('opponent-filter').value=id;$('role-filter').value=role;
+  $('outcome-filter').value='all';$('from').value='';$('to').value='';
+  const index=matchId?newest(filteredRows(contextRows(),filters())).findIndex(r=>r[1]===matchId):0;
+  resultPage=Math.floor(Math.max(0,index)/PAGE_SIZE);
+  if(id!=='*') $('result-filters').open=true;
+  showTab('results');renderResults(false);
+  if(matchId) for(const detail of document.querySelectorAll('details.result')) if(detail.dataset.matchId===matchId){detail.open=true;detail.scrollIntoView({block:'nearest'});}
+}
+function renderStats(){
+  renderStatistics({rows:contextRows(),allRows:rows,catalog:directory,mode:$('mode-select').value,selectedSport:$('sport-select').value,totalResults:snapshot.totalResults,
+    onPlayer:(id,role)=>showMatches(id,role),onMatch:id=>showMatches('*','all',id),onSport:sport=>{$('sport-select').value=sport;renderResults();renderStats();$('stats-title').scrollIntoView({block:'start'});}
+  });
+}
+function stagedNames() {
+  return snapshot&&(JSON.stringify(catalog)!==JSON.stringify(snapshot.opponents)||changeCurrent&&current!==(snapshot.currentOpponentId||'')||myName!==(snapshot.myName||''));
+}
+function renderDraft() {
+  if(!snapshot) return;
+  const names=stagedNames(),modified=!!(names||importCsv);
+  $('send-changes').hidden=tabId==='backup'||(!(tabId==='opponents'||tabId==='import')&&!modified&&!sent);
+  $('changes').textContent=sent?tx('Changes sent.'):modified?[names?tx('These names or assignments have been edited.'):'',importCsv?tx('CSV results ready to send: {0}',importRows.length):''].filter(Boolean).join(' '):tx('No changes prepared.');
+  $('send').disabled=sent||sending||!modified||invalidOwnName;
+  $('change-current').disabled=sent||sending;$('new-name').disabled=sent||sending;$('add-name').disabled=sent||sending;
+  $('my-name').disabled=sent||sending;$('csv-file').disabled=sent||sending;$('clear-import').disabled=sent||sending||!importCsv;
+  $('backup-file').disabled=sent||sending||!snapshot.supportsFullBackup;$('restore-send').disabled=sent||sending||!restoreBackup;
+  $('current-opponent').disabled=sent||sending||!changeCurrent;
+  $('import-preview').textContent=importCsv?tx('{0} completed matches ready for review.',importRows.length):tx('No file selected.');
+  $('backup-preview').textContent=restoreDate?tx('Backup created {0}. Review the restore on your watch.',new Date(restoreDate).toLocaleString(language())):tx('No file selected.');
+}
+function makeAction(text,style,fn) {
+  const b=node('button',tx(text),style);b.type='button';b.disabled=sent||sending;
+  b.addEventListener('click',()=>tryAction(fn));return b;
+}
+function applied() {editPerson=null;editValue='';fillPlayers();renderPeople();renderResults(false);renderStats();renderDraft();setNotice('Changes prepared for your watch.');}
+function renderPeople() {
+  const list=$('opponent-list');list.replaceChildren();const people=[...catalog].filter(e=>!e.archived||$('show-removed').checked).sort(byName);
+  $('player-count').textContent=people.length;
+  if(!people.length) list.append(node('p',tx('No players yet. Add a name above.'),'empty'));
+  for(const e of people) {
+    const row=node('article',undefined,'person');
+    const avatar=node('span',initials(e.name),'avatar');avatar.setAttribute('aria-hidden','true');
+    const title=node('div',undefined,'person-label');title.append(node('strong',e.name));
+    const sportIds=orderedSports(new Set([...(e.sports||[]),...(sportsIndex.get(e.id)||[])].filter(s=>SPORTS.includes(s))));
+    const badges=node('div',undefined,'sport-badges');
+    for(const sport of sportIds){const mark=node('span');mark.innerHTML=sportMarkup(sport);mark.title=sportText(sport);mark.setAttribute('aria-label',sportText(sport));mark.setAttribute('role','img');badges.append(mark);}
+    if(e.archived) title.append(node('small',tx('Archived'),'muted'));
+    if(sportIds.length) title.append(badges);
+    const control=e.archived?makeAction('Restore player','quiet',()=>{e.archived=false;applied();}):makeAction('Edit','quiet',()=>{
+      editPerson=e.id;editValue=e.name;renderPeople();const field=$('edit-player-name');field.focus();field.select();
+    });
+    row.append(avatar,title,control);
+    if(editPerson===e.id&&!e.archived) {
+      control.hidden=true;
+      const form=node('form',undefined,'rename');
+      const label=node('label',tx('Name for {0}',e.name)),field=node('input');field.id='edit-player-name';field.maxLength=120;field.value=editValue;field.required=true;field.autocomplete='off';
+      field.addEventListener('input',()=>{editValue=field.value;});label.append(field);
+      const actions=node('div',undefined,'actions'),save=node('button',tx('Save name'),'people-action');save.type='submit';save.disabled=sent||sending;
+      const archive=makeAction('Archive','danger-text',()=>{if(confirm(tx('Archive {0}? Their past results will keep this name.',e.name))){e.archived=true;applied();}});
+      const cancel=makeAction('Cancel','quiet',()=>{editPerson=null;editValue='';renderPeople();});
+      actions.append(save,cancel,archive);form.append(label,actions);
+      form.addEventListener('submit',ev=>{ev.preventDefault();if(sent||sending)return;tryAction(()=>{
+        const next=name(field.value);
+        if(catalog.some(other=>other.id!==e.id&&other.name.toLowerCase()===next.toLowerCase())) throw Error('duplicate');
+        e.name=next;applied();
+      });});
+      row.append(form);
+    }
+    list.append(row);
+  }
+}
+function renderHeading() {
+  const [title,subtitle]=snapshot?pageTitles[tabId]:['Match journal','Results from your watch'];
+  $('page-title').textContent=tx(title);$('page-subtitle').textContent=tx(subtitle);
+  document.title='Keep Score · '+tx(title);
+}
+function showTab(id) {
+  if(id==='backup'&&!snapshot?.supportsFullBackup) id='results';
+  tabId=id;renderHeading();
+  document.querySelector('.sport-scope').hidden=!['results','statistics'].includes(id);
+  for(const b of document.querySelectorAll('[data-tab]')) {
+    const selected=b.dataset.tab===id;b.classList.toggle('selected',selected);
+    if(selected) b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');
+  }
+  for(const page of Object.keys(pageTitles)) $(page).hidden=id!==page;
+  renderDraft();
+}
+function renderLanguage() {
+  document.documentElement.lang=language();
+  for(const el of document.querySelectorAll('[data-i]')) el.textContent=tx(el.dataset.i);
+  for(const el of document.querySelectorAll('[data-placeholder]')) el.placeholder=tx(el.dataset.placeholder);
+  for(const el of document.querySelectorAll('[data-aria]')) el.setAttribute('aria-label',tx(el.dataset.aria));
+  renderHeading();renderNotice();
+  if(!snapshot) return;
+  const selected=$('sport-select').value||snapshot.selectedSport||'squash',focus=document.querySelector('details.result[open]')?.dataset.matchId;
+  $('sport-select').replaceChildren();option($('sport-select'),'all',tx('All sports'));for(const s of orderedSports()) option($('sport-select'),s,sportText(s));
+  $('sport-select').value=selected==='all'||SPORTS.includes(selected)?selected:'squash';
+  $('expiry').textContent=tx('Expires at {0}',new Date(expiry).toLocaleTimeString(language(),{hour:'2-digit',minute:'2-digit'}));
+  $('backup-help').textContent=tx(snapshot.fullBackup?'Keep this complete backup file private.':'To download a backup, open Settings → Backup & restore on the watch.');
+  $('match-assignment-help').textContent=tx(snapshot.currentMatchComplete===true?'Changes here apply to your last completed match.':snapshot.currentMatchComplete===false?'Changes here apply to your current match.':'Changes here apply to the current or last completed match on your watch.');
+  fillPlayers();renderPeople();renderResults(false);renderStats();renderDraft();showTab(tabId);
+  if(focus) for(const detail of document.querySelectorAll('details.result')) if(detail.dataset.matchId===focus) detail.open=true;
+}
+function download(file,text,type='text/csv;charset=utf-8'){
+  const url=URL.createObjectURL(new Blob([text],{type})),a=document.createElement('a');a.href=url;a.download=file;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+async function api(path,options={}) {
+  if(!link) throw Error('link');
+  const response=await fetch('/api/transfer/'+link.id+path,{...options,cache:'no-store',credentials:'omit',headers:{Authorization:'Bearer '+link.token,'Content-Type':'application/json'}});
+  if(!response.ok) {
+    const value=await response.json().catch(()=>({}));
+    if(response.status===404||response.status===410) throw Error('Transfer expired or ended');
+    throw Error(value.error||(response.status>=500?'busy':'failed'));
+  }
+  return response.json();
+}
+function expire(){
+  link=null;snapshot=null;catalog=[];rows=[];directory.clear();sportsIndex.clear();restoreBackup='';restoreDate=null;
+  myName='';editPerson=null;editValue='';importCsv='';importRows=[];current='';changeCurrent=false;expiry=0;
+  $('workspace').replaceChildren();$('workspace').hidden=true;$('expiry').hidden=true;renderHeading();
+  setNotice('This transfer has expired. Scan a new QR code on your watch.');
+}
+async function sendIncoming(backup=false) {
+  if(!snapshot||sent||sending||(!backup&&invalidOwnName)) return;
+  const session=link;
+  sending=true;renderDraft();renderPeople();
+  try {
+    const payload=backup?{schema:1,sessionId:session.id,baseDirectory:snapshot.baseDirectory,currentMatchId:snapshot.currentMatchId,restoreBackup}:incomingPayload({snapshot,catalog,current,changeCurrent,csv:importCsv,sessionId:session.id,myName});
+    const cipher=await seal(session.id,'in',session.key,JSON.stringify(payload),undefined,backup);
+    if(link!==session) return;
+    await api('/incoming',{method:'POST',body:JSON.stringify({cipher})});
+    if(link!==session) return;
+    sent=true;editPerson=null;editValue='';restoreBackup='';
+    setNotice(backup?'Backup sent. Review and confirm it on your watch.':'Changes sent.');
+  } catch(err){if(link===session)report(err);}
+  finally {sending=false;if(link===session){renderDraft();renderPeople();}}
+}
+for(const b of document.querySelectorAll('[data-tab]')) b.addEventListener('click',()=>showTab(b.dataset.tab));
+for(const id of ['sport-select','mode-select']) $(id).addEventListener('change',()=>{renderResults();renderStats();});
+for(const id of ['opponent-filter','role-filter','outcome-filter','from','to']) $(id).addEventListener('change',()=>{
+  if(id==='opponent-filter') $('role-filter').value='all';
+  renderResults();
+});
 $('prev-results').addEventListener('click',()=>{resultPage--;renderResults(false);});
 $('next-results').addEventListener('click',()=>{resultPage++;renderResults(false);});
 $('view-all-history').addEventListener('click',()=>showMatches());
-for(const id of ['sport-select','mode-select'])$(id).addEventListener('change',render);
-for(const id of ['opponent-filter','from','to'])$(id).addEventListener('change',renderResults);
-$('reset-filter').addEventListener('click',()=>{$('mode-select').value='all';$('opponent-filter').value='*';$('from').value='';$('to').value='';renderResults();renderScopedStatistics();status('All result filters reset for '+sportName($('sport-select').value)+'.');});
-$('current-opponent').addEventListener('change',()=>{if(!changeCurrent||sent)return;current=$('current-opponent').value;updateChanges();});
-$('change-current').addEventListener('change',()=>{if(sent)return;changeCurrent=$('change-current').checked;if(!changeCurrent)current=snapshot.currentOpponentId||'';choices();updateChanges();});
+$('reset-filter').addEventListener('click',()=>{
+  $('mode-select').value='all';$('opponent-filter').value='*';$('role-filter').value='all';
+  $('outcome-filter').value='all';$('from').value='';$('to').value='';renderResults();renderStats();
+});
 $('show-removed').addEventListener('change',renderPeople);
-$('add-name').addEventListener('click',()=>tryAction(()=>{if(sent)throw Error('Start a new transfer to make more changes');addName(catalog,$('new-name').value);$('new-name').value='';render();status('Name prepared in the saved list. Choose a match opponent separately if needed.');}));
-$('download').addEventListener('click',()=>tryAction(()=>download(new Date().toLocaleDateString('sv-SE').replaceAll('-','')+'_KeepScore_'+$('sport-select').value+'_results.csv',writeCsv(filtered().map(r=>{const copy=[...r];if(copy[4])copy[5]=opponent(copy);if(copy[0]==='3'){if(copy[32])copy[33]=catalog.find(e=>e.id===copy[32])?.name||copy[33];if(copy[34])copy[35]=catalog.find(e=>e.id===copy[34])?.name||copy[35];}return copy;})))));
-$('template').addEventListener('click',()=>download(new Date().toLocaleDateString('sv-SE').replaceAll('-','')+'_KeepScore_template.csv','\ufeff'+HEADER+'\r\n'));
-$('csv-file').addEventListener('change',async()=>{try{const file=$('csv-file').files[0];if(!file)return;if(file.size>3*1024*1024)throw Error('CSV is too large');const text=await file.text(),parsed=parseCsv(text);checkRetirementSupport(snapshot,parsed);if(!snapshot.supportsPickleball&&parsed.some(r=>rowSport(r)==='pickleball'))throw Error('Update the watch to Keep Score v0.16.0 or newer before importing pickleball.');if(!snapshot.supportsMultisport&&parsed.some(r=>r[0]==='3'))throw Error('Update the watch to v0.14.0 or newer before importing multisport CSV.');importCsv=text;importRows=parsed;$('import-preview').textContent=parsed.length+' completed matches validated. Duplicate/conflict checks happen on your watch.';updateChanges();status('CSV prepared. Send changes, then receive on your watch.');}catch(e){importCsv='';importRows=[];$('csv-file').value='';$('import-preview').textContent='No valid file selected.';updateChanges();status(e.message,true);}});
-$('clear-import').addEventListener('click',()=>{importCsv='';importRows=[];$('csv-file').value='';$('import-preview').textContent='No file selected.';updateChanges();});
-$('send').addEventListener('click',async()=>{try{$('send').disabled=true;const payload=incomingPayload({snapshot,catalog,current,changeCurrent,csv:importCsv,sessionId:link.id,myName});const cipher=await seal(link.id,'in',link.key,JSON.stringify(payload));await api('/incoming',{method:'POST',body:JSON.stringify({cipher})});sent=true;for(const id of ['add-name','csv-file','current-opponent','change-current','clear-import','my-name','backup-file','restore-send'])$(id).disabled=true;render();status('Ready. Tap Receive changes on your watch, then review and confirm.');}catch(e){status(e.message,true);updateChanges();}});
-$('my-name').addEventListener('input',()=>{try{const v=$('my-name').value.trim();myName=v?name(v):'';updateChanges();}catch(e){status(e.message,true);}});
-$('download-backup').addEventListener('click',()=>tryAction(()=>{if(!snapshot?.fullBackup)throw Error('Create a full backup link from Settings on your watch');download(datedFile('Backup.json'),snapshot.fullBackup,'application/json');status('Complete backup downloaded.');}));
-$('backup-file').addEventListener('change',async()=>{restoreBackup='';$('restore-send').disabled=true;try{const f=$('backup-file').files[0];if(!f)return;if(f.size>20*1024*1024)throw Error('Backup is too large');const a=await validateBackup(await f.text());restoreBackup=a.text;$('backup-preview').textContent='Backup from '+new Date(a.createdAt).toLocaleString()+'. The watch will validate all matches, players and settings before confirmation.';$('restore-send').disabled=sent;}catch(e){$('backup-preview').textContent=e.message;status(e.message,true);}});
-$('restore-send').addEventListener('click',async()=>{try{if(!snapshot?.supportsFullBackup||!restoreBackup||sent)throw Error('Choose a backup first');$('restore-send').disabled=true;const payload={schema:1,sessionId:link.id,baseDirectory:snapshot.baseDirectory,currentMatchId:snapshot.currentMatchId,restoreBackup};const cipher=await seal(link.id,'in',link.key,JSON.stringify(payload),undefined,true);await api('/incoming',{method:'POST',body:JSON.stringify({cipher})});sent=true;restoreBackup='';$('backup-file').disabled=true;updateChanges();status('Backup sent. Tap Receive changes on the watch, review the restore, then confirm.');}catch(e){$('restore-send').disabled=sent||!restoreBackup;status(e.message,true);}});
-async function initialize(){try{
- const p=new URLSearchParams(location.hash.slice(1)),view=initialView(p.get('view')),focus=p.get('match');const candidate={id:p.get('id'),token:p.get('p'),key:p.get('k')};history.replaceState(null,'',location.pathname);if(!candidate.id&&!candidate.token&&!candidate.key)return;
- if(!/^[a-f0-9]{32}$/.test(candidate.id)||!/^[-\w]{43}$/.test(candidate.token)||!/^[-\w]{43}$/.test(candidate.key))throw Error('Invalid transfer link. Scan a fresh QR code from your watch');link=candidate;
- if(!crypto.subtle)throw Error('Open the secure HTTPS link from your watch. This browser cannot decrypt a transfer over an insecure connection.');
- status('Opening your encrypted transfer…');const data=await api('/outgoing');snapshot=JSON.parse(await open(link.id,'out',link.key,data.cipher));
- if(snapshot.schema!==1||snapshot.sessionId!==link.id||!Array.isArray(snapshot.opponents)||snapshot.opponents.length>1000)throw Error('Unsupported transfer content');catalog=snapshot.opponents.map(e=>({...e,name:name(e.name),archived:!!e.archived}));rows=parseCsv(snapshot.csv);for(const sport of SPORTS)option($('sport-select'),sport,sportName(sport));$('sport-select').value=SPORTS.includes(snapshot.selectedSport)?snapshot.selectedSport:'squash';current=snapshot.currentOpponentId||'';changeCurrent=false;$('change-current').checked=false;$('match-assignment-help').textContent=snapshot.currentMatchComplete===true?'This changes the opponent of your last completed match. Adding saved names does not change that result.':snapshot.currentMatchComplete===false?'This changes the opponent of your current match only. Adding saved names does not select them.':'This changes the opponent of the current or last completed match on your watch. Adding saved names does not select them.';
- myName=snapshot.myName||'';$('my-name').value=myName;$('your-name-section').hidden=!snapshot.supportsYourName;$('backup-tab').hidden=!snapshot.supportsFullBackup;$('backup-file').disabled=!snapshot.supportsFullBackup;$('download-backup').disabled=!snapshot.fullBackup;if(snapshot.fullBackup)$('backup-help').textContent='This is a complete snapshot from when the watch created this link. Keep the downloaded file private.';
- $('expiry').textContent='Expires '+new Date(data.expiresAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});$('workspace').hidden=false;render();tab(view);if(focus&&rows.some(r=>r[1]===focus)){$('sport-select').value=rowSport(rows.find(r=>r[1]===focus));showMatches('*',focus);}status('Connected. Download results or prepare changes below.');
- setTimeout(()=>{link=null;catalog=[];rows=[];snapshot=null;importCsv='';importRows=[];current='';changeCurrent=false;$('workspace').replaceChildren();$('workspace').hidden=true;status('This transfer has expired. Start a new one on your watch.');},Math.max(0,data.expiresAt-Date.now()));
- }catch(e){status(e.message||'Could not open this transfer',true);}}
+$('add-person').addEventListener('submit',ev=>{ev.preventDefault();if(sent||sending)return;tryAction(()=>{
+  addName(catalog,$('new-name').value);$('new-name').value='';applied();$('new-name').focus();
+});});
+$('my-name').addEventListener('input',()=>{
+  try{const value=$('my-name').value.trim();myName=value?name(value):'';invalidOwnName=false;
+    $('my-initial').textContent=initials(myName)||'●';$('my-name').removeAttribute('aria-invalid');setNotice();
+  }catch(err){invalidOwnName=true;$('my-name').setAttribute('aria-invalid','true');report(err);}
+  renderDraft();
+});
+$('my-name').addEventListener('change',()=>{if(!invalidOwnName)renderResults(false);});
+$('change-current').addEventListener('change',()=>{
+  if(sent||sending)return;changeCurrent=$('change-current').checked;
+  if(!changeCurrent) current=snapshot.currentOpponentId||'';fillPlayers();renderDraft();
+});
+$('current-opponent').addEventListener('change',()=>{if(changeCurrent&&!sent&&!sending){current=$('current-opponent').value;renderDraft();}});
+$('download').addEventListener('click',()=>tryAction(()=>{
+  const selected=newest(filteredRows(contextRows(),filters())).map(exportNames);
+  download(datedFile($('sport-select').value+'_results.csv'),writeCsv(selected));
+}));
+$('template').addEventListener('click',()=>download(datedFile('template.csv'),'\ufeff'+HEADER+'\r\n'));
+$('csv-file').addEventListener('change',async()=>{
+  const session=link,field=$('csv-file'),file=field.files[0];
+  try {
+    if(!file||!session)return;if(file.size>3*1024*1024)throw Error('csvSize');
+    const text=await file.text();if(link!==session||field.files[0]!==file)return;
+    const parsed=parseCsv(text);checkRetirementSupport(snapshot,parsed);
+    if(!snapshot.supportsPickleball&&parsed.some(r=>rowSport(r)==='pickleball'))throw Error('pickle');
+    if(!snapshot.supportsMultisport&&parsed.some(r=>r[0]==='3'))throw Error('multi');
+    importCsv=text;importRows=parsed;renderDraft();setNotice('Changes prepared for your watch.');
+  }catch(err){if(link!==session)return;importCsv='';importRows=[];field.value='';renderDraft();report(err);}
+});
+$('clear-import').addEventListener('click',()=>{importCsv='';importRows=[];$('csv-file').value='';renderDraft();setNotice();});
+$('send').addEventListener('click',()=>sendIncoming());
+$('download-backup').addEventListener('click',()=>tryAction(()=>{
+  if(!snapshot?.fullBackup)throw Error('backup');
+  download(datedFile('Backup.json'),snapshot.fullBackup,'application/json');setNotice('Complete backup downloaded.');
+}));
+$('backup-file').addEventListener('change',async()=>{
+  const session=link,field=$('backup-file'),file=field.files[0];
+  restoreBackup='';restoreDate=null;renderDraft();
+  try{
+    if(!session||!file)return;if(file.size>20*1024*1024)throw Error('backupSize');
+    const backup=await validateBackup(await file.text());if(link!==session||field.files[0]!==file)return;
+    restoreBackup=backup.text;restoreDate=backup.createdAt;renderDraft();setNotice();
+  }catch(err){if(link===session)report(err);}
+});
+$('restore-send').addEventListener('click',()=>{if(snapshot?.supportsFullBackup&&restoreBackup)sendIncoming(true);});
+async function initialize(){
+  try {
+    const p=new URLSearchParams(location.hash.slice(1)),focus=p.get('match');
+    tabId=initialView(p.get('view'));const candidate={id:p.get('id'),token:p.get('p'),key:p.get('k')};
+    history.replaceState(null,'',location.pathname);if(!candidate.id&&!candidate.token&&!candidate.key)return;
+    if(!/^[a-f0-9]{32}$/.test(candidate.id)||!/^[-\w]{43}$/.test(candidate.token)||!/^[-\w]{43}$/.test(candidate.key))throw Error('link');
+    if(!crypto.subtle)throw Error('crypto');link=candidate;setNotice('Opening encrypted transfer…');
+    const data=await api('/outgoing');const incoming=JSON.parse(await open(link.id,'out',link.key,data.cipher));
+    if(incoming.schema!==1||incoming.sessionId!==link.id||!Array.isArray(incoming.opponents)||incoming.opponents.length>1000||!Number.isFinite(data.expiresAt))throw Error('unsupported');
+    const names=incoming.opponents.map(e=>({...e,name:name(e.name),archived:!!e.archived})),matches=parseCsv(incoming.csv);
+    if(data.expiresAt<=Date.now()){expire();return;}
+    snapshot=incoming;expiry=data.expiresAt;catalog=names;rows=matches;sportsIndex=sportsByPlayer(rows);current=snapshot.currentOpponentId||'';
+    myName=snapshot.myName||'';$('my-name').value=myName;$('my-initial').textContent=initials(myName)||'●';
+    $('your-name-section').hidden=!snapshot.supportsYourName;$('backup-tab').hidden=!snapshot.supportsFullBackup;
+    $('download-backup').disabled=!snapshot.fullBackup;$('workspace').hidden=false;$('expiry').hidden=false;
+    setTimeout(expire,Math.max(0,expiry-Date.now()));setNotice();renderLanguage();
+    if(focus&&rows.some(r=>r[1]===focus)) {$('sport-select').value=rowSport(rows.find(r=>r[1]===focus));renderStats();showMatches('*','all',focus);}
+  }catch(err){report(err);}
+}
+mountLanguage($('language-control'),renderLanguage);
+renderLanguage();
 initialize();

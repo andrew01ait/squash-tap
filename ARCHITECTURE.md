@@ -1,6 +1,6 @@
 # Architecture
 
-Current watch release: **v0.16.4**, code **22**. This document describes the implemented system; release changes are in [CHANGELOG.md](CHANGELOG.md).
+Current watch release: **v0.18.0**, code **24**. This document describes the implemented system; release changes are in [CHANGELOG.md](CHANGELOG.md).
 
 ## Components and responsibilities
 
@@ -126,3 +126,11 @@ Pending completed snapshots use a separate bounded memory queue (eight sessions)
 The preparation candidate is declared separately in `play-release.json`. `scripts/build_play.py` generates an API-35 manifest from the direct manifest, removing APK install permissions and InstallReceiver while preserving package, standalone/watch, Tile/complication and explicit match-session declarations. `BuildConfig.PLAY_DISTRIBUTION` is a compile-time flag; the old builder emits false, the Play builder emits true. The Play source set substitutes a non-networking UpdateClient and excludes InstallReceiver, so no PackageInstaller implementation is packaged. The Play resource theme and compile-time scoreboard background use black while the direct theme remains unchanged. All native update/setup entry points are guarded; Play navigation preserves match storage/session state.
 
 The bundle pipeline uses the existing pinned AndroidX graph and locked Google SDK/Maven AAPT2 plus bundletool. It creates compiled binary resources for UI testing and protobuf resources/dex for the AAB, signs with the original private key and inspects a generated same-signer APK. Public v0.16.4/code 22 metadata and all retained APK bytes remain unchanged. See [PLAY_RELEASE.md](PLAY_RELEASE.md) for the candidate, evidence and incomplete Console/privacy/device gates.
+
+## Linked referee and watch matches
+
+The independent `/api/rooms` protocol stores an encrypted native match snapshot and hashed admin, writer and reader capabilities in D1. A host may toggle watch-code discovery or revoke the room. Only the scorer can write a revision. The code provides an encrypted reader credential and match key. The private referee QR carries the writer credential and match key in its fragment. Updates compare the previous revision, accept an exact repeated ciphertext acknowledgement, and freeze confirmed results. Creation and pairing attempts are rate-limited. Idle rows expire after 14 days and confirmation starts a new 14-day retrieval window. Cleanup runs on subsequent room creation or pairing traffic.
+
+The referee service worker caches only the application shell. IndexedDB commits encrypted score updates before acknowledging a rally locally, and retains an in-flight upload for lost acknowledgements. Revision checks handle competing tabs or scorer phones. Browsers without background sync send queued updates when the page is open. Phone and watch score engines use the same match encoding for all six sports.
+
+RoomClient protects the watch recovery record in no-backup storage using Android Keystore. A scoring watch offers updates on changes or reconnect. A receiving watch checks while Keep Score is visible and reloads its encrypted cached snapshot after restart. Host and follower input is read-only. The tile and watch-face complication show the last received match revision without starting network requests. SharedResult converts the confirmed result into the chosen player's perspective, preserves retirement, timing, tie-breaks, doubles roles and previous local match state, and deduplicates by match ID. A host's completed shared scoreboard becomes a history item after explicit confirmation. Standard phone transfers, legacy live broadcasts and the local match book retain their independent lifetimes.

@@ -1,6 +1,6 @@
 # Build and deployment
 
-Official watch release: **v0.16.4 / code 22**. User installation is in [INSTALLATION.md](INSTALLATION.md); release-number and compatibility rules are in [VERSIONING.md](VERSIONING.md).
+Official watch release: **v0.18.0 / code 24**. User installation is in [INSTALLATION.md](INSTALLATION.md); release-number and compatibility rules are in [VERSIONING.md](VERSIONING.md).
 
 ## Repositories and prerequisites
 
@@ -107,7 +107,7 @@ The v0.16.4/code 22 release changes result-filter presentation/reset only: playe
 
 ## Separate Google Play preparation
 
-The public watch feed remains v0.16.4/code 22. Preparation candidate 0.17.0-play.1/code 23 targets API 35 and outputs an AAB under ignored `build/play/`, without publishing an APK or updating release metadata. With a complete JDK 17, original signing material, retained APKs and the existing Node dependencies restored:
+At Play preparation time the public feed was v0.16.4/code 22. Preparation candidate 0.17.0-play.1/code 23 targets API 35 and outputs an AAB under ignored `build/play/`, without publishing an APK or updating release metadata. With a complete JDK 17, original signing material, retained APKs and the existing Node dependencies restored:
 
 ```sh
 python3 scripts/bootstrap_android.py
@@ -116,3 +116,7 @@ python3 scripts/verify_play.py
 ```
 
 Play tooling/downloads and installed critical files are SHA-256 pinned in `play-build-tools.json`; runtime AndroidX pins remain unchanged. The existing supported AAPT2/bundletool command-line pipeline avoids an unrelated Gradle migration. The public source excludes generated AAB/APKS files and private signing material. Configure Play App Signing with the existing app key and register a separate upload key before actual submission. Do not upload the direct APK updater to Google Play. The candidate has not been submitted and is not promoted by website deployment. See [PLAY_RELEASE.md](PLAY_RELEASE.md).
+
+## Linked matches
+
+Publish migration 0003 alongside the Worker, phone assets and direct APK v0.18.0/code 24. The referee service worker and every module in its offline shell must share the origin. Code-only followers require Keep Score v0.18.0 or newer.

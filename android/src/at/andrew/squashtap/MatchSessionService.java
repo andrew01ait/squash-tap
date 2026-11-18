@@ -22,15 +22,16 @@ public final class MatchSessionService extends Service {
         try{
             MatchState match=MatchBook.decode(preferences.getString("match_book","")).current();
             if(!MatchDisplayPolicy.ongoing(match,preferences.getString(MatchDisplayPolicy.ACTIVE_MATCH,""),preferences.getBoolean("match_paused",false))){finishSession();return START_NOT_STICKY;}
+            WatchLanguage lang=WatchLanguage.get(this);
             NotificationManager manager=getSystemService(NotificationManager.class);
-            NotificationChannel channel=new NotificationChannel(CHANNEL,"Match in progress",NotificationManager.IMPORTANCE_LOW);
+            NotificationChannel channel=new NotificationChannel(CHANNEL,lang.text("Match in progress"),NotificationManager.IMPORTANCE_LOW);
             channel.setSound(null,null);channel.enableVibration(false);manager.createNotificationChannel(channel);
             PendingIntent touch=PendingIntent.getActivity(this,0,new Intent(this,MainActivity.class)
                 .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP|Intent.FLAG_ACTIVITY_CLEAR_TOP),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
-            String score=(match.format().doubles?"Our team ":"Me ")+match.game().displayPoint(0)+" – "+match.game().displayPoint(1)+(match.format().doubles?" Opponents · ":" Opponent · ")+ (match.format().nested()?"Sets ":"Games ")+match.gamesWon(0)+"–"+match.gamesWon(1);
+            String score=lang.text(match.format().doubles?"Our team ":"Me ")+lang.text(match.game().displayPoint(0))+" – "+lang.text(match.game().displayPoint(1))+lang.text(match.format().doubles?" Opponents · ":" Opponent · ")+lang.text(match.format().nested()?"Sets ":"Games ")+match.gamesWon(0)+"–"+match.gamesWon(1);
             if(ongoing==null){
                 NotificationCompat.Builder notification=new NotificationCompat.Builder(this,CHANNEL)
-                    .setSmallIcon(R.drawable.ic_match).setContentTitle(match.format().name()+" match in progress")
+                    .setSmallIcon(R.drawable.ic_match).setContentTitle(lang.text(match.format().name())+lang.text(" match in progress"))
                     .setContentText(score).setContentIntent(touch).setCategory("workout")
                     .setVisibility(NotificationCompat.VISIBILITY_PRIVATE).setOnlyAlertOnce(true).setSilent(true).setOngoing(true);
                 ongoing=new OngoingActivity.Builder(this,NOTIFICATION,notification).setStaticIcon(R.drawable.ic_match)
