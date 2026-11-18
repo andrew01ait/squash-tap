@@ -38,6 +38,28 @@ public class MenuRevisionUiTest {
     private boolean awake(){return (activity.getWindow().getAttributes().flags&WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)!=0;}
     private TransferClient.Session readyTransfer(){TransferClient.Session s=new TransferClient.Session();s.expiresAt=System.currentTimeMillis()+600000;ReflectionHelpers.setField(activity,"transfer",s);return s;}
     private void openFirstResult(){for(View v:all())if(v.getContentDescription()!=null&&v.getContentDescription().toString().contains("Open match result")){v.performClick();shadowOf(Looper.getMainLooper()).idle();return;}throw new AssertionError("Missing result card");}
+    private List<String> sections(){
+        List<String> titles=new ArrayList<>();
+        for(View view:all())if(view.isAccessibilityHeading()&&view.getContentDescription()!=null)
+            titles.add(view.getContentDescription().toString());
+        return titles;
+    }
+    @Test public void mixedMenusUseTaskHeadingsAndSingleChoiceScreensStayCompact(){
+        root();assertEquals(Arrays.asList("Match","Match history","Sport","Keep Score"),sections());
+        click("Current match");assertEquals(Arrays.asList("Score & sharing","Manage match"),sections());
+        click("Live sharing & referee");assertEquals(Arrays.asList("Share your match","Join another match"),sections());
+        click("Join with watch code");assertTrue(sections().isEmpty());back();back();back();
+        click("Settings");assertEquals(Arrays.asList("Language & display","Feedback","Data","Watch shortcuts","App"),sections());
+        click("Language · English");assertTrue(sections().isEmpty());back();back();
+        click("Players");assertEquals(Arrays.asList("Saved players","Manage names"),sections());back();
+        click("Results (17)");assertEquals(Arrays.asList("Saved matches"),sections());
+        click("Options");assertEquals(Arrays.asList("CSV","Delete results"),sections());back();
+        click("Filters");assertEquals(Arrays.asList("Match","Date range"),sections());
+    }
+    @Test public void aHistoricalResultHasNoNextMatchSectionAndKeepsItsReturn(){
+        results();openFirstResult();assertEquals(Arrays.asList("Manage result"),sections());
+        assertFalse(hasButton("Quick rematch"));back();assertTrue(hasButton("Filters"));
+    }
     private ScrollView scroll(){for(View v:all())if(v instanceof ScrollView)return (ScrollView)v;throw new AssertionError("Missing scroll");}
     private void layout(){View v=dialog().getWindow().getDecorView();int side=(int)(233*activity.getResources().getDisplayMetrics().density);v.measure(View.MeasureSpec.makeMeasureSpec(side,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(side,View.MeasureSpec.EXACTLY));v.layout(0,0,side,side);shadowOf(Looper.getMainLooper()).idle();}
 

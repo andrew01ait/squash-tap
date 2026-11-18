@@ -1,6 +1,6 @@
 # Versions and compatibility
 
-Current official watch release: **v0.20.0**, Android version code **27**; package **`at.andrew.squashtap`**. `public/release.properties` is the machine-readable update feed; `public/builds.json` and `SHA256SUMS.txt` record retained artifacts.
+Current official watch release: **v0.20.1**, Android version code **28**; package **`at.andrew.squashtap`**. `public/release.properties` is the machine-readable update feed; `public/builds.json` and `SHA256SUMS.txt` record retained artifacts.
 
 ## Independent version numbers
 
@@ -62,3 +62,7 @@ Older watches continue to accept supported new results through their existing CS
 ## Device management · direct v0.20.0 / code 27
 
 New rooms use independent grants for each watch installation and referee browser. Update all player watches before starting a managed room. Existing rooms, old referee links, score formats, book storage and the phone journal remain compatible.
+
+## Grouped watch menus and score layout · direct v0.20.1 / code 28
+
+This patch revises watch navigation and adapts score and touch geometry to round and rectangular displays. It uses the existing score, backup, room and relay formats.

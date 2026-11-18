@@ -44,7 +44,12 @@ public final class ScoreView extends View {
     public void ownName(String value){ownLabel=value==null||value.isEmpty()?tr("Me"):value;refresh();}
     private float fontScale(){return Math.max(.5f,getResources().getConfiguration().fontScale);}
     private float density(){return getResources().getDisplayMetrics().density;}
-    private float cardTop(){return TouchTargets.area(TouchTargets.BLUE,getWidth()/density(),getHeight()/density())[1]*getHeight();}
+    private boolean round(){return getResources().getConfiguration().isScreenRound();}
+    private RectF targetBounds(int target){
+        float w=getWidth(),h=getHeight();
+        float[] area=TouchTargets.area(target,w/density(),h/density(),round());
+        return new RectF(area[0]*w,area[1]*h,area[2]*w,area[3]*h);
+    }
     public void players(String partner,String primary,String other){partnerLabel=partner==null||partner.isEmpty()?tr("Partner"):partner;primaryLabel=primary==null||primary.isEmpty()?tr("Opponent 1"):primary;otherLabel=other==null||other.isEmpty()?tr("Opponent 2"):other;refresh();}
 
     public ScoreView(Context context, MatchState match, Actions actions) {
@@ -116,29 +121,36 @@ public final class ScoreView extends View {
         if(ambient){drawAmbient(canvas,w,h,s);return;}
         canvas.drawColor(BuildConfig.PLAY_DISTRIBUTION?Color.BLACK:Color.rgb(8, 13, 23));
         int server=knownServer();
-        sportHeading(canvas,w,h,s);
-        periodPanel(canvas,w,h*.117f,cardTop()-h*.012f,s);
-        card(canvas, w * .075f, cardTop(), w * .48f, h * .67f, TouchTargets.BLUE,
+        RectF left=targetBounds(TouchTargets.BLUE),right=targetBounds(TouchTargets.RED);
+        float headerHeight=targetBounds(TouchTargets.MENU).bottom;
+        sportHeading(canvas,w,headerHeight,s);
+        periodPanel(canvas,w,headerHeight*.49f,headerHeight,s);
+        card(canvas,left.left,left.top,left.right,left.bottom,TouchTargets.BLUE,
             match.format().doubles?ownLabel+" & "+partnerLabel:ownLabel.toUpperCase(java.util.Locale.ROOT), tr(state.displayPoint(0)), palette.left, palette.leftPressed, s,server);
-        card(canvas, w * .52f, cardTop(), w * .925f, h * .67f, TouchTargets.RED,
+        card(canvas,right.left,right.top,right.right,right.bottom,TouchTargets.RED,
             opponentLabel, tr(state.displayPoint(1)), palette.right, palette.rightPressed, s,server);
         String status = paused?tr("PAUSED · TAP MENU"):match.retired()?(match.winner()==0?tr("WON · RETIREMENT"):tr("LOST · RETIREMENT")):match.complete()?(match.winner()==0?tr("MATCH WON"):tr("MATCH LOST"))
             :!sessionActive?(match.format().pickleball()?tr("TAP RALLY TO START"):tr("TAP +1 TO START"))
             :state.winner() == ScoreState.BLUE ? tr("SET WON · NEXT TO PLAY")
             : state.winner() == ScoreState.RED ? tr("SET LOST · NEXT TO PLAY")
             :match.format().sport.equals("squash")&&state.gameBall()!=-1?(match.gamesWon(state.gameBall())==match.needed()-1?tr("MATCH BALL"):tr("GAME BALL"))+" · "+(state.gameBall()==0?tr("ME"):tr("OPPONENT")):rallyStatus(state);
+        RectF undo=targetBounds(TouchTargets.UNDO),next=targetBounds(TouchTargets.NEW);
+        float inset=dp(round()?7:3);
+        float top=undo.top+inset,bottom=undo.bottom-inset;
+        // The lower outside corners of both buttons must fit the visible round face.
+        float edge=round()?w/2f-(float)Math.sqrt(Math.max(0,bottom*(h-bottom)))*w/h+dp(1):undo.left;
+        float buttonLeft=Math.max(undo.left,edge);
+        float statusCenter=(left.bottom+top)/2,statusHeight=top-left.bottom-dp(1);
         if(remoteStatus!=null){
-            text(canvas,fitLabel(remoteStatus,w*.84f,s*.036f,true),w*.5f,h*.711f,s*.036f,palette.muted,true);
-            float half=Math.max(dp(24),h*.09f);
-            button(canvas,w*.17f,h*.835f-half,w*.83f,h*.835f+half,tr(finalConfirmed?"Save result":"Match menu"),TouchTargets.MENU,true,s);
+            fittedText(canvas,remoteStatus,w*.5f,statusCenter,s*.041f,w*.84f,statusHeight,palette.muted,true);
+            button(canvas,buttonLeft,top,w-buttonLeft,bottom,tr(finalConfirmed?"Save result":"Match menu"),TouchTargets.MENU,true,s);
             return;
         }
         if(!reminder.isEmpty())status=tr(reminder);
-        text(canvas, fitLabel(status,w*.82f,s*.035f,true), w * .5f, h * .705f, s * .035f,
+        fittedText(canvas,status,w*.5f,statusCenter,s*.041f,w*.84f,statusHeight,
             palette.id.equals("sunlight")?Color.WHITE:state.winner() == ScoreState.NONE ? 0xffa7b6c9 : 0xffd1f5df, true);
-        float halfButton=dp(h/density()<200?16:18);
-        button(canvas, w*.18f, h*.82f-halfButton, w*.46f, h*.82f+halfButton, tr("UNDO"), TouchTargets.UNDO, match.hasPoints()||match.retired(), s);
-        button(canvas, w*.54f, h*.82f-halfButton, w*.82f, h*.82f+halfButton, match.nextReady()?tr("NEXT"):tr("NEW"), TouchTargets.NEW, true, s);
+        button(canvas,buttonLeft,top,undo.right,bottom,tr("UNDO"),TouchTargets.UNDO,match.hasPoints()||match.retired(),s);
+        button(canvas,next.left,top,w-buttonLeft,bottom,match.nextReady()?tr("NEXT"):tr("NEW"),TouchTargets.NEW,true,s);
     }
     // Use actual text metrics for the narrow chord at the top of round watches.
     private float fittedPixels(String value, float desired, float width, float height, boolean bold) {
@@ -152,10 +164,10 @@ public final class ScoreView extends View {
         float size = fittedPixels(value, desired * fontScale(), width, height, bold);
         text(c,value,center,y,size/fontScale(),ink,bold);
     }
-    private void sportHeading(Canvas c,float w,float h,float s){
+    private void sportHeading(Canvas c,float w,float headerHeight,float s){
         String label=tr(match.format().name()).toUpperCase(ui.locale)+tr(" · MENU")+(updateAvailable?" •":"");
-        float iconSize=s*.05f, gap=s*.014f, y=h*.077f;
-        float size=fittedPixels(label,s*.045f*fontScale(),w*.47f-iconSize-gap,h*.065f,true);
+        float iconSize=s*.05f,gap=s*.014f,y=headerHeight*.31f;
+        float size=fittedPixels(label,s*.047f*fontScale(),w*(round()?.47f:.82f)-iconSize-gap,headerHeight*.30f,true);
         paint.setTextSize(size);
         float width=paint.measureText(label),left=(w-width-iconSize-gap)/2;
         SportIcons icon=new SportIcons(match.format().sport,(int)iconSize);
@@ -164,7 +176,7 @@ public final class ScoreView extends View {
     }
     private void periodPanel(Canvas c, float w, float top, float bottom, float s) {
         float h=bottom-top, center=(top+bottom)/2;
-        float left=w*.145f, right=w-left, divider=w*.515f, pad=s*.021f;
+        float left=w*(round()?.145f:.04f), right=w-left, divider=w*.515f, pad=s*.021f;
         int mainInk=ambient?0xffd6d6d6:Color.WHITE, secondaryInk=ambient?0xffbababa:palette.muted;
         paint.setStyle(Paint.Style.FILL);
         if(!ambient){
@@ -207,16 +219,28 @@ public final class ScoreView extends View {
             c.drawRoundRect(new RectF(l+s*.006f,t+s*.006f,r-s*.006f,b-s*.006f), s*.07f,s*.07f,paint);
             paint.setStyle(Paint.Style.FILL);
         }
-        String shown=fitLabel(label,r-l-s*.06f,s*.042f,true);
-        text(c,shown,(l+r)/2,t+(b-t)*.17f,s*.042f,ink,true);
-        float scoreSize=s*(value.length()<3?.225f:value.length()<4?.17f:.125f);
-        paint.setTextSize(scoreSize*fontScale());paint.setTypeface(Typeface.create("sans-serif",Typeface.BOLD));android.graphics.Rect bounds=new android.graphics.Rect();paint.getTextBounds(value,0,value.length(),bounds);
-        float fit=Math.min(1f,Math.min((r-l-s*.06f)/Math.max(1,paint.measureText(value)),(b-t)*.44f/Math.max(1,bounds.height())));
-        text(c,value,(l+r)/2,t+(b-t)*.56f,scoreSize*fit,ink,true);
-        if(serverSide(server)==target)serveBadge(c,l+s*.025f,r-s*.025f,t+(b-t)*.86f,s,server);
+        float height=b-t, center=(l+r)/2, width=r-l-s*.045f;
+        float labelHeight=height*.19f, footerHeight=height*.21f;
+        float labelY=t+dp(3)+labelHeight/2, footerY=b-dp(3)-footerHeight/2;
+        String shown=fitLabel(label,width,s*.047f,true);
+        fittedText(c,shown,center,labelY,s*.047f,width,labelHeight,ink,true);
+        float scoreTop=labelY+labelHeight/2+dp(2),scoreBottom=footerY-footerHeight/2-dp(2);
+        drawPoints(c,value,center,scoreTop,scoreBottom,width,s,ink);
+        if(serverSide(server)==target)serveBadge(c,l+s*.025f,r-s*.025f,footerY,footerHeight,s,server);
         else if(remoteStatus==null||state.winner()!=ScoreState.NONE||match.retired()){String footer=match.retired()?(match.retiredPlayer()==target?tr("RETIRED"):tr("MATCH WINNER")):state.winner()==ScoreState.NONE?tr("TAP +1"):state.winner()==target?tr("WINNER"):tr("GAME OVER");
             if(match.format().pickleball()&&state.winner()==ScoreState.NONE)footer=tr("TAP RALLY WINNER");
-            text(c,fitLabel(footer,r-l-s*.04f,s*.033f,false),(l+r)/2,t+(b-t)*.86f,s*.033f,ink,false);}
+            fittedText(c,footer,center,footerY,s*.037f,width,footerHeight,ink,false);}
+    }
+    private void drawPoints(Canvas c,String value,float x,float top,float bottom,float width,float s,int ink){
+        paint.setTypeface(Typeface.DEFAULT_BOLD);
+        paint.setTextSize(s*.29f*fontScale());
+        android.graphics.Rect bounds=new android.graphics.Rect();
+        paint.getTextBounds(value,0,value.length(),bounds);
+        float fit=Math.min(1f,Math.min(width/Math.max(1f,paint.measureText(value)),(bottom-top)/Math.max(1,bounds.height())));
+        paint.setTextSize(paint.getTextSize()*fit);
+        paint.getTextBounds(value,0,value.length(),bounds);
+        paint.setColor(ink);paint.setTextAlign(Paint.Align.CENTER);
+        c.drawText(value,x,(top+bottom)/2-bounds.exactCenterY(),paint);
     }
     private int knownServer(){return match.complete()||match.game().winner()!=ScoreState.NONE?-1:match.server();}
     private int serverSide(int slot){return slot<0?-1:slot>=4?slot-4:slot%2;}
@@ -230,12 +254,13 @@ public final class ScoreView extends View {
         String name=slot==0?ownLabel:slot==1?match.format().doubles?primaryLabel:opponentLabel:slot==2?partnerLabel:slot==3?otherLabel:slot==4?tr("Our team"):tr("Opposing team");
         return tr("Serving: ")+name+".";
     }
-    private void serveBadge(Canvas c,float l,float r,float y,float s,int server){
-        String label=serveLabel(server);float font=s*.036f;paint.setTypeface(Typeface.create("sans-serif",Typeface.BOLD));paint.setTextSize(font*fontScale());
-        float available=r-l-s*.045f;while(paint.measureText(label)>available&&font>s*.02f){font-=s*.001f;paint.setTextSize(font*fontScale());}
+    private void serveBadge(Canvas c,float l,float r,float y,float band,float s,int server){
+        String label=serveLabel(server);
+        float size=fittedPixels(label,s*.039f*fontScale(),r-l-s*.045f,band-dp(2),true);
+        paint.setTextSize(size);
         float width=paint.measureText(label)+s*.045f,center=(l+r)/2;
-        paint.setStyle(Paint.Style.FILL);paint.setColor(palette.serve);float half=s*.031f*fontScale();c.drawRoundRect(new RectF(center-width/2,y-half,center+width/2,y+half),s*.025f,s*.025f,paint);
-        text(c,label,center,y,font,palette.serveInk,true);
+        paint.setStyle(Paint.Style.FILL);paint.setColor(palette.serve);float half=(paint.descent()-paint.ascent()+dp(2))/2;c.drawRoundRect(new RectF(center-width/2,y-half,center+width/2,y+half),s*.025f,s*.025f,paint);
+        text(c,label,center,y,size/fontScale(),palette.serveInk,true);
     }
     private String fitLabel(String value,float maxWidth,float size,boolean bold){
         paint.setTextSize(size*fontScale());paint.setTypeface(bold?Typeface.create("sans-serif",Typeface.BOLD):Typeface.create("sans-serif",Typeface.NORMAL));
@@ -270,7 +295,7 @@ public final class ScoreView extends View {
         if(remoteStatus!=null){
             return x>=0&&x<getWidth()&&y>=0&&y<getHeight()?TouchTargets.MENU:TouchTargets.OUTSIDE;
         }
-        return TouchTargets.hit(x/getWidth(),y/getHeight(),getWidth()/density(),getHeight()/density());
+        return TouchTargets.hit(x/getWidth(),y/getHeight(),getWidth()/density(),getHeight()/density(),round());
     }
     @Override public boolean onTouchEvent(MotionEvent event) {
         if(ambient)return true;

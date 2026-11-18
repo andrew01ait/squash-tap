@@ -25,12 +25,16 @@ public class ScorePeriodPanelUiTest {
     private static class Label {
         final String text;
         final RectF bounds;
+        final RectF ink;
         final float size;
         final int color;
         Label(String text,float x,float baseline,Paint paint){
             this.text=text;size=paint.getTextSize();color=paint.getColor();
             float half=paint.measureText(text)/2;
             bounds=new RectF(x-half,baseline+paint.ascent(),x+half,baseline+paint.descent());
+            android.graphics.Rect glyphs=new android.graphics.Rect();
+            paint.getTextBounds(text,0,text.length(),glyphs);
+            ink=new RectF(glyphs);ink.offset(x-half,baseline);
         }
     }
     private static class Display extends Canvas {
@@ -104,6 +108,23 @@ public class ScorePeriodPanelUiTest {
             assertNull(display.find("Spiele 1–0"));
             assertTrue(view.getContentDescription().toString().contains("Match-Tiebreak"));
         }
+    }
+    @Test public void largeTextLeavesAGapBetweenTheNamePointsAndServeBadge(){
+        RuntimeEnvironment.setFontScale(1.3f);
+        MatchState match=new MatchState("spacing",3);
+        match.serving(0,-1);
+        for(int i=0;i<10;i++){match.add(0);match.add(1);}
+        ScoreView view=view(match,"de");view.ownName("Alexandria Beispielname");view.opponent("Maximilian Mustername");
+        Display screen=render(view);
+        Label serving=screen.require("AUFSCHLAG");
+        for(Label points:screen.labels){
+            if(!points.text.equals("10"))continue;
+            Label name=screen.labels.stream().filter(label->label.text.endsWith("…")&&Math.abs(label.bounds.centerX()-points.bounds.centerX())<2f).findFirst().get();
+            assertTrue(name.ink.bottom+3<points.ink.top);
+            assertTrue(points.ink.bottom+3<serving.ink.top);
+            insideRoundFace(name);
+        }
+        assertEquals(2,screen.labels.stream().filter(label->label.text.equals("10")).count());
     }
     @Test public void finalAndRetirementKeepActualPeriodScoresInEveryPaletteAndAmbient(){
         MatchState match=new MatchState("final",3);

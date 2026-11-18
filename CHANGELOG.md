@@ -1,5 +1,11 @@
 # Releases
 
+## v0.20.1 · 2026-11-18 · direct APK code 28
+
+- Watch language has one home in Settings. A shared scoreboard opens a match menu for set scores, saving, sharing and app settings.
+- Sport menus, saved results, players, doubles teams and invitations have task-specific headings. Device lists group player watches and referees.
+- Live scorecards use the available display width and reserve separate space for names, points and the serving badge. Lower buttons fit the round edge and keep 48 dp touch targets.
+
 ## v0.20.0 · 2026-11-18 · direct APK code 27
 
 - Choose a sport first on the launcher. Live sharing & referee sits below all six sports. The watch Back gesture and button return one level, including during pairing.

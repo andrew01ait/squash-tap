@@ -130,7 +130,12 @@ public class SportNavigationUiTest {
         assertEquals("host",client.current().role);assertEquals("tennis",rooms.displayed().format().sport);
         String before=book().encode();
         click("Invite other watches");assertTrue(client.current().watchJoin);
-        click("Set scores");assertTrue(text().contains("Sets won"));back();click("Show score");
+        assertNull(find("Language"));assertNull(find("Set scores"));click("Back to score");
+        activity.action(TouchTargets.MENU);click("Set scores");assertTrue(text().contains("Sets won"));back();
+        click("Settings");click("Language · English");click("Deutsch");
+        back();assertNotNull(button("Sprache · Deutsch"));back();assertNotNull(button("Einstellungen"));
+        click("Live teilen & Schiedsrichter");assertNull(find("Sprache"));back();
+        click("Einstellungen");click("Sprache · Deutsch");click("English");back();back();click("Back to score");
         activity.action(TouchTargets.RED);assertEquals(before,book().encode());assertNotNull(button("Set scores"));
     }
 
@@ -206,6 +211,29 @@ public class SportNavigationUiTest {
     private void drainRoom(MatchRooms rooms) throws Exception {
         java.util.concurrent.ExecutorService io=ReflectionHelpers.getField(rooms,"io");
         io.submit(()->{}).get(5,java.util.concurrent.TimeUnit.SECONDS);shadowOf(Looper.getMainLooper()).idle();
+    }
+    @Test public void followingWatchKeepsLocalSettingsSeparateThroughTheFinalWhistle() throws Exception {
+        MatchRooms rooms=ReflectionHelpers.getField(activity,"rooms");
+        rooms.pause();
+        RoomClientUiTest.Relay relay=new RoomClientUiTest.Relay();
+        RoomClient host=new RoomClient(new RoomClientUiTest.MemoryVault(),relay);
+        RoomClient follower=new RoomClient(new RoomClientUiTest.MemoryVault(),relay);
+        MatchState remote=new MatchState("shared-settings",3);
+        host.prepare(RoomClientUiTest.snapshot(remote,false),false,true);
+        RoomClient.Session joined=follower.findJoin(host.sync().joinCode).accept();
+        ReflectionHelpers.setField(rooms,"client",follower);
+        ReflectionHelpers.callInstanceMethod(rooms,"apply",ReflectionHelpers.ClassParameter.from(RoomClient.Session.class,joined));
+        String local=book().encode();
+        activity.action(TouchTargets.MENU);
+        click("Live sharing & referee");assertNull(find("Language"));assertNull(find("Settings"));
+        assertNull(find("Set scores"));assertNull(find("Connected devices"));back();
+        click("Settings");click("Language · English");click("Deutsch");
+        remote.retire(1);host.queue(RoomClientUiTest.snapshot(remote,true));host.sync();
+        rooms.resume();shadowOf(Looper.getMainLooper()).idle();drainRoom(rooms);
+        assertNotNull(button("✓ Deutsch"));back();back();
+        assertNotNull(button("In meine Ergebnisse speichern"));
+        click("In meine Ergebnisse speichern");back();assertNotNull(button("Einstellungen"));
+        assertEquals(local,book().encode());assertEquals(joined.id,follower.current().id);
     }
     @Test public void hostCanInspectAndRemoveOneDeviceWithoutChangingTheCodeOrScore() throws Exception {
         MatchRooms rooms=ReflectionHelpers.getField(activity,"rooms");rooms.pause();

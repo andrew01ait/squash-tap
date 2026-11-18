@@ -1,6 +1,10 @@
 # Testing and verification
 
-Current watch release: **v0.20.0 / code 27**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
+Current watch release: **v0.20.1 / code 28**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
+
+## Direct v0.20.1 · 2026-11-18
+
+The release suite passed 340 core, 226 native watch UI and 98 web/relay tests (664 total). API 34 native renders cover nine square, rectangular and round size/font profiles, including 192 dp round at 130% text. Geometry checks cover the five tap regions, their minimum dimensions and non-scoring gaps. A large-text German scoring test measures the actual ink bounds of long names, two-digit points and the serving badge. Four-language tests cover the period and tally. Menu tests exercise semantic headings, simple choices, history, team roles, and hardware Back through the German settings of a referee-hosted match. On a following watch a remote finish arrives while the language chooser is open and remains available after returning. Physical watch acceptance is pending.
 
 ## Direct v0.20.0 · 2026-11-18
 

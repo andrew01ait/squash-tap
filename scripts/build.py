@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Build/test/sign the new release, retaining immutable historical APKs."""
+"""Compile and test the current Wear OS release and produce an aligned APK."""
 from pathlib import Path
-import argparse, hashlib, json, os, secrets, shutil, subprocess, sys, zipfile
+import argparse, os, subprocess, sys, zipfile
 
 ROOT=Path(__file__).resolve().parents[1]
 PKG='at.andrew.squashtap'
 SITE='https://squash-tap-andrew.endruuu.chatgpt.site'
-RELEASES=((27,'0.20.0'),)
-RELEASE_NOTES='Use one code for all player watches. View or remove connected watches and referees individually. Watch Back returns to the previous sharing screen.'
+RELEASES=((28,'0.20.1'),)
+RELEASE_NOTES='Watch menus group match, sharing and settings actions. Language is in Settings on every watch. Scorecards adapt to the display shape and keep points clear of the serving badge.'
 
 def run(args, env=None):
     result=subprocess.run([str(x) for x in args],cwd=ROOT,env=env,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
@@ -35,22 +35,8 @@ def build(sdk,junit,hamcrest):
     print('Running browser interchange and relay/storage tests',flush=True)
     web_result=run(['node','--test',*sorted((ROOT/'web-test').glob('*.test.mjs'))],env)
     (work/'web-test-results.txt').write_text(web_result)
-    signing=ROOT/'.local/signing';signing.mkdir(parents=True,exist_ok=True)
-    key=signing/'squash-tap.p12';password=signing/'key.password'
-    if not key.exists():
-        if (ROOT/'SIGNING_IDENTITY.json').exists():
-            raise SystemExit('Restore the existing private signing backup before building. See SIGNING_IDENTITY.json; a replacement key would break updates.')
-        password.write_text(secrets.token_urlsafe(36));password.chmod(0o600)
-        run(['keytool','-genkeypair','-storetype','PKCS12','-keystore',key,'-storepass:file',password,'-keypass:file',password,'-alias','squash-tap','-keyalg','RSA','-keysize','3072','-validity','10000','-dname','CN=Squash Tap Personal Testing'],env)
-        key.chmod(0o600)
-    apks=ROOT/'public/apks';apks.mkdir(parents=True,exist_ok=True)
     from androidx_deps import prepare
     libraries,library_resources,library_packages=prepare()
-    from release_retention import prune
-    built=prune(ROOT)
-    for previous in built:
-        old_file=apks/previous['filename']
-        if hashlib.sha256(old_file.read_bytes()).hexdigest()!=previous['sha256']:raise SystemExit('Retained APK changed: '+previous['filename'])
     for code,version in RELEASES:
         print(f'Building Keep Score {version}',flush=True)
         out=work/version;out.mkdir(exist_ok=True)
@@ -69,44 +55,21 @@ def build(sdk,junit,hamcrest):
         run(['java','com.sun.tools.javac.Main','--release','8','-classpath',classpath,'-d',classes,*sorted((ROOT/'android/src').rglob('*.java')),*sorted((out/'generated').rglob('*.java'))],env)
         print('Running Android navigation, session and power tests with the compiled resources',flush=True)
         run(['python3',ROOT/'scripts/test_ui.py','--version',version],env)
-        ui_result=(out/'ui-test-results.txt').read_text()
         run([tools/'d8','--lib',platform,'--min-api','30','--output',dex,*sorted(classes.rglob('*.class')),*libraries],env)
         with zipfile.ZipFile(out/'unsigned.apk','a',zipfile.ZIP_DEFLATED) as archive:
             for file in dex.glob('*.dex'):archive.write(file,file.name)
             archive.write(ROOT/'THIRD_PARTY_NOTICES.txt','assets/THIRD_PARTY_NOTICES.txt')
         run([tools/'zipalign','-f','4',out/'unsigned.apk',out/'aligned.apk'],env)
-        apk=apks/f'KeepScore-{version}.apk'
-        run([tools/'apksigner','sign','--ks',key,'--ks-key-alias','squash-tap','--ks-pass','file:'+str(password),'--out',apk,out/'aligned.apk'],env)
-        signature=run([tools/'apksigner','verify','--verbose','--print-certs',apk],env)
-        import re
-        identity=json.loads((ROOT/'SIGNING_IDENTITY.json').read_text())
-        if identity['certificate_sha256'] not in signature:raise SystemExit('Release signer differs from the installed app signer')
-        (out/'signature.txt').write_text(signature)
-        badging=run([tools/'aapt2','dump','badging',apk],env)
-        (out/'manifest.txt').write_text(badging)
-        if f"name='{PKG}'" not in badging or f"versionCode='{code}'" not in badging or "name='android.hardware.type.watch'" not in badging:raise SystemExit('APK metadata check failed')
-        run([tools/'zipalign','-c','4',apk],env)
-        built=[item for item in built if item['versionCode']!=code]
-        built.append({'versionCode':code,'versionName':version,'filename':apk.name,'sizeBytes':apk.stat().st_size,'sha256':hashlib.sha256(apk.read_bytes()).hexdigest()})
-    built.sort(key=lambda item:item['versionCode'])
-    latest=built[-1]
-    release='schema=1\npackageName='+PKG+'\nversionCode='+str(latest['versionCode'])+'\nversionName='+latest['versionName']+'\nminSdk=30\nsizeBytes='+str(latest['sizeBytes'])+'\napkUrl='+SITE+'/apks/'+latest['filename']+'\nsha256='+latest['sha256']+'\nnotes='+RELEASE_NOTES+'\n'
-    (ROOT/'public/release.properties').write_text(release)
-    (ROOT/'public/builds.json').write_text(json.dumps(built,indent=2)+'\n')
-    (ROOT/'public/SHA256SUMS.txt').write_text(''.join(x['sha256']+'  '+x['filename']+'\n' for x in built))
-    device_notes='No device results have been recorded.\n'
-    report_path=ROOT/'DEVICE_TESTS.json'
-    if report_path.exists():
-        report=json.loads(report_path.read_text())
-        transition=report['tested_update']['from']+' to '+report['tested_update']['to']
-        device_notes='Historical device report ('+report['date']+', '+report['device']+', update '+transition+'). These checks are user-reported and are not rerun by this build.\n'
-        device_notes+='\n'.join('Confirmed: '+item for item in report['passed'])+'\n'
-        device_notes+='\n'.join('Pending: '+item for item in report['pending'])+'\n'
-        for follow_up in report.get('follow_up_reports',[]):
-            device_notes+='User report '+follow_up['date']+' (v'+follow_up['version']+'): '+follow_up['observation']+'\n'
-    (ROOT/'public/test-results.txt').write_text(result+'\nAndroid navigation/session/power checks (Robolectric, API 34, compiled AAPT resources):\n'+ui_result+'\nBrowser interchange and relay/storage checks (Node Web Crypto and Miniflare D1/R2):\n'+web_result+'\nNew release APK signature, manifest identity and ZIP alignment: verified. Retained APK hashes verified; public history starts at v0.3.0.\n'+device_notes+'No Wear OS emulator run is claimed. The user reports working foreground retention since v0.3 and successful v0.4 QR export. v'+latest['versionName']+' appearance, speech availability, phone file picking/QR scan, detailed ambient transitions and real battery consumption require physical validation. Battery snapshots reflect the whole watch, not attributed app consumption.\n')
-    print(json.dumps({'builds':built,'tests':result.strip().splitlines()[-1],'uiTests':ui_result.strip().splitlines()[-1]},indent=2),flush=True)
+        print(f"Aligned unsigned watch APK: {out / 'aligned.apk'}",flush=True)
 
 if __name__=='__main__':
-    parser=argparse.ArgumentParser();parser.add_argument('--sdk',type=Path,required=True);parser.add_argument('--junit',type=Path,required=True);parser.add_argument('--hamcrest',type=Path,required=True)
-    args=parser.parse_args();build(args.sdk,args.junit,args.hamcrest)
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--sdk',type=Path,required=True)
+    parser.add_argument('--junit',type=Path,required=True)
+    parser.add_argument('--hamcrest',type=Path,required=True)
+    parser.add_argument('--unsigned',action='store_true',help='Finish with the aligned development APK.')
+    args=parser.parse_args()
+    build(args.sdk,args.junit,args.hamcrest)
+    distribution=ROOT/'maintainer'/'official_build.py'
+    if distribution.is_file() and not args.unsigned:
+        subprocess.run([sys.executable,str(distribution),'--sdk',str(args.sdk.resolve())],cwd=ROOT,check=True)
