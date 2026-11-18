@@ -1,16 +1,29 @@
-# Navigation and match flows — v0.19.0
+# Navigation and match flows — v0.20.0
 
 The separate Play preparation candidate retains these scoring/navigation flows. Its Settings → Check for updates opens a Google Play explanation, Open Google Play and Back to Settings. All website update/download/install/setup entry points route there in that build; a missing Store produces an actionable message and keeps the match. The public direct-APK release keeps its existing updater. See [PLAY_RELEASE.md](PLAY_RELEASE.md).
 
 ## Sport entry and scope
 
-The launcher opens Choose sport with distinct icons/colours for Squash, Tennis, Badminton, Padel, Table tennis and Pickleball, with Live sharing & referee above the sports and shared Players and Settings below. An unfinished current match locks every other sport, including when paused or explicitly created but unplayed. The selector explains the lock and disables the other sport rows; stale selection/create callbacks also enforce it. Finish or cancel the match to unlock selection. A completed match permits another sport. Close app exits without silently opening another sport’s scoreboard. Each sport remembers its new-match rules and length.
+The launcher opens Choose sport with distinct icons/colours for Squash, Tennis, Badminton, Padel, Table tennis and Pickleball, with Live sharing & referee, Players and Settings together below the six sports. An unfinished current match locks every other sport, including when paused or explicitly created but unplayed. The selector explains the lock and disables the other sport rows; stale selection/create callbacks also enforce it. Finish or cancel the match to unlock selection. A completed match permits another sport. Close app exits without silently opening another sport’s scoreboard. Each sport remembers its new-match rules and length.
 
 Results and Statistics use the chosen sport. Eligible sports offer All modes / Singles / Doubles. Result player filters include all team roles; date/player filters do not narrow Statistics. Delete all results deletes the selected sport only and preserves other sports, current state, daily counters and deletion markers. Phone Results/Statistics have their own shared sport/mode selectors; the Players catalog is global.
 
 New match opens explicit, ticked lists for mode, scoring system, deuce, deciding set and match length. Opening a picker, Cancel, hardware Back and swipe leave the draft unchanged. Selecting one option returns to the previous setup scroll position. Choices appear before help text, and selecting the current choice preserves serving data. New match stages sport-specific rules, length, optional opponent/partner/opponent-2 and optional first-server choices. Padel stays doubles; squash stays singles. Duplicate people in different slots are rejected. Tennis/padel games advance automatically; NEXT remains explicit between sets. Rules are locked to the match; changing new-match defaults does not reinterpret old results. [RULES.md](RULES.md) lists formats and service choices.
 
 Players shows small vector sport badges only for associated saved results as partner or opponent. No-result players have no badges. Delete/Undo, import and role reassignment are reflected on the next render. Names remain optional. Removing a player archives selection, and renaming follows their stable ID across sports.
+
+## Watch menus by match stage
+
+| Where you are | What to use | What Back does |
+| --- | --- | --- |
+| Launcher | Select one of the six sports. An unfinished match has its own shortcut. The shared group below the sports contains Live sharing & referee, Players and Settings. | Close app is the explicit launcher exit. |
+| Sport menu before a match | New match opens the draft. Choose rules, singles or doubles as supported, length, players and service order. The sport menu also opens saved formats, rules, history and statistics. | The sport menu returns to the launcher when entered there. Cancel in setup returns to the caller with the previous match intact. |
+| Ready, playing or paused | Current match puts Start, Pause or Resume first. Use the scoreboard for points, Undo and advancing a finished set. Sharing, entering a set and Match details stay accessible. Match options groups player and format changes, replacement and retirement. | Leaving a menu keeps the score and pause state. Back from a discard confirmation returns to its caller. |
+| A referee scores or a watch follows | The scoreboard is read-only. The host can show the referee QR, invite other player watches and manage connected devices. A follower can inspect set scores and its device identifier. | Back from the room menu returns to the shared scoreboard. Leaving the match requires a separate confirmation. |
+| Finished match | View the result, start a new match, share the saved result card or inspect set scores. The current-match menu retains existing sharing. If result storage was full, Save match result retries saving after space has been freed. Saved current results offer Undo and Quick rematch. | Result details return to the view that opened them. |
+| History and statistics | Results contains filters, manual past-match entry and options for the phone journal, CSV and bulk deletion. Statistics uses the selected sport. Players and Settings are shared destinations. | Back retains the chosen sport, results page and filters. Settings selectors retain their parent and scroll position. |
+
+The named Back action, system Back and a swipe dismiss one watch panel at a time. Cancelling a pending join returns to code entry. A delayed room reply cannot attach the cancelled match.
 
 ## Root and priorities
 
@@ -37,9 +50,9 @@ The sport Menu returns to its own current scoreboard when available; an idle spo
 | Fresh | Start match | Live sharing & referee, Enter set score, Match details, Match options, Cancel match |
 | Playing | Pause match | Live sharing & referee, Enter set score, Match details, Match options, Cancel match |
 | Paused / waiting to resume | Resume match | Live sharing & referee, Enter set score, Match details, Match options, Cancel match |
-| Completed | View result, when saved | Match details, New match |
+| Completed | View result if saved, Save match result if pending | New match, Share result card if saved, Match details, existing sharing |
 
-The summary shows opponent, sets and BO3/BO5. Match details and the read-only Game or set scores view show a large tally and individual scores, newest first, with the current period identified. The live scoreboard shows the period, tally, and either games in the current set or the most recent completed score. Match options groups Players/Opponent, Serving indicator and Match length under Setup & players, with New match and Save retirement result under Finish or replace. Cancel match is available directly in Current match and in Match options. The frozen scoring rules are summarised separately from adjustable match length. These options never contain Settings. Completed matches hide inapplicable live/set/options controls. If result storage is full, the completed scoreboard stays available through Match details until a result can be saved.
+The summary shows opponent, sets and BO3/BO5. Match details and the read-only Game or set scores view show a large tally and individual scores, newest first, with the current period identified. The live scoreboard shows the period, tally, and either games in the current set or the most recent completed score. Match options groups Players/Opponent, Serving indicator and Match length under Setup & players, with New match and Save retirement result under Finish or replace. Cancel match is available directly in Current match and in Match options. The frozen scoring rules are summarised separately from adjustable match length. These options never contain Settings. Completed matches hide inapplicable live/set/options controls. If result storage is full, the finished scoreboard stays available. After freeing space, Save match result retries from Current match or Match details.
 
 Match format changes an unfinished current match in place, preserving UUID, points, sets, timing and Undo. BO5 → BO3 is rejected after either player already has two set wins. Changes return to Match options. Screen-on policy and history Singles/Doubles filters also use explicit lists rather than cycling through values. Confirmation questions omit the Scoreboard shortcut to keep the question and explicit confirm/cancel actions clear.
 
@@ -146,7 +159,7 @@ Results → Filters → Reset all filters is the first filter action. Filtered R
 
 ## Linked matches and language
 
-Live sharing & referee appears above the sports on the launcher, near the top of each sport menu and directly after Start, Pause or Resume in Current match. During play, tap the scoreboard’s sport/Menu header. The hub offers Audience live link, Referee on phone, Share with watches and Join with watch code. Opening the hub does not start sharing. Starting without a match takes you through sport and match setup before you confirm. Referee on phone shows a private scoring QR after the current state reaches the server and locks local score actions immediately. Share with watches starts a ten-character read-only code. A watch scorer can hand the same match to a referee while followers stay connected. In referee mode, Invite other watches enables the same code. The host can redisplay the QR and enable or disable new joins.
+Live sharing & referee appears below the sports on the launcher, near the top of each sport menu and directly after Start, Pause or Resume in Current match. During play, tap the scoreboard’s sport/Menu header. The hub offers Audience live link, Referee on phone, Share with watches and Join with watch code. Opening the hub does not start sharing. Starting without a match takes you through sport and match setup before you confirm. Referee on phone shows a private scoring QR after the current state reaches the server and locks local score actions immediately. Share with watches starts a ten-character read-only code. A watch scorer can hand the same match to a referee while followers stay connected. In referee mode, Invite other watches enables the same code. The host can redisplay the QR and enable or disable new joins.
 
 A receiving watch opens Live sharing & referee → Join with watch code and enters the two groups of five characters. The scoreboard and its accessibility action open the room menu. After confirmation, the host chooses Save to my results. A follower also selects their player position. An interrupted session reopens with its last received score. Leaving a followed game preserves local history. Cancelling an unfinished referee-hosted game discards its frozen local draft.
 
@@ -155,3 +168,8 @@ The language selector is in Settings and in the read-only room menu. All phone p
 ## Match journal entry and correction
 
 Scan the Results phone QR. **Add result** opens the sport, mode, rules, date, team and game/set fields. **Edit result** in a saved match opens its existing scores. Leave unused game rows blank. Choose a side under Match finish if someone retired. The recorded format and recorded timestamps are retained. Stage a result to see its effect in the journal and statistics. A staged result can be reopened or discarded before sending. **Send changes → Receive changes → Apply changes** saves the batch to the watch.
+
+
+## Pairing and removing devices
+
+Use the same ten-character code for every player watch. Each receiving watch opens Live sharing & referee → Join with watch code. A referee scans the dedicated phone QR. In a new v0.20.0 room the host opens Live sharing & referee → Connected devices, matches the short device identifier, selects a device and confirms Remove device. Refresh obtains the latest contact times. The referee page shows its identifier below the match and a player watch shows its identifier in the room menu. Offline devices can still display cached scores. A removed device cannot fetch updates or upload buffered points when it next connects. Hiding the code closes new watch admissions. Rooms created before v0.20.0 keep the previous sharing controls.

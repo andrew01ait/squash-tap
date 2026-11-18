@@ -37,17 +37,17 @@ export async function preview(request,env){
  }
  if(url.pathname==='/__transfer-preview/referee'){
   const id=crypto.randomUUID().replaceAll('-',''), random=()=>b64(crypto.getRandomValues(new Uint8Array(32)));
-  const writer=random(),reader=random(),secret=random(),joinCode=id.slice(0,10).toUpperCase();
+  const writer=random(),reader=random(),secret=random(),refereeInvite=random(),joinCode=id.slice(0,10).toUpperCase();
   const snapshot={schema:1,match:'M1|'+id+'|3|1|',labels:['Cameron','Noémie','',''],startedAt:0,finishedAt:0,zone:'',final:false};
   const cipher=await sealSnapshot(await roomKey(secret),id,snapshot);
   const context='KeepScore:pair:1:'+joinCode;
   const pairingKey=await crypto.subtle.importKey('raw',await crypto.subtle.digest('SHA-256',new TextEncoder().encode(context)),'AES-GCM',false,['encrypt']);
   const iv=crypto.getRandomValues(new Uint8Array(12));
-  const encrypted=await crypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:new TextEncoder().encode(context)},pairingKey,new TextEncoder().encode(JSON.stringify({id,token:reader,key:secret})));
+  const encrypted=await crypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:new TextEncoder().encode(context)},pairingKey,new TextEncoder().encode(JSON.stringify({id,key:secret,managed:true})));
   const pairing='1.'+b64(iv)+'.'+b64(new Uint8Array(encrypted));
-  const create=await handleRooms(new Request(url.origin+'/api/rooms',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,writer,reader,admin:random(),joinCode,pairing,watchJoin:false,cipher,revision:0,final:false})}),env);
+  const create=await handleRooms(new Request(url.origin+'/api/rooms',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,writer,reader,refereeInvite,admin:random(),joinCode,pairing,watchJoin:false,cipher,revision:0,final:false})}),env);
   if(!create.ok)return create;
-  return Response.redirect(url.origin+'/referee.html#'+new URLSearchParams({id,token:writer,key:secret}),302);
+  return Response.redirect(url.origin+'/referee-join.html#'+new URLSearchParams({id,invite:refereeInvite,key:secret}),302);
  }
 
  if(url.pathname.endsWith('/landing-layouts')){

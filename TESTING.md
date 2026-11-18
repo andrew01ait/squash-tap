@@ -1,6 +1,12 @@
 # Testing and verification
 
-Current watch release: **v0.19.0 / code 26**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
+Current watch release: **v0.20.0 / code 27**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
+
+## Direct v0.20.0 · 2026-11-18
+
+The release suite covers 339 core, 222 native watch UI and 98 web/relay tests (659 total). The menu review follows the launcher and all six sport menus, new-match setup, serving and player selectors, active/paused controls, score and set details, shared matches, finished and retired results, history/filter/pagination, statistics, phone transfers, Players and Settings. Native round and rectangular layouts include the small round display at 130% font. See the stage-by-stage table in [FLOW.md](FLOW.md).
+
+Regression cases exercise the system Back dispatcher of the dialog and activity, the legacy Back key, swipe dismissal, stale callbacks, pending join cancellation, result-first ordering and removal confirmation. The room service test pairs two watches with one code and two referee devices. It removes one of each, rejects their later reads and writes, accepts a new watch on the original code and preserves the other referee’s ability to score. Legacy room and referee paths have separate coverage. A synthetic match in the German browser interface advanced from 0–0 to 1–0. Reload preserved its score and device identifier. A fresh referee invitation opened the scoring view without a manual reload. Native signature, alignment, package, compiled system Back opt-in and retained APKs are release checks. Physical OnePlus gesture, optical QR and multi-device acceptance are still open.
 
 ## Direct v0.19.0 · 2026-11-18
 
@@ -22,7 +28,7 @@ On the browser preview, a staged roster name survived a language switch, and the
 
 ## Play contact documentation — 2026-11-12
 
-Record endruuu@hotmail.com as the owner-confirmed public support and privacy contact in both Play drafts and the release checklist, with account verification still pending. Verify documentation links/release identity, exact guide and draft parity with the sanitized export, and that only these five Markdown files change in the public source. Regenerate the source download. Runtime code, retained APKs, release feeds, signing identity and Play candidate configuration stay byte-for-byte; native/physical tests are not rerun for this documentation-only update. No Play Console change or policy approval is claimed.
+Record the owner-confirmed support and privacy contact in the Play drafts and release checklist, with account verification still pending. Verify documentation links/release identity, exact guide and draft parity with the sanitized export, and that only these five Markdown files change in the public source. Regenerate the source download. Runtime code, retained APKs, release feeds, signing identity and Play candidate configuration stay byte-for-byte; native/physical tests are not rerun for this documentation-only update. No Play Console change or policy approval is claimed.
 
 The documentation checker passes for 12 guides and 73 local links, with exact export parity. All 299 public-source hashes/modes match the reviewed GitHub head before editing; the reviewed update changes only five Markdown files. The generated ZIP matches that export. The local frontend build cannot run because this restored checkout has no Vinext dependencies; source-download publication requires the supported remote build of the exact pushed source.
 

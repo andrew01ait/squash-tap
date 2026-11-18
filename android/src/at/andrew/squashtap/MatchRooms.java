@@ -29,7 +29,8 @@ final class MatchRooms {
     private JSONObject data;
     private String lastLocal = "", error = "";
     private TextView connection, summary;
-    private boolean visible, destroyed, syncing, joining, askQr, blocked, terminalError, outboxRequested;
+    private boolean visible, destroyed, syncing, askQr, blocked, terminalError, outboxRequested;
+    private String joiningCode;
     private int failures;
     private long generation;
     private Entry entry=Entry.MATCH;
@@ -47,7 +48,8 @@ final class MatchRooms {
     private String audienceTitle() { return text("Audience live link","Live-Link für Zuschauer","Lien pour le public","Enlace para el público"); }
     private String joinTitle() { return text("Join with watch code","Mit Uhrencode beitreten","Rejoindre avec un code","Unirse con código"); }
     void open(Entry from) { entry=from;hub(); }
-    boolean readOnly() { return blocked || joining || s != null && !"score".equals(s.role); }
+    boolean readOnly() { return blocked || joiningCode!=null || s != null && !"score".equals(s.role); }
+    boolean hasRoom(){return s!=null;}
     boolean isHost() { return s != null && "host".equals(s.role); }
     boolean finalScore() { return data != null && data.optBoolean("final"); }
     String widgetRevision() {
@@ -88,7 +90,7 @@ final class MatchRooms {
     }
     private String status() {
         if (!error.isEmpty()) return error;
-        if (joining) return text("Connecting…","Verbindung wird hergestellt…","Connexion…","Conectando…");
+        if (joiningCode!=null) return text("Connecting…","Verbindung wird hergestellt…","Connexion…","Conectando…");
         if (s==null) return "";
         if (!s.ready) return text("Waiting for connection","Warte auf Verbindung","En attente de connexion","Esperando conexión");
         if (finalScore()) return text("Final result","Endergebnis","Résultat final","Resultado final");
@@ -139,8 +141,8 @@ final class MatchRooms {
         if (visible && !destroyed && s!=null && !terminalError) main.postDelayed(tick,delay);
     }
     private void sync() {
-        if (!visible || destroyed || syncing || joining || s==null || terminalError) return;
-        if (s.ready && !s.pending && ("score".equals(s.role) || finalScore())) return;
+        if (!visible || destroyed || syncing || joiningCode!=null || s==null || terminalError) return;
+        if (s.ready && !s.pending && ("score".equals(s.role) || finalScore() && !s.needsCheckIn)) return;
         syncing=true;
         final long attempt=generation;
         io.execute(()->{
@@ -169,6 +171,7 @@ final class MatchRooms {
     }
     private static boolean gone(Exception e) {return e instanceof RoomClient.ServiceError && (((RoomClient.ServiceError)e).status==404 || ((RoomClient.ServiceError)e).status==410);}
     private String problem(Exception e, boolean code) {
+        if(e instanceof RoomClient.ServiceError && ((RoomClient.ServiceError)e).status==410)return text("Access to this shared match has ended.","Der Zugriff auf diese geteilte Partie wurde beendet.","L’accès à ce match partagé a pris fin.","El acceso a este partido compartido ha terminado.");
         if(gone(e)) return code ? text("Code not found. Check the host watch.","Code nicht gefunden. Prüfe die Gastgeberuhr.","Code introuvable. Vérifiez la montre hôte.","Código no encontrado. Revisa el reloj anfitrión.")
             : text("Sharing ended or expired","Freigabe beendet oder abgelaufen","Partage terminé ou expiré","El enlace terminó o caducó");
         if(e instanceof RoomClient.ServiceError && ((RoomClient.ServiceError)e).status==429)
@@ -184,11 +187,18 @@ final class MatchRooms {
     }
     void hub() {
         LinearLayout page=a.roomPanel(title(),"room-hub");summary=null;
-        connection=a.paragraph(page,status()); connection.setVisibility(s==null && !blocked && !joining ? android.view.View.GONE : android.view.View.VISIBLE);
-        if(blocked){a.backButton(page,text("Close app","App schließen","Fermer","Cerrar"),a::finish);return;}
-        if(joining){a.backButton(page,text("Close","Schließen","Fermer","Cerrar"),a::finish);return;}
+        connection=a.paragraph(page,status()); connection.setVisibility(s==null && !blocked && joiningCode==null ? android.view.View.GONE : android.view.View.VISIBLE);
+        if(blocked){a.backButton(page,"Back to score",a::closePanel);return;}
+        if(joiningCode!=null){
+            a.backButton(page,"Cancel",()->{String code=joiningCode;++generation;joiningCode=null;errorsReset();joinPage(code);});
+            return;
+        }
         if(s==null) {
             a.navigationButton(page,audienceTitle(),()->a.chooseSharingMatch(entry,true,null,a::showLive));
+            if(entry==Entry.MATCH && a.roomLocalFinished()){
+                a.sharingBack(page,entry);
+                return;
+            }
             a.navigationButton(page,text("Referee on phone","Schiedsrichter am Handy","Arbitre sur téléphone","Árbitro en el móvil"),
                 ()->a.chooseSharingMatch(entry,false,text("Create & invite referee","Erstellen & Schiedsrichter einladen","Créer et inviter l’arbitre","Crear e invitar al árbitro"),()->start(true)));
             a.navigationButton(page,text("Share with watches","Mit Uhren teilen","Partager avec des montres","Compartir con relojes"),
@@ -205,6 +215,11 @@ final class MatchRooms {
         }
         if(readOnly() && match!=null)
             a.navigationButton(page,text("Set scores","Satzstände","Scores des manches","Marcadores parciales"),a::showSharedMatchDetails);
+        if(!s.memberId.isEmpty())a.paragraph(page,text("This watch","Diese Uhr","Cette montre","Este reloj")+" · "+shortId(s.memberId));
+        if(!"follow".equals(s.role)) {
+            if(s.managed && s.ready)a.navigationButton(page,devicesTitle(),this::devices);
+            else if(!s.managed)a.paragraph(page,text("Individual devices are available in new shares from v0.20.","Einzelne Geräte siehst du in neuen Freigaben ab v0.20.","Les appareils individuels apparaissent dans les nouveaux partages depuis la v0.20.","Los dispositivos aparecen en las nuevas sesiones desde la v0.20."));
+        }
         if(isHost() && s.ready && !finalScore() && !terminalError)
             a.navigationButton(page,text("Referee QR","Schiedsrichter-QR","QR de l’arbitre","QR del árbitro"),this::qr);
         if("score".equals(s.role) && !finalScore() && !terminalError)
@@ -212,7 +227,7 @@ final class MatchRooms {
         if(!"follow".equals(s.role) && !terminalError) {
             if(s.watchJoinReady) {
                 TextView code=a.paragraph(page,s.joinCode.substring(0,5)+" "+s.joinCode.substring(5)); code.setTextSize(22);
-                a.paragraph(page,text("On the other watch","Auf der anderen Uhr","Sur l’autre montre","En el otro reloj")+"\n"+title()+" → "+joinTitle());
+                a.paragraph(page,text("Use this same code on every player watch","Denselben Code auf jeder Spieleruhr eingeben","Utilisez ce même code sur chaque montre","Usa este mismo código en todos los relojes")+"\n"+title()+" → "+joinTitle());
             }
             a.navigationButton(page,s.watchJoin ? text("Hide joining code","Beitrittscode deaktivieren","Désactiver le code","Desactivar el código")
                 : text("Invite other watches","Weitere Uhren einladen","Inviter d’autres montres","Invitar a otros relojes"),this::toggleJoin);
@@ -241,26 +256,93 @@ final class MatchRooms {
         catch(Exception failure){a.roomMessage(problem(failure,false),this::hub);}
     }
     private void qr() {askQr=false;if(s!=null && isHost() && s.ready && !finalScore())a.showQr(s.refereeLink,text("Scan to referee","Zum Zählen scannen","Scanner pour arbitrer","Escanear para arbitrar"),this::hub,text("Back","Zurück","Retour","Volver"));}
-    void joinPage() {
-        if(s!=null || blocked || joining){hub();return;}
+    void joinPage(){joinPage("");}
+    private void joinPage(String code) {
+        if(s!=null || blocked || joiningCode!=null){hub();return;}
         LinearLayout p=a.roomPanel(joinTitle(),"room-code");
         a.paragraph(p,text("Enter the code shown on the host watch.","Gib den Code von der Gastgeberuhr ein.","Saisissez le code affiché sur la montre hôte.","Introduce el código del reloj anfitrión."));
         EditText field=new EditText(a); field.setSingleLine(); field.setTextColor(android.graphics.Color.WHITE); field.setGravity(android.view.Gravity.CENTER);
         field.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS|InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
         field.setFilters(new InputFilter[]{new InputFilter.AllCaps(),new InputFilter.LengthFilter(14)});
-        field.setContentDescription(joinTitle());p.addView(field);
+        field.setContentDescription(joinTitle());field.setText(code);field.setSelection(field.length());p.addView(field);
         a.button(p,text("Join match","Partie beitreten","Rejoindre le match","Unirse al partido"),()->join(field.getText().toString()));
         a.backButton(p,backToSharing(),this::hub);
     }
     private void join(String code) {
-        if(joining || s!=null) return;
-        joining=true;error="";hub();final long attempt=++generation;
+        if(joiningCode!=null || s!=null)return;
+        joiningCode=code;error="";hub();final long attempt=++generation;
         io.execute(()->{
             try {
-                RoomClient.Session joined=client.join(code);
-                main.post(()->{if(destroyed||attempt!=generation)return;joining=false;apply(joined);a.pauseForRoom();errorsReset();if(visible){if(finalScore())hub();else a.closePanel();}schedule(0);});
-            } catch(Exception e) {main.post(()->{if(destroyed||attempt!=generation)return;joining=false;a.roomMessage(problem(e,true),this::joinPage);});}
+                RoomClient.PendingJoin pending=client.findJoin(code);
+                main.post(()->{
+                    if(destroyed||attempt!=generation)return;
+                    joiningCode=null;
+                    try{
+                        apply(pending.accept());a.pauseForRoom();errorsReset();
+                        if(visible){if(finalScore())hub();else a.closePanel();}schedule(0);
+                    }catch(Exception failed){a.roomMessage(problem(failed,true),()->joinPage(code));}
+                });
+            }catch(Exception failed){
+                main.post(()->{if(destroyed||attempt!=generation)return;joiningCode=null;a.roomMessage(problem(failed,true),()->joinPage(code));});
+            }
         });
+    }
+    private String devicesTitle(){return text("Connected devices","Verbundene Geräte","Appareils connectés","Dispositivos conectados");}
+    private String shortId(String id){return "#"+id.substring(Math.max(0,id.length()-6)).toUpperCase(java.util.Locale.ROOT);}
+    private String deviceName(JSONObject member){
+        return ("watch".equals(member.optString("role"))?text("Player watch","Spieleruhr","Montre de joueur","Reloj de jugador"):text("Referee","Schiedsrichter","Arbitre","Árbitro"))+" "+shortId(member.optString("id"));
+    }
+    private void devices(){
+        if(s==null||!s.managed||"follow".equals(s.role)){hub();return;}
+        String id=s.id;
+        LinearLayout page=a.roomPanel(devicesTitle(),"room-devices");
+        a.paragraph(page,text("Loading devices…","Geräte werden geladen …","Chargement des appareils…","Cargando dispositivos…"));
+        a.backButton(page,backToSharing(),this::hub);
+        io.execute(()->{
+            try{
+                JSONObject result=client.participants(id);
+                main.post(()->{if(a.roomPageVisible(page)&&!destroyed)showDevices(result);});
+            }catch(Exception failed){
+                main.post(()->{if(!a.roomPageVisible(page)||destroyed)return;
+                    LinearLayout retry=a.roomPanel(devicesTitle(),"room-devices");
+                    a.paragraph(retry,text("Could not load the device list.","Die Geräteliste konnte nicht geladen werden.","Impossible de charger les appareils.","No se pudieron cargar los dispositivos."));
+                    a.navigationButton(retry,text("Try again","Erneut versuchen","Réessayer","Reintentar"),this::devices);
+                    a.backButton(retry,backToSharing(),this::hub);
+                });
+            }
+        });
+    }
+    private void showDevices(JSONObject result){
+        LinearLayout page=a.roomPanel(devicesTitle(),"room-devices");
+        org.json.JSONArray members=result.optJSONArray("members");
+        int count=members==null?0:members.length();
+        if(count==0)a.paragraph(page,text("No watches or referees have connected yet.","Bisher ist keine Spieleruhr und kein Schiedsrichter beigetreten.","Aucune montre ni aucun arbitre ne s’est connecté.","Aún no se ha conectado ningún reloj ni árbitro."));
+        for(int i=0;i<count;i++){
+            JSONObject member=members.optJSONObject(i);
+            if(member==null)continue;
+            long minutes=Math.max(0,(result.optLong("now")-member.optLong("seenAt"))/60000);
+            String seen=minutes==0?text("just now","gerade eben","à l’instant","ahora"):minutes+" min";
+            a.navigationButton(page,deviceName(member)+" · "+seen,()->confirmRemoval(member));
+        }
+        if(count>0)a.paragraph(page,text("Time shows the last contact. Select a device to remove it.","Die Zeit zeigt den letzten Kontakt. Tippe zum Entfernen auf das Gerät.","L’heure indique le dernier contact. Touchez un appareil pour le retirer.","El tiempo indica el último contacto. Toca un dispositivo para quitarlo."));
+        a.navigationButton(page,text("Refresh","Aktualisieren","Actualiser","Actualizar"),this::devices);
+        a.backButton(page,backToSharing(),this::hub);
+    }
+    private void confirmRemoval(JSONObject member){
+        if(s==null)return;
+        String id=s.id;
+        LinearLayout page=a.roomPanel(text("Remove device?","Gerät entfernen?","Retirer l’appareil ?","¿Quitar dispositivo?"),"room-remove");
+        a.paragraph(page,deviceName(member));
+        a.paragraph(page,text("This device will lose access. Other devices stay connected and the watch code stays valid.","Dieses Gerät verliert den Zugriff. Der Uhrencode bleibt gültig und alle anderen Geräte bleiben verbunden.","Cet appareil perdra l’accès. Les autres appareils et le code resteront actifs.","Este dispositivo perderá el acceso. Los demás dispositivos y el código seguirán activos."));
+        a.deleteButton(page,text("Remove device","Gerät entfernen","Retirer l’appareil","Quitar dispositivo"),()->{
+            android.widget.Button action=(android.widget.Button)page.findViewWithTag("remove-device");
+            if(action!=null)action.setEnabled(false);
+            io.execute(()->{
+                try{client.removeParticipant(id,member.getString("id"));main.post(()->{if(!destroyed&&a.roomPageVisible(page))devices();});}
+                catch(Exception failed){main.post(()->{if(!destroyed&&a.roomPageVisible(page))a.roomMessage(text("Removal was not confirmed. Refresh the device list.","Entfernen wurde nicht bestätigt. Aktualisiere die Geräteliste.","Retrait non confirmé. Actualisez la liste.","No se confirmó la eliminación. Actualiza la lista."),this::devices);});}
+            });
+        }).setTag("remove-device");
+        a.backButton(page,"Cancel",this::devices);
     }
     private void errorsReset(){error="";terminalError=false;failures=0;}
     private void pickSeat() {

@@ -1,6 +1,6 @@
 # Build and deployment
 
-Official watch release: **v0.19.0 / code 26**. User installation is in [INSTALLATION.md](INSTALLATION.md); release-number and compatibility rules are in [VERSIONING.md](VERSIONING.md).
+Official watch release: **v0.20.0 / code 27**. User installation is in [INSTALLATION.md](INSTALLATION.md); release-number and compatibility rules are in [VERSIONING.md](VERSIONING.md).
 
 ## Repositories and prerequisites
 
@@ -124,3 +124,5 @@ Publish migration 0003 alongside the Worker, phone assets and direct APK v0.18.0
 The v0.18.1 update ships the signed direct APK (code 25), its feed and matching phone assets together. It uses the existing database migrations and encrypted transfer format. Refresh the referee page while online before relying on its updated offline shell.
 
 The v0.19.0 release publishes the responsive match editor and signed direct APK together. It uses the existing relay and storage bindings. Reuse the same release signer and retain all earlier direct APKs.
+
+Release v0.20.0 includes schema-only migration 0004, the updated referee offline shell and direct APK code 27. Deploy them together. Existing room rows retain legacy grants.

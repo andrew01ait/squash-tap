@@ -159,5 +159,12 @@
     "filename": "KeepScore-0.19.0.apk",
     "sizeBytes": 4800358,
     "sha256": "c0c8ccb4984933eb1ce23a281f8d3172516857d34c984a63e04a62fb4ddab2d2"
+  },
+  {
+    "versionCode": 27,
+    "versionName": "0.20.0",
+    "filename": "KeepScore-0.20.0.apk",
+    "sizeBytes": 4808550,
+    "sha256": "de9f29be42e34871a5a05d43e1beaed570c44722e8f79de4f3119495acc72d15"
   }
 ]

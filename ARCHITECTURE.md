@@ -1,6 +1,6 @@
 # Architecture
 
-Current watch release: **v0.19.0**, code **26**. This document describes the implemented system; release changes are in [CHANGELOG.md](CHANGELOG.md).
+Current watch release: **v0.20.0**, code **27**. This document describes the implemented system; release changes are in [CHANGELOG.md](CHANGELOG.md).
 
 ## Components and responsibilities
 
@@ -129,7 +129,7 @@ The bundle pipeline uses the existing pinned AndroidX graph and locked Google SD
 
 ## Linked referee and watch matches
 
-The independent `/api/rooms` protocol stores an encrypted native match snapshot and hashed admin, writer and reader capabilities in D1. A host may toggle watch-code discovery or revoke the room. Only the scorer can write a revision. The code provides an encrypted reader credential and match key. The private referee QR carries the writer credential and match key in its fragment. Updates compare the previous revision, accept an exact repeated ciphertext acknowledgement, and freeze confirmed results. Creation and pairing attempts are rate-limited. Idle rows expire after 14 days and confirmation starts a new 14-day retrieval window. Cleanup runs on subsequent room creation or pairing traffic.
+The independent `/api/rooms` protocol stores an encrypted native match snapshot and hashed admin, writer and reader capabilities in D1. A host may toggle watch-code discovery or revoke the room. Only the scorer can write a revision. In legacy rooms the watch pairing contains a shared reader credential and the referee QR carries the writer credential. A v0.20.0 room reserves these credentials for its host. Its watch code unlocks the room key and permits per-device admission. Its referee QR carries a separate invitation and the room key in its fragment. Updates compare the previous revision, accept an exact repeated ciphertext acknowledgement, and freeze confirmed results. Creation and pairing attempts are rate-limited. Idle rows expire after 14 days and confirmation starts a new 14-day retrieval window. Cleanup runs on subsequent room creation or pairing traffic.
 
 The referee service worker caches only the application shell. IndexedDB commits encrypted score updates before acknowledging a rally locally, and retains an in-flight upload for lost acknowledgements. Revision checks handle competing tabs or scorer phones. Browsers without background sync send queued updates when the page is open. Phone and watch score engines use the same match encoding for all six sports.
 
@@ -140,3 +140,6 @@ The native launcher, sport menu and current-match menu share one role-aware live
 ## Journal corrections
 
 The phone journal stages additions as ordinary CSV rows. A watch advertising supportsResultEdits accepts explicit before/after CSV in the encrypted incoming payload. The watch checks the IDs shared in this session, the original result including time, score details and reference, and all three roster assignments. Corrections and imports are planned on cloned books. Confirmation rechecks the current books, local name and expiry before committing them together. Historical edits retain the match ID and daily reference on the original date. A date-only entry moved to another day consumes a fresh number on that day. A corrected completed scoreboard reuses unchanged rally histories and stores changed completed games as entered totals. See [VERSIONING.md](VERSIONING.md) for the corrected retirement representation.
+
+
+Migration 0004 adds a nullable referee invitation hash and a room-scoped device table. An installation derives its watch token from a private seed and the room code. A referee browser derives its token from a non-extractable IndexedDB HMAC key and room ID. Equal codes on different watches yield independent credentials. The host list exposes the role, room-specific display ID and last contact. Score traffic updates last contact with throttled writes. Loading or refreshing the host list is explicit. Server removal blocks subsequent reads, registration with that device identity and score uploads, including a revision racing with removal. A guest can leave voluntarily and later pair again. Room deletion cascades to device rows. Device removal applies to the watch installation or browser profile. Someone with a shared invitation can pair a different installation while admissions remain open.

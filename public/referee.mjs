@@ -1,12 +1,12 @@
 import {t, mountLanguage} from './locale.mjs';
 import {renderScorecard} from './match-sheet.mjs';
 import {applyAction,readSnapshot} from './referee-scoring.mjs';
-import {refereeLink,roomKey,sealSnapshot,openSnapshot,storage,transport,acceptRemote,dirty,
+import {refereeLink,roomKey,deviceToken,deviceTag,sealSnapshot,openSnapshot,storage,transport,acceptRemote,dirty,
   updateLocal,synchronize,resolveConflict,rememberUploadToken,isClosed,clearExpiredCopies} from './referee-store.mjs';
 
 const el=id=>document.getElementById(id);
 const link=refereeLink(location.hash);
-let key,api,registration,channel,active,local,match,remote;
+let accessToken,deviceLabel,key,api,registration,channel,active,local,match,remote;
 let busy=null,queue=Promise.resolve(),readNumber=0,timer,backoff=2000;
 let connection='loading',offlineShell=false,backgroundEnabled=false,storageFailed=false,failedToOpen=false;
 const labels=[
@@ -31,6 +31,7 @@ const errorText=text=>{el('action-message').textContent=text;};
 function fillFixedCopy(){
   el('title').textContent=t('Referee','Schiedsrichter','Arbitrage','Arbitraje');
   document.title=el('title').textContent+' · Keep Score';
+  el('device-id').textContent=deviceLabel?t('This referee device','Dieses Schiedsrichtergerät','Cet appareil d’arbitrage','Este dispositivo arbitral')+' · '+deviceLabel:'';
   el('board').setAttribute('aria-label',t('Match','Partie','Match','Partido'));
   el('sheet-title').textContent=t('Scorecard','Satzverlauf','Détail du score','Parciales');
   button('choose-starters',t('Choose starting players','Startspieler auswählen','Choisir les premiers joueurs','Elegir jugadores iniciales'),()=>{
@@ -61,7 +62,7 @@ function stateCopy(){
     hint=t('This browser could not save the score on this phone. Free some storage, then reopen this link.','Dieser Browser konnte den Stand nicht auf dem Handy speichern. Gib Speicherplatz frei und öffne den Link erneut.','Le navigateur n’a pas pu enregistrer le score sur ce téléphone. Libérez de l’espace puis rouvrez ce lien.','El navegador no pudo guardar el marcador en este móvil. Libera espacio y vuelve a abrir el enlace.');
     mode='error';retry=true;
   }else if(active?.unavailable||connection==='closed'){
-    hint=active&&dirty(active)?t('The link has closed. This phone still holds your unsent score.','Der Link ist abgelaufen. Dein ungesendeter Spielstand ist noch auf diesem Handy.','Le lien a expiré. Le score non transmis reste sur ce téléphone.','El enlace ha caducado. Este móvil conserva el marcador sin enviar.'):
+    hint=active&&dirty(active)?t('The link has closed. This phone still holds your unsent score.','Der Zugriff ist beendet. Dein ungesendeter Spielstand bleibt auf diesem Handy.','Le lien a expiré. Le score non transmis reste sur ce téléphone.','El enlace ha caducado. Este móvil conserva el marcador sin enviar.'):
       t('This referee link has expired or closed. Scan the current QR on the host watch.','Dieser Schiedsrichterlink ist abgelaufen oder beendet. Scanne den aktuellen QR auf der Gastgeberuhr.','Ce lien d’arbitrage a expiré ou a été fermé. Scannez le QR actuel sur la montre hôte.','Este enlace de arbitraje ha caducado o se ha cerrado. Escanea el QR actual del reloj anfitrión.');
     mode='error';badge=t('Link closed','Link beendet','Lien fermé','Enlace cerrado');
   }else if(active?.conflict){
@@ -207,7 +208,7 @@ async function sync(){
       connection='synced';failedToOpen=false;backoff=2000;loaded=true;
       await readLatest();notify();
       if(record&&!record.wrappedToken&&!record.final&&registration&&'sync' in registration){
-        try{await rememberUploadToken(link.id,link.token);backgroundEnabled=true;}catch{backgroundEnabled=false;}
+        try{await rememberUploadToken(link.id,accessToken);backgroundEnabled=true;}catch{backgroundEnabled=false;}
       }
     }catch(error){
       failedToOpen=true;
@@ -268,8 +269,8 @@ async function prepareOffline() {
     const reg=await navigator.serviceWorker.register('/referee-sw.js',{scope:'/referee',type:'module',updateViaCache:'none'});
     registration=await navigator.serviceWorker.ready;
     offlineShell=true;
-    if(link&&'sync' in reg&&active&&!active.final){
-      try{await rememberUploadToken(link.id,link.token);backgroundEnabled=true;if(dirty(active))registerRetry();}catch{backgroundEnabled=false;}
+    if(accessToken&&'sync' in reg&&active&&!active.final){
+      try{await rememberUploadToken(link.id,accessToken);backgroundEnabled=true;if(dirty(active))registerRetry();}catch{backgroundEnabled=false;}
     }
     render();
   }catch{offlineShell=false;render();}
@@ -287,7 +288,9 @@ if(link){
   document.addEventListener('visibilitychange',()=>{if(!document.hidden){refresh();schedule(0);}else registerRetry();});
   prepareOffline();
   try{
-    key=await roomKey(link.key);api=transport(link.id,link.token);
+    accessToken=link.invite?await deviceToken(link.id):link.token;
+    if(link.invite){deviceLabel=await deviceTag(link.id,accessToken);fillFixedCopy();}
+    key=await roomKey(link.key);api=transport(link.id,accessToken,link.invite);
     await storage.change(link.id,r=>r&&!dirty(r)&&r.expiresAt<=Date.now()?null:undefined);
     clearExpiredCopies(link.id).catch(()=>{});
     try {await readLatest();}catch {errorText(t('Scan the original referee QR to reopen this match.','Scanne den ursprünglichen Schiedsrichter-QR, um die Partie zu öffnen.','Scannez le QR d’arbitrage d’origine pour rouvrir le match.','Escanea el QR de arbitraje original para reabrir el partido.')); }

@@ -87,10 +87,12 @@ public class SportNavigationUiTest {
         newMatch("Tennis");click("Create match");assertFalse(book().current().hasPoints());activity.action(TouchTargets.MENU);click("Change sport");assertFalse(button("Squash").isEnabled());ShadowDialog.getLatestDialog().dismiss();controller.pause().stop().destroy();controller=Robolectric.buildActivity(MainActivity.class,new Intent(Intent.ACTION_MAIN)).setup();activity=controller.get();assertFalse(button("Badminton").isEnabled());assertTrue(button("Tennis").isEnabled());
     }
 
-    @Test public void launcherPutsSharingBeforeSportsAndJoiningNeverNeedsALocalMatch(){
+    @Test public void launcherPutsSharingAfterAllSportsAndJoiningNeverNeedsALocalMatch(){
         cancelCurrent();click("Change sport");
         String before=book().encode();
-        assertTrue(views().indexOf(button("Live sharing & referee"))<views().indexOf(button("Badminton")));
+        List<String> order=new ArrayList<>();
+        for(View v:views())if(v instanceof Button)order.add(((Button)v).getText().toString());
+        assertEquals(Arrays.asList("Badminton","Padel","Pickleball","Squash","Table tennis","Tennis","Live sharing & referee","Players","Settings","Close app"),order);
         click("Live sharing & referee");
         for(String item:new String[]{"Audience live link","Referee on phone","Share with watches","Join with watch code"})assertNotNull(button(item));
         click("Join with watch code");assertNotNull(button("Join match"));swipe();
@@ -141,6 +143,92 @@ public class SportNavigationUiTest {
         String details=text();assertTrue(details.contains("Games won"));assertTrue(details.contains("1  –  0"));
         assertTrue(details.contains("11 – 1"));assertTrue(details.contains("0 – 1"));
         assertTrue(details.indexOf("Game 2")<details.indexOf("Game 1"));back();assertEquals(before,live.encode());
+    }
+
+    @Test public void watchBackFromEachSharingEntryReturnsOneLevelAndKeepsTheMatch(){
+        String before=book().encode();
+        click("Change sport");click("Live sharing & referee");swipe();assertNotNull(button("Tennis"));
+        click("Squash");click("Live sharing & referee");click("Back to Menu");assertNotNull(button("Current match"));
+        click("Current match");click("Live sharing & referee");
+        Dialog dialog=ShadowDialog.getLatestDialog();
+        dialog.dispatchKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN,KeyEvent.KEYCODE_BACK));
+        dialog.dispatchKeyEvent(new KeyEvent(KeyEvent.ACTION_UP,KeyEvent.KEYCODE_BACK));
+        shadowOf(Looper.getMainLooper()).idle();assertNotNull(button("Pause match"));assertFalse(activity.isFinishing());
+        click("Back to Menu");back();assertNotNull(button("Tennis"));assertEquals(before,book().encode());
+    }
+
+    @Test public void platformBackFromSharingUsesTheCurrentWindowOnly(){
+        // Robolectric constructs a test Application rather than using the release application flags.
+        activity.getApplicationInfo().setEnableOnBackInvokedCallback(true);
+        assertTrue(android.window.WindowOnBackInvokedDispatcher.isOnBackInvokedCallbackEnabled(activity));
+        click("Live sharing & referee");Dialog sharing=ShadowDialog.getLatestDialog();
+        android.window.OnBackInvokedCallback callback=sharing.getWindow().getDecorView().getViewRootImpl().getOnBackInvokedDispatcher().getTopCallback();
+        assertNotNull("Sharing window needs a system Back destination",callback);
+        callback.onBackInvoked();shadowOf(Looper.getMainLooper()).idle();assertNotNull(button("Current match"));
+        callback.onBackInvoked();shadowOf(Looper.getMainLooper()).idle();assertNotNull(button("Current match"));
+        click("Live sharing & referee");
+        android.window.OnBackInvokedCallback fromActivity=activity.getWindow().getDecorView().getViewRootImpl().getOnBackInvokedDispatcher().getTopCallback();
+        assertNotNull(fromActivity);fromActivity.onBackInvoked();shadowOf(Looper.getMainLooper()).idle();
+        assertNotNull(button("Current match"));assertFalse(activity.isFinishing());
+    }
+
+    @Test public void cancellingConnectionReturnsToCodeAndIgnoresAValidLateReply() throws Exception {
+        MatchRooms rooms=ReflectionHelpers.getField(activity,"rooms");rooms.pause();
+        RoomClientUiTest.Relay relay=new RoomClientUiTest.Relay();
+        RoomClient host=new RoomClient(new RoomClientUiTest.MemoryVault(),relay);
+        RoomClient.Session invitation=host.prepare(RoomClientUiTest.snapshot(new MatchState("shared-test",3),false),false,true);host.sync();
+        java.util.concurrent.CountDownLatch sent=new java.util.concurrent.CountDownLatch(1),release=new java.util.concurrent.CountDownLatch(1);
+        RoomClient guest=new RoomClient(new RoomClientUiTest.MemoryVault(),(method,path,token,body)->{
+            if(path.equals("/join")){sent.countDown();release.await(8,java.util.concurrent.TimeUnit.SECONDS);}
+            return relay.send(method,path,token,body);
+        });
+        ReflectionHelpers.setField(rooms,"client",guest);
+        String before=book().encode();
+        click("Live sharing & referee");click("Join with watch code");
+        for(View v:views())if(v instanceof EditText)((EditText)v).setText(invitation.joinCode);
+        click("Join match");
+        try{
+            assertTrue(sent.await(5,java.util.concurrent.TimeUnit.SECONDS));swipe();
+            assertNotNull(button("Join match"));assertTrue(text().contains(invitation.joinCode));back();back();
+        }finally{release.countDown();}
+        java.util.concurrent.ExecutorService io=ReflectionHelpers.getField(rooms,"io");io.submit(()->{}).get(5,java.util.concurrent.TimeUnit.SECONDS);
+        shadowOf(Looper.getMainLooper()).idle();assertNotNull(button("Current match"));assertFalse(activity.isFinishing());
+        assertNull(guest.current());assertEquals(before,book().encode());
+    }
+
+    @Test public void completedControlsPrioritizeResultsAndRematchAndSkipNewSharingSetup(){
+        MatchBook local=ReflectionHelpers.getField(activity,"book");local.retire(1);ReflectionHelpers.callInstanceMethod(activity,"afterMatchChange");
+        click("Current match");assertNotNull(button("View result"));assertNotNull(button("New match"));assertNotNull(button("Share result card"));
+        assertNull(find("Live sharing & referee"));assertNull(find("Cancel match"));assertNull(find("Start match"));
+        click("View result");assertNotNull(button("Quick rematch"));back();assertNotNull(button("Match details"));
+    }
+
+    private void drainRoom(MatchRooms rooms) throws Exception {
+        java.util.concurrent.ExecutorService io=ReflectionHelpers.getField(rooms,"io");
+        io.submit(()->{}).get(5,java.util.concurrent.TimeUnit.SECONDS);shadowOf(Looper.getMainLooper()).idle();
+    }
+    @Test public void hostCanInspectAndRemoveOneDeviceWithoutChangingTheCodeOrScore() throws Exception {
+        MatchRooms rooms=ReflectionHelpers.getField(activity,"rooms");rooms.pause();
+        RoomClientUiTest.Relay relay=new RoomClientUiTest.Relay();String id="0123456789abcdef01234567";
+        java.util.concurrent.atomic.AtomicBoolean removed=new java.util.concurrent.atomic.AtomicBoolean();
+        RoomClient host=new RoomClient(new RoomClientUiTest.MemoryVault(),(method,path,token,body)->{
+            if(path.endsWith("/participants/"+id)&&method.equals("DELETE")){removed.set(true);return new org.json.JSONObject();}
+            if(path.endsWith("/participants")){
+                org.json.JSONArray rows=new org.json.JSONArray();
+                if(!removed.get())rows.put(new org.json.JSONObject().put("id",id).put("role","watch").put("seenAt",5000));
+                rows.put(new org.json.JSONObject().put("id","fedcba9876543210fedcba98").put("role","referee").put("seenAt",5000));
+                return new org.json.JSONObject().put("members",rows).put("now",6000);
+            }
+            return relay.send(method,path,token,body);
+        });
+        ReflectionHelpers.setField(rooms,"client",host);click("Current match");click("Live sharing & referee");click("Share with watches");
+        RoomClient.Session ready=host.sync();ReflectionHelpers.callInstanceMethod(rooms,"apply",ReflectionHelpers.ClassParameter.from(RoomClient.Session.class,ready));rooms.hub();
+        String before=book().encode();click("Connected devices");drainRoom(rooms);
+        click("Player watch #234567 · just now");back();drainRoom(rooms);assertFalse(removed.get());
+        click("Player watch #234567 · just now");click("Remove device");drainRoom(rooms);drainRoom(rooms);
+        assertNull(find("Player watch #234567 · just now"));assertNotNull(button("Referee #DCBA98 · just now"));
+        back();assertEquals(ready.joinCode,host.current().joinCode);assertEquals(before,book().encode());
+        click("Connected devices");back();drainRoom(rooms);assertNotNull(button("Connected devices"));assertFalse(activity.isFinishing());
     }
 
 }

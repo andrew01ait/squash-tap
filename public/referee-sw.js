@@ -1,7 +1,7 @@
 import {storage, uploadToken, synchronize, transport, isClosed, dirty} from './referee-store.mjs';
 
-const cacheName='keep-score-referee-shell-2';
-const shell=['/referee.html','/match-web.css','/match-sheet.mjs','/favicon.svg','/referee.css','/referee.mjs','/referee-store.mjs','/referee-scoring.mjs','/sports.mjs','/locale.mjs'];
+const cacheName='keep-score-referee-shell-3.1';
+const shell=['/referee.html','/referee-join.html','/referee-open.mjs','/match-web.css','/match-sheet.mjs','/favicon.svg','/referee.css','/referee.mjs','/referee-store.mjs','/referee-scoring.mjs','/sports.mjs','/locale.mjs'];
 const paths=new Set(shell);
 self.addEventListener('install',event=>{
   event.waitUntil((async()=>{
@@ -26,7 +26,7 @@ self.addEventListener('activate',event=>{
 });
 self.addEventListener('fetch',event=>{
   const url=new URL(event.request.url);
-  const path=event.request.mode==='navigate'&&['/referee','/referee/'].includes(url.pathname)?'/referee.html':url.pathname;
+  const path=event.request.mode==='navigate'&&['/referee','/referee/','/referee-join','/referee-join.html'].includes(url.pathname)?'/referee.html':url.pathname;
   if(event.request.method!=='GET'||url.origin!==self.location.origin||!paths.has(path))return;
   // Match documents and modules from one installed version. API responses and
   // request headers never enter the offline cache.

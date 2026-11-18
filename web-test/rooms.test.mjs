@@ -65,3 +65,48 @@ test('expired rooms, unpaired capabilities, oversized updates, cross-origin requ
  assert.match((await fetchScore()).headers.get('Cache-Control'),/no-store/);
  await db.prepare('UPDATE match_rooms SET expires_at=0').run();assert.equal((await fetchScore()).status,404);assert.equal((await join()).status,404);
 });
+
+test('one host code enrolls distinct watches and referee devices with independent access',async()=>{
+  const invite='f'.repeat(43),one='g'.repeat(43),two='h'.repeat(43),ref='j'.repeat(43),otherRef='k'.repeat(43);
+  assert.equal((await create({...seed,refereeInvite:invite})).status,201);
+  const pair=token=>api('/join','POST',{code:joinCode,deviceToken:token});
+  const refJoin=token=>api('/'+id+'/referees','POST',{deviceToken:token},invite);
+  const members=async()=>(await (await api('/'+id+'/participants','GET',null,admin)).json()).members;
+  const kick=(member,token=admin)=>api('/'+id+'/participants/'+member,'DELETE',null,token);
+  const [a,b,x,y]=await Promise.all([pair(one),pair(two),refJoin(ref),refJoin(otherRef)].map(async p=>(await p).json()));
+  assert.equal(new Set([a,b,x,y].map(p=>p.memberId)).size,4);assert.equal(a.pairing,b.pairing);
+  assert.deepEqual(await members(),[]); // A cancelled pairing or an unopened invitation is not a connected device.
+  for(const token of [one,two,ref,otherRef])assert.equal((await fetchScore(token)).status,200);
+  let list=await members();assert.deepEqual(list.map(p=>p.role).sort(),['referee','referee','watch','watch']);
+  assert.ok(list.every(p=>p.seenAt>0&&/^[0-9a-f]{24}$/.test(p.id)&&Object.keys(p).length===3));
+  assert.equal((await fetchScore(invite)).status,401);
+  assert.equal((await api('/'+id+'/participants','GET',null,one)).status,403);
+  assert.equal((await kick(a.memberId,ref)).status,403);
+  assert.equal((await score({baseRevision:0,revision:1,cipher,final:false},one)).status,403);
+  assert.equal((await score({baseRevision:0,revision:1,cipher,final:false},ref)).status,200);
+  assert.equal((await kick(a.memberId)).status,200);assert.equal((await kick(a.memberId)).status,200);
+  assert.equal((await fetchScore(one)).status,410);assert.equal((await pair(one)).status,410);
+  assert.equal((await fetchScore(two)).status,200);assert.equal((await pair('m'.repeat(43))).status,200);
+  assert.equal((await kick(x.memberId)).status,200);
+  assert.equal((await score({baseRevision:1,revision:2,cipher,final:false},ref)).status,410);
+  assert.equal((await refJoin(ref)).status,410);
+  assert.equal((await score({baseRevision:1,revision:2,cipher,final:false},otherRef)).status,200);
+  assert.equal((await fetchScore(reader)).status,200);
+  assert.equal((await api('/'+id+'/participants/me','DELETE',null,two)).status,200);
+  assert.equal((await fetchScore(two)).status,410);
+  assert.deepEqual((await members()).map(p=>p.id),[y.memberId]);
+  assert.equal((await pair(two)).status,200);assert.equal((await fetchScore(two)).status,200);
+  for(const token of [one,two,ref,otherRef,invite])assert.ok(!JSON.stringify((await db.prepare('SELECT * FROM room_members').all()).results).includes(token));
+  await api('/'+id,'DELETE',null,admin);assert.equal((await db.prepare('SELECT count(*) AS n FROM room_members').first()).n,0);
+});
+test('managed rooms keep the code available for new watches and respect closed admissions',async()=>{
+  const invite='p'.repeat(43),token='q'.repeat(43);
+  await create({...seed,refereeInvite:invite});assert.equal((await join()).status,426);
+  const enrolled=await api('/join','POST',{code:joinCode,deviceToken:token});assert.equal(enrolled.status,200);
+  await api('/'+id,'PATCH',{watchJoin:false},admin);
+  assert.equal((await api('/join','POST',{code:joinCode,deviceToken:'s'.repeat(43)})).status,404);assert.equal((await fetchScore(token)).status,200);
+  assert.equal((await api('/'+id+'/referees','POST',{deviceToken:token},reader)).status,403);
+  assert.equal((await api('/'+id+'/referees','POST',{deviceToken:admin},invite)).status,400);
+  await db.prepare('UPDATE match_rooms SET expires_at=0').run();
+  assert.equal((await fetchScore(token)).status,404);assert.equal((await api('/'+id+'/participants','GET',null,admin)).status,404);
+});

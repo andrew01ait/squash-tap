@@ -149,5 +149,24 @@ test('offline installation precaches the referee page, styles, icon and modules 
   const page=readFileSync('public/referee.html','utf8');
   for(const match of page.matchAll(/(?:src|href)="\/([^"?#]+)(?:[?#][^"]*)?"/g))
     assert.ok(shell.includes(match[1]),match[1]+' missing from offline page');
+  assert.ok(shell.includes('referee-join.html'));assert.ok(shell.includes('referee-open.mjs'));
   assert.ok(shell.includes('referee.html'));assert.ok(shell.every(s=>!s.startsWith('api')));
+});
+
+test('managed referee links exchange invitations once and retain independent device tokens',async()=>{
+  const {transport,deviceTag}=await import('../public/referee-store.mjs');
+  const invite='u'.repeat(43),device='v'.repeat(43),snapshot=packet(1,'opaque');
+  assert.deepEqual(refereeLink('#id='+fixtureId+'&key='+invite+'&invite='+invite),{id:fixtureId,key:invite,invite});
+  assert.equal(refereeLink('#id='+fixtureId+'&key='+invite+'&invite='+invite+'&token='+device),null);
+  const tag=await deviceTag(fixtureId,device);assert.match(tag,/^#[A-F0-9]{6}$/);assert.notEqual(tag,await deviceTag(fixtureId,invite));
+  const saved=globalThis.fetch;let admitted=false,removed=false,enrolls=0;
+  globalThis.fetch=async(url,options)=>{
+    if(url.endsWith('/referees')){assert.equal(options.headers.Authorization,'Bearer '+invite);assert.equal(JSON.parse(options.body).deviceToken,device);enrolls++;admitted=true;return Response.json({});}
+    assert.equal(options.headers.Authorization,'Bearer '+device);
+    return removed?Response.json({},{status:410}):admitted?Response.json(snapshot):Response.json({},{status:401});
+  };
+  try{
+    const client=transport(fixtureId,device,invite);assert.deepEqual(await client.get(),snapshot);assert.deepEqual(await client.get(),snapshot);
+    removed=true;await assert.rejects(client.get(),e=>e.status===410);assert.equal(enrolls,1);
+  }finally{globalThis.fetch=saved;}
 });

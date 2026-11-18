@@ -18,7 +18,15 @@ export const liveGames = sqliteTable("live_games", {
 export const matchRooms = sqliteTable("match_rooms", {
   id: text("id").primaryKey(),
   adminHash: text("admin_hash").notNull(), writerHash: text("writer_hash").notNull(), readerHash: text("reader_hash").notNull(),
+  refereeInviteHash: text("referee_invite_hash"),
   codeHash: text("code_hash").notNull(), pairing: text("pairing").notNull(), watchJoin: integer("watch_join").notNull(),
   expiresAt: integer("expires_at").notNull(), revision: integer("revision").notNull(),
   cipher: text("cipher").notNull(), isFinal: integer("is_final").notNull(),
 }, table => [uniqueIndex("match_rooms_code").on(table.codeHash), index("match_rooms_expiry").on(table.expiresAt)]);
+
+export const roomMembers = sqliteTable("room_members", {
+  id: text("id").primaryKey(),
+  roomId: text("room_id").notNull().references(() => matchRooms.id, { onDelete: "cascade" }),
+  tokenHash: text("token_hash").notNull(), role: text("role").notNull(),
+  state: text("state").notNull(), seenAt: integer("seen_at").notNull(),
+}, table => [uniqueIndex("room_member_token").on(table.roomId, table.tokenHash)]);

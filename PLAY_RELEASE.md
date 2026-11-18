@@ -1,6 +1,6 @@
 # Google Play preparation
 
-The current direct watch release is **v0.19.0 / code 26**. The separate **0.17.0-play.1 / code 23** candidate is preparation only, targets API 35 and has not been submitted to Play Console. Its version code is reserved across distribution channels; any later official release must advance monotonically.
+The current direct watch release is **v0.20.0 / code 27**. The separate **0.17.0-play.1 / code 23** candidate is preparation only, targets API 35 and has not been submitted to Play Console. Its version code is reserved across distribution channels; any later official release must advance monotonically.
 
 The code 23 bundle predates the referee and watch-room release. The next Play candidate must use a free code above 24.
 
@@ -39,7 +39,7 @@ Test an actual Play-delivered update over the installed APK on a backed-up test 
 | Item | State / next action |
 | --- | --- |
 | Developer owner and account | Owner reports registration submitted and account verification still pending as of 2026-11-12. Confirm the actual publisher/legal entity and completion of all Console identity/device, agreement and payment tasks; registration is not evidence of approval. Organization accounts generally need a D-U-N-S number. |
-| Public support and privacy contact | Owner confirmed **[endruuu@hotmail.com](mailto:endruuu@hotmail.com)** on 2026-11-12. Recorded in the listing and privacy-policy drafts; enter it in Play Console when completing setup. No Console contact update is claimed. |
+| Public support and privacy contact | Use the contact confirmed by the owner on 2026-11-12 in the [store listing](play/store-listing-draft.md) and [privacy policy](play/privacy-policy-draft.md) when completing Play Console setup. No Console contact update is claimed. |
 | Trader status | Declare accurately for the actual activity; new accounts must do this at creation. Confirm public contact details before publication. |
 | Play App Signing/upload key | Complete enrollment using the original app signing certificate, with a separate upload key. |
 | Privacy policy | Contact email is confirmed. Review [the draft](play/privacy-policy-draft.md), supply publisher details, complete request handling and provider logs/retention review, publish a complete public HTML policy and add its in-app access. This is still a submission blocker. |

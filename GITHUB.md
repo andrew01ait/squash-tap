@@ -1,6 +1,6 @@
 # Internal and GitHub source workflow
 
-Public repository: <https://github.com/andrew01ait/squash-tap>. Official download/update site: <https://squash-tap-andrew.endruuu.chatgpt.site/>. Current watch release: **v0.19.0 / code 26**.
+Public repository: <https://github.com/andrew01ait/squash-tap>. Official download/update site: <https://squash-tap-andrew.endruuu.chatgpt.site/>. Current watch release: **v0.20.0 / code 27**.
 
 ## Two copies and their responsibilities
 
@@ -72,3 +72,5 @@ The mirror also includes the preparation-only Play manifest/bundle generator, co
 The v0.18.0 mirror includes the watch room client, referee offline shell, role-scoped Worker, localized watch and web UIs, and results journal. Historical Play preparation uses its previously reserved code 23.
 
 The v0.19.0 direct release adds browser match entry and correction, the watch preview and regression cases for saved results, retired games and Undo.
+
+The v0.20.0 mirror includes the watch menu review, individual participant access, the referee shell and schema migration 0004.

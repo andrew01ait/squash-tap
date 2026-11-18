@@ -25,8 +25,10 @@ export async function openSnapshot(key,id,wire){return JSON.parse(await decrypt(
 export function refereeLink(hash) {
   const link=new URLSearchParams(hash.replace(/^#/,''));
   const id=link.get('id'),key=link.get('key'),token=link.get('token');
-  if(!/^[a-f0-9]{32}$/.test(id||'')||![key,token].every(s=>typeof s==='string'&&/^[\w-]{43}$/.test(s)))return null;
-  return {id,key,token};
+  const invite=link.get('invite');
+  if(token&&invite)return null;
+  if(!/^[a-f0-9]{32}$/.test(id||'')||![key,token||invite].every(s=>typeof s==='string'&&/^[\w-]{43}$/.test(s)))return null;
+  return invite?{id,key,invite}:{id,key,token};
 }
 
 let database;
@@ -68,14 +70,23 @@ export const storage={
     };
   })
 };
-async function wrappingKey() {
-  const existing=await transact('device','readonly',(s,set)=>{const r=s.get(keyName);r.onsuccess=()=>set(r.result);});
+async function localKey(name,algorithm,usages) {
+  const existing=await transact('device','readonly',(s,set)=>{const r=s.get(name);r.onsuccess=()=>set(r.result);});
   if(existing)return existing;
-  const generated=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  const generated=await crypto.subtle.generateKey(algorithm,false,usages);
   return transact('device','readwrite',(s,set)=>{
-    const r=s.get(keyName);
-    r.onsuccess=()=>{if(!r.result)s.put(generated,keyName);set(r.result||generated);};
+    const r=s.get(name);
+    r.onsuccess=()=>{if(!r.result)s.put(generated,name);set(r.result||generated);};
   });
+}
+const wrappingKey=()=>localKey(keyName,{name:'AES-GCM',length:256},['encrypt','decrypt']);
+export async function deviceToken(id){
+  const key=await localKey('referee-device-key',{name:'HMAC',hash:'SHA-256',length:256},['sign']);
+  return b64(new Uint8Array(await crypto.subtle.sign('HMAC',key,encoder.encode('KeepScore:referee:'+id))));
+}
+export async function deviceTag(id,token){
+  const hex=async text=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',encoder.encode(text))),b=>b.toString(16).padStart(2,'0')).join('');
+  return '#'+(await hex('member|'+id+'|'+await hex(token))).slice(18,24).toUpperCase();
 }
 export async function rememberUploadToken(id,token) {
   const wrapped=await encrypt(await wrappingKey(),aad('referee-outbox',id),token);
@@ -93,7 +104,7 @@ export function acceptRemote(id,remote,previous={}) {
     expiresAt:remote.expiresAt,flight:null,conflict:null,unavailable:false,...(remote.final?{wrappedToken:null}:{})};
 }
 export class RoomError extends Error {constructor(status){super('Room request failed');this.status=status;}}
-export function transport(id,token) {
+export function transport(id,token,invite) {
   const request=async(method,body)=>{
     const c=new AbortController(), timer=setTimeout(()=>c.abort(),9000);
     try{
@@ -106,7 +117,14 @@ export function transport(id,token) {
       return remote;
     }finally{clearTimeout(timer);}
   };
-  return {get:()=>request('GET'),put:body=>request('PUT',body)};
+  async function get(){
+    try{return await request('GET');}catch(error){if(!invite||error.status!==401)throw error;}
+    const response=await fetch('/api/rooms/'+id+'/referees',{method:'POST',credentials:'omit',redirect:'error',cache:'no-store',
+      signal:AbortSignal.timeout(9000),headers:{Authorization:'Bearer '+invite,'Content-Type':'application/json'},body:JSON.stringify({deviceToken:token})});
+    if(!response.ok)throw new RoomError(response.status);
+    return request('GET');
+  }
+  return {get,put:body=>request('PUT',body)};
 }
 
 // Each accepted tap uses a single compare-and-swap in the local database. Another

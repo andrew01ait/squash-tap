@@ -1,6 +1,6 @@
 # Versions and compatibility
 
-Current official watch release: **v0.19.0**, Android version code **26**; package **`at.andrew.squashtap`**. `public/release.properties` is the machine-readable update feed; `public/builds.json` and `SHA256SUMS.txt` record retained artifacts.
+Current official watch release: **v0.20.0**, Android version code **27**; package **`at.andrew.squashtap`**. `public/release.properties` is the machine-readable update feed; `public/builds.json` and `SHA256SUMS.txt` record retained artifacts.
 
 ## Independent version numbers
 
@@ -58,3 +58,7 @@ The v0.18.1 direct APK uses code 25 and the original signer. Its navigation and 
 ## Browser result entry · direct v0.19.0 / code 26
 
 Older watches continue to accept supported new results through their existing CSV import. Editing an existing result requires the explicit result-edit capability. CSV schemas and encryption envelopes keep their existing versions. When the currently displayed retired match receives a different partial score, its B5 book can contain an M5 state. M5 wraps the original retired state and the two corrected partial totals. Undoing that retirement restores the recorded rallies after confirmation. All other current states continue using their existing encodings. A v0.19.0 or newer watch is required to restore a backup that contains M5.
+
+## Device management · direct v0.20.0 / code 27
+
+New rooms use independent grants for each watch installation and referee browser. Update all player watches before starting a managed room. Existing rooms, old referee links, score formats, book storage and the phone journal remain compatible.

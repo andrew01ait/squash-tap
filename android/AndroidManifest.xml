@@ -11,7 +11,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <queries><intent><action android:name="android.speech.action.RECOGNIZE_SPEECH" /></intent></queries>
-    <application android:name=".AppDiagnostics" android:label="Keep Score" android:icon="@drawable/ic_launcher"
+    <application android:name=".AppDiagnostics" android:enableOnBackInvokedCallback="true" android:label="Keep Score" android:icon="@drawable/ic_launcher"
         android:theme="@style/AppTheme" android:allowBackup="false" android:usesCleartextTraffic="false">
         <uses-library android:name="com.google.android.wearable" android:required="true" />
         <meta-data android:name="com.google.android.wearable.standalone" android:value="true" />

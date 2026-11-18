@@ -1,6 +1,6 @@
 # Install, update and diagnose
 
-[Official download page](https://squash-tap-andrew.endruuu.chatgpt.site/) · Current watch APK: **v0.19.0 / code 26**.
+[Official download page](https://squash-tap-andrew.endruuu.chatgpt.site/) · Current watch APK: **v0.20.0 / code 27**.
 
 The APK runs on the watch. Wear Installer 2 is a helper on the Android phone; no PC development tools are required. The app is currently distributed by APK through this site, not the watch app store.
 
@@ -80,3 +80,5 @@ In v0.16.4, use Results → Filters → Reset all filters, or the direct reset r
 Install the current version on each watch using the built-in updater or the APK link above. From the sports launcher choose Live sharing & referee. The host chooses Referee on phone or Share with watches. On each receiving watch choose Join with watch code. The referee opens the host watch's QR in a phone browser. Initial pairing and the first referee page load require internet. The watch and phone have independent automatic and manual language settings.
 
 To correct saved results from a phone or tablet, install direct v0.19.0 or later. Open Results → Options → View results on phone and scan Show phone QR. [Match journal instructions](https://squash-tap-andrew.endruuu.chatgpt.site/#match-journal).
+
+For individual device management, update the host and each player watch to v0.20.0. Start a new sharing session and enter the same watch code on every player watch. Open the referee QR online once before scoring offline.

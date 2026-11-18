@@ -1,5 +1,11 @@
 # Releases
 
+## v0.20.0 · 2026-11-18 · direct APK code 27
+
+- Choose a sport first on the launcher. Live sharing & referee sits below all six sports. The watch Back gesture and button return one level, including during pairing.
+- Couple every player watch with the same code. The host can identify each player watch or referee browser by its short ID, check its last contact and remove it individually.
+- Finished matches prioritise the saved result, a new match and the result card. Match setup, score entry and discard actions are available in their corresponding phases.
+
 ## v0.19.0 · 2026-11-18 · direct APK code 26
 
 - Add results in the phone or tablet journal for all six sports, including doubles, deciding tie-breaks and retirements.
@@ -21,7 +27,7 @@
 
 ## Play contact confirmation — 2026-11-12 (public watch v0.16.4 unchanged)
 
-- Record the owner's confirmed public support and privacy email, endruuu@hotmail.com, in both Play drafts and the release checklist. Account registration is user-reported; account verification remains pending.
+- Record the owner-confirmed support and privacy contact in the Play drafts and release checklist. Account registration is user-reported; account verification remains pending.
 - Keep publisher identity, provider/request-handling review, policy publication, signing enrollment, testing and Google approval as outstanding gates. This documentation update does not change Play Console settings or submit a release.
 
 ## Google Play preparation — 2026-11-12 (public watch v0.16.4 unchanged)

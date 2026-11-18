@@ -19,6 +19,7 @@ final class RoomClient {
         JSONObject read() throws Exception;
         void write(JSONObject contents) throws Exception;
     }
+    interface PendingJoin { Session accept() throws Exception; }
     interface Transport {
         JSONObject send(String method, String path, String bearer, JSONObject body) throws Exception;
     }
@@ -29,8 +30,8 @@ final class RoomClient {
 
     /** A presentation snapshot. Only the private referee QR contains the writer token in host mode. */
     static final class Session {
-        final String id, role, matchId, token, key, joinCode, refereeLink;
-        final boolean ready, watchJoin, watchJoinReady, pending;
+        final String id, role, matchId, token, key, joinCode, refereeLink, memberId;
+        final boolean ready, watchJoin, watchJoinReady, pending, managed, needsCheckIn;
         final long seenRevision, expiresAt;
         private final String score;
 
@@ -41,6 +42,9 @@ final class RoomClient {
             token = r.getString("score".equals(role) ? "writer" : "reader");
             key = r.getString("key");
             joinCode = r.optString("code", "");
+            memberId = r.optString("memberId");
+            managed = r.has("refereeInvite") || !memberId.isEmpty();
+            needsCheckIn = !memberId.isEmpty() && !r.optBoolean("announced");
             ready = r.optBoolean("created") && !r.optBoolean("delegating");
             watchJoin = r.optBoolean("watchJoin");
             watchJoinReady = ready && watchJoin && r.optBoolean("joinApplied");
@@ -48,7 +52,7 @@ final class RoomClient {
             expiresAt = r.optLong("expires");
             pending = !ready || seenRevision < r.getLong("local") || watchJoin != r.optBoolean("joinApplied");
             refereeLink = "host".equals(role) && ready
-                ? BuildConfig.SITE_URL + "/referee.html#id=" + id + "&token=" + r.getString("writer") + "&key=" + key : "";
+                ? BuildConfig.SITE_URL + (managed ? "/referee-join.html#id=" : "/referee.html#id=") + id + (managed ? "&invite="+r.getString("refereeInvite") : "&token="+r.getString("writer")) + "&key=" + key : "";
             score = r.getString("snapshot");
         }
 
@@ -85,12 +89,12 @@ final class RoomClient {
                 if (s.role.equals(role) && s.matchId.equals(match.id())) return s;
                 throw alreadyActive();
             }
-            if (contents.length() >= MAX_RECORDS) throw new IOException("Reconnect to finish sharing previous matches");
+            if (contents.length() - (contents.has("deviceSeed") ? 1 : 0) >= MAX_RECORDS) throw new IOException("Reconnect to finish sharing previous matches");
             String id = UUID.randomUUID().toString().replace("-", "");
             String key = TransferCrypto.random(32);
             JSONObject room = new JSONObject().put("id", id).put("role", role).put("matchId", match.id())
                 .put("key", key).put("reader", TransferCrypto.random(32)).put("writer", TransferCrypto.random(32))
-                .put("admin", TransferCrypto.random(32)).put("snapshot", snapshot.toString())
+                .put("admin", TransferCrypto.random(32)).put("refereeInvite", TransferCrypto.random(32)).put("snapshot", snapshot.toString())
                 .put("seen", 0).put("local", 0).put("watchJoin", watchJoin).put("seedJoin", watchJoin)
                 .put("seed", RoomCrypto.seal(RoomCrypto.roomContext(id), key, snapshot.toString()));
             newPairing(room);
@@ -101,8 +105,8 @@ final class RoomClient {
 
     private static void newPairing(JSONObject r) throws Exception {
         String code = RoomCrypto.newCode();
-        JSONObject info = new JSONObject().put("id", r.getString("id")).put("key", r.getString("key"))
-            .put("token", r.getString("reader"));
+        JSONObject info = new JSONObject().put("id", r.getString("id")).put("key", r.getString("key"));
+        if(r.has("refereeInvite"))info.put("managed",true);else info.put("token",r.getString("reader"));
         r.put("code", code).put("pairing", RoomCrypto.seal(RoomCrypto.pairContext(code), RoomCrypto.pairKey(code), info.toString()));
     }
 
@@ -145,34 +149,66 @@ final class RoomClient {
         });
     }
 
-    Session join(String entry) throws Exception {
-        String code = RoomCrypto.normalizeCode(entry);
-        synchronized (NETWORK) {
-            Session existing = current();
-            if (existing != null) {
-                if ("follow".equals(existing.role) && code.equals(existing.joinCode)) return sync();
-                throw alreadyActive();
-            }
-            JSONObject found = api.send("POST", "/join", null, new JSONObject().put("code", code));
-            JSONObject info = new JSONObject(RoomCrypto.open(RoomCrypto.pairContext(code), RoomCrypto.pairKey(code), found.getString("pairing")));
-            String id = info.getString("id"), key = RoomCrypto.secret(info.getString("key"));
-            String reader = RoomCrypto.secret(info.getString("token"));
-            String context = RoomCrypto.roomContext(id);
-            JSONObject reply = api.send("GET", "/" + id, reader, null);
-            JSONObject score = new JSONObject(RoomCrypto.open(context, key, reply.getString("cipher")));
-            String matchId = validate(score, null).id();
-            validateMetadata(reply, score);
-            JSONObject room = new JSONObject().put("id", id).put("role", "follow").put("matchId", matchId)
-                .put("key", key).put("reader", reader).put("code", code).put("created", true);
-            recordReceived(room, reply, score);
-            synchronized (DISK) {
-                JSONObject contents = vault.read();
-                if (contents.has(ACTIVE)) throw alreadyActive();
-                if (contents.has(id)) throw new IllegalStateException("This watch still has a pending update for this match");
-                vault.write(contents.put(id, room).put(ACTIVE, id));
-                return new Session(room);
-            }
+    private String deviceToken(String code) throws Exception {
+        synchronized(DISK) {
+            JSONObject contents=vault.read();
+            if(!contents.has("deviceSeed"))vault.write(contents.put("deviceSeed",TransferCrypto.random(32)));
+            javax.crypto.Mac mac=javax.crypto.Mac.getInstance("HmacSHA256");
+            mac.init(new javax.crypto.spec.SecretKeySpec(RoomCrypto.decode(contents.getString("deviceSeed")),"HmacSHA256"));
+            return RoomCrypto.encode(mac.doFinal(("KeepScore:watch:"+code).getBytes(StandardCharsets.UTF_8)));
         }
+    }
+
+    PendingJoin findJoin(String entry) throws Exception {
+        String code=RoomCrypto.normalizeCode(entry);
+        synchronized(NETWORK) {
+            Session existing=current();
+            if(existing!=null) {
+                if(!"follow".equals(existing.role)||!code.equals(existing.joinCode))throw alreadyActive();
+                sync();
+                return ()->{Session active=current();if(active==null||!existing.id.equals(active.id))throw alreadyActive();return active;};
+            }
+            String token=deviceToken(code);
+            JSONObject found=api.send("POST","/join",null,new JSONObject().put("code",code).put("deviceToken",token));
+            JSONObject info=new JSONObject(RoomCrypto.open(RoomCrypto.pairContext(code),RoomCrypto.pairKey(code),found.getString("pairing")));
+            String id=info.getString("id"), key=RoomCrypto.secret(info.getString("key"));
+            boolean managed=info.optBoolean("managed");
+            String reader=managed?token:RoomCrypto.secret(info.getString("token"));
+            JSONObject reply=managed?found.getJSONObject("score"):api.send("GET","/"+id,reader,null);
+            JSONObject score=new JSONObject(RoomCrypto.open(RoomCrypto.roomContext(id),key,reply.getString("cipher")));
+            String matchId=validate(score,null).id();
+            validateMetadata(reply,score);
+            JSONObject room=new JSONObject().put("id",id).put("role","follow").put("matchId",matchId)
+                .put("key",key).put("reader",reader).put("code",code).put("created",true);
+            if(managed)room.put("memberId",found.getString("memberId"));
+            recordReceived(room,reply,score);
+            // Only the still-visible join attempt may attach this room. Its first score read checks the watch in.
+            return ()->{
+                synchronized(DISK) {
+                    JSONObject contents=vault.read();
+                    if(contents.has(ACTIVE))throw alreadyActive();
+                    if(contents.has(id))throw new IllegalStateException("Reconnect to finish leaving this match");
+                    vault.write(contents.put(id,room).put(ACTIVE,id));
+                    return new Session(room);
+                }
+            };
+        }
+    }
+
+    private JSONObject managedHost(String roomId) throws Exception {
+        synchronized(DISK) {
+            JSONObject contents=vault.read(),room=contents.optJSONObject(roomId);
+            if(!roomId.equals(contents.optString(ACTIVE))||room==null||!room.has("admin")||!room.has("refereeInvite"))
+                throw new IllegalStateException("Open a managed host room");
+            return room;
+        }
+    }
+    JSONObject participants(String roomId) throws Exception {
+        return api.send("GET","/"+roomId+"/participants",managedHost(roomId).getString("admin"),null);
+    }
+    void removeParticipant(String roomId,String memberId) throws Exception {
+        if(!memberId.matches("[a-f0-9]{24}"))throw new IllegalArgumentException("Invalid device");
+        api.send("DELETE","/"+roomId+"/participants/"+memberId,managedHost(roomId).getString("admin"),null);
     }
 
     /** One foreground read, or a coalesced event-driven upload. Never holds the local lock during network I/O. */
@@ -203,8 +239,12 @@ final class RoomClient {
             api.send("PATCH", "/" + id, r.getString("admin"), new JSONObject().put("watchJoin", enabled));
             edit(id, state -> { state.put("joinApplied", enabled); return true; });
         }
+        boolean checkIn=r.has("memberId")&&!r.optBoolean("announced");
         if (!"score".equals(r.getString("role")) && !r.optBoolean("delegating")
-            && !new JSONObject(r.getString("snapshot")).getBoolean("final")) pull(id, r);
+            && (checkIn||!new JSONObject(r.getString("snapshot")).getBoolean("final"))) {
+            pull(id,r);
+            if(checkIn)edit(id,state->{state.put("announced",true);return true;});
+        }
     }
 
     private void ensureCreated(String id) throws Exception {
@@ -215,6 +255,7 @@ final class RoomClient {
                 .put("reader", r.getString("reader")).put("admin", r.getString("admin")).put("joinCode", r.getString("code"))
                 .put("pairing", r.getString("pairing")).put("watchJoin", r.getBoolean("seedJoin"))
                 .put("cipher", r.getString("seed")).put("revision", 0).put("final", false);
+            if(r.has("refereeInvite"))body.put("refereeInvite",r.getString("refereeInvite"));
             JSONObject result;
             try {
                 result = api.send("POST", "", null, body);
@@ -318,6 +359,7 @@ final class RoomClient {
             if (r == null) return;
             boolean finished = new JSONObject(r.getString("snapshot")).getBoolean("final");
             if (revoke && r.has("admin") && !finished) r.put("closing", "revoke");
+            else if ("follow".equals(r.optString("role")) && r.has("memberId")) r.put("closing","leave");
             else if (finished && "score".equals(r.getString("role")) && (!r.optBoolean("created") || r.getLong("local") > r.getLong("seen")))
                 r.put("closing", "finish");
             else contents.remove(id);
@@ -342,6 +384,7 @@ final class RoomClient {
                 if (r == null) continue;
                 try {
                     if ("revoke".equals(r.getString("closing"))) api.send("DELETE", "/" + id, r.getString("admin"), null);
+                    else if ("leave".equals(r.optString("closing"))) api.send("DELETE","/"+id+"/participants/me",r.getString("reader"),null);
                     else syncRoom(id);
                 } catch (Exception e) {
                     if (!(e instanceof ServiceError) || (((ServiceError)e).status != 404 && ((ServiceError)e).status != 410)) {
@@ -411,8 +454,11 @@ final class RoomClient {
             throw new IllegalArgumentException("Invalid shared match metadata");
     }
 
+    static boolean validPath(String path){
+        return path.matches("(?:/join|/[a-f0-9]{32}(?:/participants(?:/(?:me|[a-f0-9]{24}))?)?)?");
+    }
     private static JSONObject request(String method, String path, String token, JSONObject body) throws Exception {
-        if (!path.matches("(?:/join|/[a-f0-9]{32})?")) throw new IllegalArgumentException("Invalid room path");
+        if (!validPath(path)) throw new IllegalArgumentException("Invalid room path");
         HttpURLConnection c = (HttpURLConnection)new URL(BuildConfig.SITE_URL + "/api/rooms" + path).openConnection();
         c.setInstanceFollowRedirects(false);
         c.setConnectTimeout(8000); c.setReadTimeout(10000);
