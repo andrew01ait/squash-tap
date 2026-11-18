@@ -2,6 +2,17 @@ import {t} from './locale.mjs';
 import {rowRules} from './sports.mjs?v=0.16.3';
 
 export const liveCopy = {
+  "Players": ["Spieler","Joueurs","Jugadores"],
+  "Teams": ["Teams","Équipes","Equipos"],
+  "Sets": ["Sätze","Sets","Sets"],
+  "Games won": ["Sätze","Manches","Juegos"],
+  "Games": ["Spiele","Jeux","Juegos"],
+  "Points": ["Punkte","Points","Puntos"],
+  "Current": ["Aktuell","En cours","Actual"],
+  "Unfinished": ["Unvollständig","Inachevé","Sin terminar"],
+  "Scorecard": ["Satzverlauf","Détail du score","Parciales"],
+  "Match details": ["Partiedetails","Détails du match","Detalles del partido"],
+  "About this broadcast": ["Über diese Übertragung","À propos de la diffusion","Acerca de la retransmisión"],
   "Me": ["Ich","Moi","Yo"],
   "Opponent": ["Gegner","Adversaire","Rival"],
   "Opponent 1": ["Gegner 1","Adversaire 1","Rival 1"],
@@ -46,8 +57,8 @@ export const liveCopy = {
   "Points · games {0}": ["Punkte · Sätze {0}","Points · jeux {0}","Puntos · juegos {0}"],
   "Serve call: {0}": ["Aufschlagansage: {0}","Annonce du score : {0}","Canto del saque: {0}"],
   "Match tie-break": ["Match-Tie-Break","Super jeu décisif","Desempate de partido"],
-  "Set": ["Satz","Manche","Set"],
-  "Game": ["Satz","Jeu","Juego"],
+  "Set": ["Satz","Set","Set"],
+  "Game": ["Satz","Manche","Juego"],
   "sets": ["Sätze","manches","sets"],
   "games": ["Sätze","jeux","juegos"],
   " · unfinished": [" · unvollständig"," · en cours à l’arrêt"," · sin terminar"],

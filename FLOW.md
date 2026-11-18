@@ -1,10 +1,10 @@
-# Navigation and match flows — v0.18.0
+# Navigation and match flows — v0.18.1
 
 The separate Play preparation candidate retains these scoring/navigation flows. Its Settings → Check for updates opens a Google Play explanation, Open Google Play and Back to Settings. All website update/download/install/setup entry points route there in that build; a missing Store produces an actionable message and keeps the match. The public direct-APK release keeps its existing updater. See [PLAY_RELEASE.md](PLAY_RELEASE.md).
 
 ## Sport entry and scope
 
-The launcher opens Choose sport with distinct icons/colours for Squash, Tennis, Badminton, Padel, Table tennis and Pickleball, plus shared Players and Settings. An unfinished current match locks every other sport, including when paused or explicitly created but unplayed. The selector explains the lock and disables the other sport rows; stale selection/create callbacks also enforce it. Finish or cancel the match to unlock selection. A completed match permits another sport. Close app exits without silently opening another sport’s scoreboard. Each sport remembers its new-match rules and length.
+The launcher opens Choose sport with distinct icons/colours for Squash, Tennis, Badminton, Padel, Table tennis and Pickleball, with Live sharing & referee above the sports and shared Players and Settings below. An unfinished current match locks every other sport, including when paused or explicitly created but unplayed. The selector explains the lock and disables the other sport rows; stale selection/create callbacks also enforce it. Finish or cancel the match to unlock selection. A completed match permits another sport. Close app exits without silently opening another sport’s scoreboard. Each sport remembers its new-match rules and length.
 
 Results and Statistics use the chosen sport. Eligible sports offer All modes / Singles / Doubles. Result player filters include all team roles; date/player filters do not narrow Statistics. Delete all results deletes the selected sport only and preserves other sports, current state, daily counters and deletion markers. Phone Results/Statistics have their own shared sport/mode selectors; the Players catalog is global.
 
@@ -19,6 +19,7 @@ The scoreboard stays focused on Me/Opponent scoring, Undo and Next/New. Its head
 | Destination | Purpose | Style |
 | --- | --- | --- |
 | Current match | Live session, set entry and current scores | Filled blue |
+| Live sharing & referee | Audience QR, phone referee, share with watches, join by watch code | Direct navigation row |
 | Results | Saved history, filters, past matches, CSV and phone viewing | Blue navigation row |
 | Favourite formats | Choose a saved sport preset; save/remove favourites from setup. |
 | Statistics | All-result match/set/point balances | Blue navigation row |
@@ -33,12 +34,12 @@ The sport Menu returns to its own current scoreboard when available; an idle spo
 
 | State | First action | Other actions |
 | --- | --- | --- |
-| Fresh | Start match | Enter set score, Match details, Match options, Cancel match |
-| Playing | Pause match | Enter set score, Match details, Match options, Cancel match |
-| Paused / waiting to resume | Resume match | Enter set score, Match details, Match options, Cancel match |
+| Fresh | Start match | Live sharing & referee, Enter set score, Match details, Match options, Cancel match |
+| Playing | Pause match | Live sharing & referee, Enter set score, Match details, Match options, Cancel match |
+| Paused / waiting to resume | Resume match | Live sharing & referee, Enter set score, Match details, Match options, Cancel match |
 | Completed | View result, when saved | Match details, New match |
 
-The summary shows opponent, sets and BO3/BO5. Match details lists actual set scores and known start timing. Match options groups Players/Opponent, Serving indicator and Match length under Setup & players, with New match and Save retirement result under Finish or replace. Cancel match is available directly in Current match and in Match options. The frozen scoring rules are summarised separately from adjustable match length. These options never contain Settings. Completed matches hide inapplicable live/set/options controls. If result storage is full, the completed scoreboard stays available through Match details until a result can be saved.
+The summary shows opponent, sets and BO3/BO5. Match details and the read-only Game or set scores view show a large tally and individual scores, newest first, with the current period identified. The live scoreboard shows the period, tally, and either games in the current set or the most recent completed score. Match options groups Players/Opponent, Serving indicator and Match length under Setup & players, with New match and Save retirement result under Finish or replace. Cancel match is available directly in Current match and in Match options. The frozen scoring rules are summarised separately from adjustable match length. These options never contain Settings. Completed matches hide inapplicable live/set/options controls. If result storage is full, the completed scoreboard stays available through Match details until a result can be saved.
 
 Match format changes an unfinished current match in place, preserving UUID, points, sets, timing and Undo. BO5 → BO3 is rejected after either player already has two set wins. Changes return to Match options. Screen-on policy and history Singles/Doubles filters also use explicit lists rather than cycling through values. Confirmation questions omit the Scoreboard shortcut to keep the question and explicit confirm/cancel actions clear.
 
@@ -113,7 +114,7 @@ Settings → Colour scheme opens an explicit list with both card colours preview
 
 Settings → Backup & restore → Create or restore backup → phone QR → download or select JSON → send → watch Receive changes → Restore this backup? → Replace data & restore. Preview/cancel changes nothing; stale/expired previews cannot apply. The replacement is atomic and unfinished restores are paused. Download previous data copy exports the pre-restore recovery snapshot through a fresh backup link. End an existing transfer before changing its snapshot purpose.
 
-Current match → Live scoreboard → Start live sharing → audience QR opens automatically when ready. Reopen it later with Show audience QR. A separate read-only link shares this match only for up to eight hours during play, then ten minutes for the final result. Stop sharing revokes it if online; offline status explains expiry. Offline scoring continues and queues the latest score. A completed result → Share result card opens the private phone result view with Save/Share image actions.
+Live sharing & referee → Audience live link → Start live sharing → audience QR opens automatically when ready. Reopen it later with Show audience QR. A separate read-only link shares this match only for up to eight hours during play, then ten minutes for the final result. Stop sharing revokes it if online; offline status explains expiry. Offline scoring continues and queues the latest score. A completed result → Share result card opens the private phone result view with Save/Share image actions.
 
 Add Keep Score from the watch’s tile picker or the watch face’s complication picker. Tapping opens Current match or sport selection without scoring or resuming. These are optional read-only entry points.
 
@@ -145,8 +146,8 @@ Results → Filters → Reset all filters is the first filter action. Filtered R
 
 ## Linked matches and language
 
-From Current match, Referee & watches opens two choices. Referee on phone shows a private scoring QR after the current state reaches the server and locks local score actions immediately. Share with watches starts a ten-character read-only code. A watch scorer can hand the same match to a referee while followers stay connected. In referee mode, Invite other watches enables the same code. The host can redisplay the QR and enable or disable new joins.
+Live sharing & referee appears above the sports on the launcher, near the top of each sport menu and directly after Start, Pause or Resume in Current match. During play, tap the scoreboard’s sport/Menu header. The hub offers Audience live link, Referee on phone, Share with watches and Join with watch code. Opening the hub does not start sharing. Starting without a match takes you through sport and match setup before you confirm. Referee on phone shows a private scoring QR after the current state reaches the server and locks local score actions immediately. Share with watches starts a ten-character read-only code. A watch scorer can hand the same match to a referee while followers stay connected. In referee mode, Invite other watches enables the same code. The host can redisplay the QR and enable or disable new joins.
 
-A receiving watch enters the code from the sports screen. The scoreboard and its accessibility action open the room menu. After confirmation, the host chooses Save to my results. A follower also selects their player position. An interrupted session reopens with its last received score. Leaving a followed game preserves local history. Cancelling an unfinished referee-hosted game discards its frozen local draft.
+A receiving watch opens Live sharing & referee → Join with watch code and enters the two groups of five characters. The scoreboard and its accessibility action open the room menu. After confirmation, the host chooses Save to my results. A follower also selects their player position. An interrupted session reopens with its last received score. Leaving a followed game preserves local history. Cancelling an unfinished referee-hosted game discards its frozen local draft.
 
 The language selector is in Settings and in the read-only room menu. All phone pages have a language menu. Changing language preserves the referee queue and unsent roster changes.

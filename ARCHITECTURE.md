@@ -1,6 +1,6 @@
 # Architecture
 
-Current watch release: **v0.18.0**, code **24**. This document describes the implemented system; release changes are in [CHANGELOG.md](CHANGELOG.md).
+Current watch release: **v0.18.1**, code **25**. This document describes the implemented system; release changes are in [CHANGELOG.md](CHANGELOG.md).
 
 ## Components and responsibilities
 
@@ -134,3 +134,5 @@ The independent `/api/rooms` protocol stores an encrypted native match snapshot 
 The referee service worker caches only the application shell. IndexedDB commits encrypted score updates before acknowledging a rally locally, and retains an in-flight upload for lost acknowledgements. Revision checks handle competing tabs or scorer phones. Browsers without background sync send queued updates when the page is open. Phone and watch score engines use the same match encoding for all six sports.
 
 RoomClient protects the watch recovery record in no-backup storage using Android Keystore. A scoring watch offers updates on changes or reconnect. A receiving watch checks while Keep Score is visible and reloads its encrypted cached snapshot after restart. Host and follower input is read-only. The tile and watch-face complication show the last received match revision without starting network requests. SharedResult converts the confirmed result into the chosen player's perspective, preserves retirement, timing, tie-breaks, doubles roles and previous local match state, and deduplicates by match ID. A host's completed shared scoreboard becomes a history item after explicit confirmation. Standard phone transfers, legacy live broadcasts and the local match book retain their independent lifetimes.
+
+The native launcher, sport menu and current-match menu share one role-aware live-sharing entry. It preserves its caller through sport selection and new-match setup. Only an explicit hosting action creates a room or audience link. Local and linked scoreboards render the same period panel. The phone referee, audience broadcast and private transfer pages use responsive document layouts and the same Keep Score launcher artwork.

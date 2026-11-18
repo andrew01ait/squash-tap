@@ -2,6 +2,7 @@ import {mountLanguage, t} from './locale.mjs';
 import {bindPageCopy} from './page-copy.mjs';
 
 const copy = {
+  "Watch report": ["Uhrenbericht","Rapport de la montre","Informe del reloj"],
   "Keep Score diagnostics": ["Keep-Score-Diagnose","Diagnostic de Keep Score","Diagnóstico de Keep Score"],
   "Export watch diagnostics": ["Uhrendiagnose exportieren","Exporter le diagnostic de la montre","Exportar el diagnóstico del reloj"],
   "Reading the diagnostic QR code…": ["Diagnose-QR wird gelesen …","Lecture du QR de diagnostic…","Leyendo el QR de diagnóstico…"],
@@ -40,6 +41,7 @@ render();
 async function loadReport() {
   const number = ++requestNumber;
   report = '';
+  $('diagnostics').dataset.loaded = 'false';
   $('report').textContent = translate('No report loaded.');
   setStatus('Reading the diagnostic QR code…');
   for (const id of ['save','share','copy']) $(id).disabled = true;
@@ -69,6 +71,7 @@ async function loadReport() {
     const text = await new Blob(chunks).text();
     if (number !== requestNumber) return;
     report = text;
+    $('diagnostics').dataset.loaded = 'true';
     $('report').textContent = report;
     setStatus('Ready. Save, copy or share the report with support.');
     filename = new Date().toLocaleDateString('sv-SE').replaceAll('-','') + '_KeepScore_diagnostics.txt';

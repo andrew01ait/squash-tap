@@ -18,13 +18,13 @@ export function orderedSports(ids=SPORTS) {
   return [...ids].sort((a,b)=>sportText(a).localeCompare(sportText(b),language()));
 }
 function sportMark(sport) {
-  const el=node('span',undefined,'sport-mark');el.innerHTML=sportMarkup(sport);el.setAttribute('aria-hidden','true');return el;
+  const el=node('span',undefined,'sport-mark');el.dataset.sport=sport;el.innerHTML=sportMarkup(sport);el.setAttribute('aria-hidden','true');return el;
 }
 function statRow(parent,label,value) {
   const el=node('div');el.append(node('dt',label),node('dd',value));parent.append(el);
 }
 function playerLine(name,score,side) {
-  const line=node('div',undefined,'competitor '+side);
+  const line=node('span',undefined,'competitor '+side);
   line.append(node('span',name),node('b',score));return line;
 }
 function tennisPoints(a,b) { return a>=3&&b>=3?(a>b?'AD':'40'):['0','15','30','40'][Math.min(a,3)]; }
@@ -35,21 +35,33 @@ export function resultCard(row,opponent,myName=tx('Me')) {
   const won=rowWinner(row)===0;
   const card=node('details',undefined,'result');card.dataset.matchId=row[1];
   if(!won) card.classList.add('lost');
-  const summary=node('summary');
-  const heading=node('span',undefined,'result-heading');
-  heading.append(node('span',momentText(row)+' · '+modeText(rowMode(row))),node('span',outcomeText(row),'outcome'));
-  summary.append(heading,playerLine(mine,row[11],'mine'),playerLine(other,row[12],'other'));
+  const summary=node('summary',undefined,'result-summary');
+  const meta=node('span',undefined,'match-meta'),date=node('time',momentText(row));
+  date.dateTime=row[7]||row[2];
+  meta.append(node('span',sportText(rules.sport)+' · '+modeText(rowMode(row)),'match-sport'),date);
+  const teams=node('span',undefined,'match-teams');
+  teams.append(playerLine(mine,row[11],'mine'),playerLine(other,row[12],'other'));
+  summary.append(meta,teams,node('span',outcomeText(row),'outcome'));
   card.append(summary);
   const detail=node('div',undefined,'result-detail');
-  detail.append(node('p',sportText(rules.sport)+' · '+tx('Best of {0}',row[6])+' · '+tx('Match {0}',row[3]),'muted'));
-  const gameList=node('ol',undefined,'set-list');
+  detail.append(node('p',tx('Best of {0}',row[6])+' · '+tx('Match {0}',row[3]),'muted'));
+  const sheet=node('table',undefined,'score-sheet');
+  const head=sheet.createTHead().insertRow(),body=sheet.createTBody();
+  for(const title of [tx(rules.nested?'Set':'Game'),mine,other]){
+    const cell=node('th',title);cell.scope='col';head.append(cell);
+  }
   pairs.forEach(([a,b],i)=>{
     const tie=rules.finalTie&&i===Number(row[6])-1;
-    const item=node('li');
-    item.append(node('span',tx(tie?'Match tie-break':rules.nested?'Set':'Game')+' '+(i+1)),node('strong',a+' – '+b));
+    const complete=finalScore(rules,tie,a,b),line=body.insertRow();
+    const period=node('th',tie?tx('Match tie-break'):String(i+1));period.scope='row';line.append(period);
+    for(const [value,opposing] of [[a,b],[b,a]]){
+      const cell=line.insertCell();
+      if(complete&&value>opposing) cell.append(node('strong',String(value)));
+      else cell.textContent=value;
+    }
     const more=[];
     if(gameDetails[i][2]>=0) more.push('TB '+gameDetails[i][2]+' – '+gameDetails[i][3]);
-    if(!finalScore(rules,tie,a,b)) {
+    if(!complete) {
       more.push(tx('Unfinished'));
       if(gameDetails[i][4]>=0) {
         const x=gameDetails[i][4],y=gameDetails[i][5];
@@ -57,10 +69,12 @@ export function resultCard(row,opponent,myName=tx('Me')) {
         more.push(tx('Points')+' '+score);
       }
     }
-    if(more.length) item.append(node('small',more.join(' · ')));
-    gameList.append(item);
+    if(more.length) {
+      const notes=body.insertRow();notes.className='score-note';
+      const cell=notes.insertCell();cell.colSpan=3;cell.textContent=more.join(' · ');
+    }
   });
-  detail.append(gameList);
+  if(pairs.length) detail.append(sheet);
   const times=node('dl',undefined,'timing');
   statRow(times,tx('Start'),momentText(row,7,'required'));statRow(times,tx('End'),momentText(row,8,'required'));
   statRow(times,tx('Duration'),row[10]?durationText(Number(row[10])):tx('Not recorded'));
@@ -77,11 +91,19 @@ function metric(parent,title,value,note) {
   const article=node('article',undefined,'metric');
   article.append(node('h4',title),node('strong',value));if(note)article.append(node('p',note));parent.append(article);
 }
-function recordButton(parent,title,sub,value,action,icon=null) {
+function rateValue(rate) {
+  const value=node('span',undefined,'record-value');
+  value.append(node('b',rate===null?'—':rate+'%'));
+  if(rate!==null){
+    const bar=node('progress');bar.max=100;bar.value=rate;bar.setAttribute('aria-hidden','true');value.append(bar);
+  }
+  return value;
+}
+function recordButton(parent,title,sub,rate,action,icon=null) {
   const b=node('button',undefined,'record-row');
   const label=node('span',undefined,'record-label');label.append(node('strong',title),node('small',sub));
   if(icon) b.append(icon);
-  b.append(label,node('b',value,'record-value'));b.addEventListener('click',action);parent.append(b);
+  b.append(label,rateValue(rate));b.addEventListener('click',action);parent.append(b);
 }
 function renderPlayers(rows,catalog,role,onPlayer,selectedSport) {
   const list=$(role==='partner'?'partner-balances':'opponent-balances');
@@ -94,7 +116,7 @@ function renderPlayers(rows,catalog,role,onPlayer,selectedSport) {
     const disclosure=node('details',undefined,'player-record'),summary=node('summary',undefined,'record-row');
     const label=node('span',undefined,'record-label');
     label.append(node('strong',display(g)),node('small',[record(g),score].filter(Boolean).join(' · ')));
-    summary.append(label,node('b',g.winRate+'%','record-value'));
+    summary.append(label,rateValue(g.winRate));
     disclosure.append(summary);list.append(disclosure);
     disclosure.addEventListener('toggle',()=>{
       if(!disclosure.open||disclosure.children.length>1) return;
@@ -150,7 +172,7 @@ export function renderStatistics({rows,allRows,catalog,mode,selectedSport,totalR
   const sameMode=allRows.filter(r=>mode==='all'||rowMode(r)===mode);
   for(const sport of orderedSports(new Set(sameMode.map(rowSport)))) {
     const stat=statistics(sameMode.filter(r=>rowSport(r)===sport));
-    recordButton(sportList,sportText(sport),tx('{0} matches',stat.played)+' · '+record(stat),stat.winRate+'%',()=>onSport(sport),sportMark(sport));
+    recordButton(sportList,sportText(sport),tx('{0} matches',stat.played)+' · '+record(stat),stat.winRate,()=>onSport(sport),sportMark(sport));
   }
   if(!sameMode.length) sportList.append(node('p',tx('No matches in this selection.'),'muted'));
   renderPlayers(rows,catalog,'opponent',onPlayer,selectedSport);

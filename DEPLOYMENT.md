@@ -1,6 +1,6 @@
 # Build and deployment
 
-Official watch release: **v0.18.0 / code 24**. User installation is in [INSTALLATION.md](INSTALLATION.md); release-number and compatibility rules are in [VERSIONING.md](VERSIONING.md).
+Official watch release: **v0.18.1 / code 25**. User installation is in [INSTALLATION.md](INSTALLATION.md); release-number and compatibility rules are in [VERSIONING.md](VERSIONING.md).
 
 ## Repositories and prerequisites
 
@@ -120,3 +120,5 @@ Play tooling/downloads and installed critical files are SHA-256 pinned in `play-
 ## Linked matches
 
 Publish migration 0003 alongside the Worker, phone assets and direct APK v0.18.0/code 24. The referee service worker and every module in its offline shell must share the origin. Code-only followers require Keep Score v0.18.0 or newer.
+
+The v0.18.1 update ships the signed direct APK (code 25), its feed and matching phone assets together. It uses the existing database migrations and encrypted transfer format. Refresh the referee page while online before relying on its updated offline shell.

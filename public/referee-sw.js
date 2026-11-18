@@ -1,7 +1,7 @@
 import {storage, uploadToken, synchronize, transport, isClosed, dirty} from './referee-store.mjs';
 
-const cacheName='keep-score-referee-shell-1';
-const shell=['/referee.html','/referee.css','/referee.mjs','/referee-store.mjs','/referee-scoring.mjs','/sports.mjs','/locale.mjs'];
+const cacheName='keep-score-referee-shell-2';
+const shell=['/referee.html','/match-web.css','/match-sheet.mjs','/favicon.svg','/referee.css','/referee.mjs','/referee-store.mjs','/referee-scoring.mjs','/sports.mjs','/locale.mjs'];
 const paths=new Set(shell);
 self.addEventListener('install',event=>{
   event.waitUntil((async()=>{

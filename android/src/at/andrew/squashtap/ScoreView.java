@@ -62,18 +62,50 @@ public final class ScoreView extends View {
     public void match(MatchState value){match=value;refresh();}
     public void session(boolean active,boolean paused){sessionActive=active;this.paused=paused;invalidate();}
     public void ambient(boolean value,boolean lowBit){ambient=value;this.lowBit=lowBit;pressed=TouchTargets.OUTSIDE;invalidate();}
+    private String periodUnit(boolean plural) {
+        if (match.format().nested()) return tr(plural ? "Sets" : "Set");
+        return plural ? ui.pick("Games", "Sätze", "Manches", "Juegos")
+            : ui.pick("Game", "Satz", "Manche", "Juego");
+    }
+    private String periodNumber() {
+        return periodUnit(false) + " " + match.gameCount() + "/" + match.bestOf();
+    }
+    private String periodDetail() {
+        ScoreState current = match.game();
+        if (current.matchTie()) return tr("Match tie-break");
+        if (match.format().nested()) return tr("Games") + " " + current.blue() + "–" + current.red();
+        int last = match.gameCount() - (current.winner() == ScoreState.NONE ? 2 : 1);
+        if (last < 0) return "";
+        ScoreState finished = match.game(last);
+        return ui.pick("Last", "Zuletzt", "Préc.", "Último") + " " + finished.blue() + "–" + finished.red();
+    }
+    private String periodAnnouncement() {
+        String detail = periodDetail();
+        return periodUnit(true) + " " + match.gamesWon(0) + ui.pick(" to ", " zu ", " à ", " a ") + match.gamesWon(1)
+            + ". " + periodUnit(false) + " " + match.gameCount() + ", " + tr("Best of") + " "
+            + match.bestOf() + (detail.isEmpty() ? "" : ". " + detail);
+    }
+    private String rallyStatus(ScoreState state) {
+        String status = state.status();
+        if (!status.startsWith("GAMES ")) return ui.scoreTerms(status);
+        // Tennis and padel already show this set's game tally above the points.
+        int previous = match.gameCount() - 2;
+        if (previous < 0) return "";
+        ScoreState finished = match.game(previous);
+        return periodUnit(false) + " " + (previous+1) + " · " + finished.blue() + "–" + finished.red();
+    }
     public void refresh() {
         if(remoteStatus!=null){
             String right=match.format().doubles?primaryLabel+" & "+otherLabel:opponentLabel;
             String left=match.format().doubles?ownLabel+" & "+partnerLabel:ownLabel;
             setContentDescription(tr("Read-only score.")+" "+tr(match.format().name())+". "+
                 left+" "+tr(match.game().displayPoint(0))+", "+right+" "+tr(match.game().displayPoint(1))+
-                ". "+tr(match.format().nested()?"Sets ":"Games ")+match.gamesWon(0)+"–"+match.gamesWon(1)+
+                ". "+periodAnnouncement()+
                 ". "+remoteStatus+". "+tr(finalConfirmed?"Save result":"Match menu"));
             invalidate();return;
         }
         setContentDescription(tr("Keep Score. ")+tr(match.format().name())+". "+(match.format().doubles?ownLabel+tr(" and ")+partnerLabel+" ":ownLabel+" ") + tr(match.game().displayPoint(0))+", "+opponentLabel+" "+tr(match.game().displayPoint(1))
-            +". "+(match.format().nested()?tr("Sets "):tr("Games "))+match.gamesWon(0)+tr(" to ")+match.gamesWon(1)+tr(", best of ")+match.bestOf()+". "+serviceAnnouncement()+tr(" Bottom left Undo; bottom right ")+(match.nextReady()?tr("Next ")+tr(match.format().unit()).toLowerCase(ui.locale):tr("New match"))+tr(". Top opens the ")+tr(match.format().name())+tr(" menu: Current match, Results, Statistics, Players and Settings."));
+            +". "+periodAnnouncement()+". "+serviceAnnouncement()+tr(" Bottom left Undo; bottom right ")+(match.nextReady()?tr("Next ")+periodUnit(false).toLowerCase(ui.locale):tr("New match"))+tr(". Top opens the ")+tr(match.format().name())+ui.pick(" menu, including live sharing and the referee."," mit Live-Teilen und Schiedsrichter."," avec le partage en direct et l’arbitrage."," con las opciones de compartir en directo y de arbitraje."));
         invalidate();
     }
     @Override protected void onDraw(Canvas canvas) {
@@ -85,8 +117,7 @@ public final class ScoreView extends View {
         canvas.drawColor(BuildConfig.PLAY_DISTRIBUTION?Color.BLACK:Color.rgb(8, 13, 23));
         int server=knownServer();
         sportHeading(canvas,w,h,s);
-        text(canvas,(match.format().nested()?tr("SETS "):tr("GAMES "))+match.gamesWon(0)+"–"+match.gamesWon(1)+tr(" · BO")+match.bestOf()+(match.format().nested()?tr(" · GAMES ")+state.blue()+"–"+state.red():tr(" · GAME ")+match.gameCount())+(updateAvailable?" •":""),
-            w * .5f, h * .183f, s * .033f, updateAvailable ? 0xff94edb4 : palette.muted, false);
+        periodPanel(canvas,w,h*.117f,cardTop()-h*.012f,s);
         card(canvas, w * .075f, cardTop(), w * .48f, h * .67f, TouchTargets.BLUE,
             match.format().doubles?ownLabel+" & "+partnerLabel:ownLabel.toUpperCase(java.util.Locale.ROOT), tr(state.displayPoint(0)), palette.left, palette.leftPressed, s,server);
         card(canvas, w * .52f, cardTop(), w * .925f, h * .67f, TouchTargets.RED,
@@ -95,7 +126,7 @@ public final class ScoreView extends View {
             :!sessionActive?(match.format().pickleball()?tr("TAP RALLY TO START"):tr("TAP +1 TO START"))
             :state.winner() == ScoreState.BLUE ? tr("SET WON · NEXT TO PLAY")
             : state.winner() == ScoreState.RED ? tr("SET LOST · NEXT TO PLAY")
-            :match.format().sport.equals("squash")&&state.gameBall()!=-1?(match.gamesWon(state.gameBall())==match.needed()-1?tr("MATCH BALL"):tr("GAME BALL"))+" · "+(state.gameBall()==0?tr("ME"):tr("OPPONENT")):ui.scoreTerms(state.status());
+            :match.format().sport.equals("squash")&&state.gameBall()!=-1?(match.gamesWon(state.gameBall())==match.needed()-1?tr("MATCH BALL"):tr("GAME BALL"))+" · "+(state.gameBall()==0?tr("ME"):tr("OPPONENT")):rallyStatus(state);
         if(remoteStatus!=null){
             text(canvas,fitLabel(remoteStatus,w*.84f,s*.036f,true),w*.5f,h*.711f,s*.036f,palette.muted,true);
             float half=Math.max(dp(24),h*.09f);
@@ -109,10 +140,61 @@ public final class ScoreView extends View {
         button(canvas, w*.18f, h*.82f-halfButton, w*.46f, h*.82f+halfButton, tr("UNDO"), TouchTargets.UNDO, match.hasPoints()||match.retired(), s);
         button(canvas, w*.54f, h*.82f-halfButton, w*.82f, h*.82f+halfButton, match.nextReady()?tr("NEXT"):tr("NEW"), TouchTargets.NEW, true, s);
     }
+    // Use actual text metrics for the narrow chord at the top of round watches.
+    private float fittedPixels(String value, float desired, float width, float height, boolean bold) {
+        paint.setTypeface(bold ? Typeface.DEFAULT_BOLD : Typeface.DEFAULT);
+        paint.setTextSize(desired);
+        return desired * Math.min(1f, Math.min(width / Math.max(1f, paint.measureText(value)),
+            height / Math.max(1f, paint.descent() - paint.ascent())));
+    }
+    private void fittedText(Canvas c, String value, float center, float y, float desired,
+                            float width, float height, int ink, boolean bold) {
+        float size = fittedPixels(value, desired * fontScale(), width, height, bold);
+        text(c,value,center,y,size/fontScale(),ink,bold);
+    }
     private void sportHeading(Canvas c,float w,float h,float s){
-        String label=tr(match.format().name()).toUpperCase(java.util.Locale.ROOT)+tr(" · MENU");float size=s*.039f;paint.setTextSize(size*fontScale());paint.setTypeface(Typeface.create("sans-serif",Typeface.BOLD));float width=paint.measureText(label),iconSize=s*.052f,left=(w-width-iconSize-s*.018f)/2;
-        SportIcons icon=new SportIcons(match.format().sport,(int)iconSize);icon.setBounds((int)left,(int)(h*.108f-iconSize/2),(int)(left+iconSize),(int)(h*.108f+iconSize/2));icon.draw(c);
-        text(c,label,left+iconSize+s*.018f+width/2,h*.108f,size,palette.id.equals("sunlight")?Color.WHITE:SportIcons.accent(match.format().sport),true);
+        String label=tr(match.format().name()).toUpperCase(ui.locale)+tr(" · MENU")+(updateAvailable?" •":"");
+        float iconSize=s*.05f, gap=s*.014f, y=h*.077f;
+        float size=fittedPixels(label,s*.045f*fontScale(),w*.47f-iconSize-gap,h*.065f,true);
+        paint.setTextSize(size);
+        float width=paint.measureText(label),left=(w-width-iconSize-gap)/2;
+        SportIcons icon=new SportIcons(match.format().sport,(int)iconSize);
+        icon.setBounds((int)left,(int)(y-iconSize/2),(int)(left+iconSize),(int)(y+iconSize/2));icon.draw(c);
+        text(c,label,left+iconSize+gap+width/2,y,size/fontScale(),updateAvailable?0xff94edb4:palette.id.equals("sunlight")?Color.WHITE:SportIcons.accent(match.format().sport),true);
+    }
+    private void periodPanel(Canvas c, float w, float top, float bottom, float s) {
+        float h=bottom-top, center=(top+bottom)/2;
+        float left=w*.145f, right=w-left, divider=w*.515f, pad=s*.021f;
+        int mainInk=ambient?0xffd6d6d6:Color.WHITE, secondaryInk=ambient?0xffbababa:palette.muted;
+        paint.setStyle(Paint.Style.FILL);
+        if(!ambient){
+            paint.setColor(0xff1c2b3c);
+            c.drawRoundRect(left,top,right,bottom,h*.32f,h*.32f,paint);
+            paint.setColor(0xff526376);
+            c.drawRect(divider,top+h*.19f,divider+Math.max(1f,s*.003f),bottom-h*.19f,paint);
+        }
+        String unit=periodUnit(true), score=match.gamesWon(0)+"–"+match.gamesWon(1);
+        float usable=divider-left-2*pad, gap=s*.017f;
+        float labelSize=fittedPixels(unit,s*.057f*fontScale(),usable,h*.64f,false);
+        paint.setTextSize(labelSize);
+        float labelWidth=paint.measureText(unit);
+        float scoreSize=fittedPixels(score,s*.087f*fontScale(),usable,h*.90f,true);
+        paint.setTextSize(scoreSize);
+        float scoreWidth=paint.measureText(score);
+        float fit=Math.min(1f,(usable-gap)/(labelWidth+scoreWidth));
+        labelWidth*=fit; scoreWidth*=fit;
+        float start=(left+divider-labelWidth-gap-scoreWidth)/2;
+        text(c,unit,start+labelWidth/2,center,labelSize*fit/fontScale(),secondaryInk,false);
+        text(c,score,start+labelWidth+gap+scoreWidth/2,center,scoreSize*fit/fontScale(),mainInk,true);
+
+        String detail=periodDetail();
+        float x=(divider+right)/2, width=right-divider-2*pad;
+        if(detail.isEmpty()){
+            fittedText(c,periodNumber(),x,center,s*.058f,width,h*.72f,mainInk,true);
+        }else{
+            fittedText(c,periodNumber(),x,top+h*.28f,s*.055f,width,h*.48f,mainInk,true);
+            fittedText(c,detail,x,top+h*.74f,s*.053f,width,h*.46f,secondaryInk,false);
+        }
     }
     private void card(Canvas c, float l, float t, float r, float b, int target, String label, String value, int fill, int accent, float s,int server) {
         ScoreState state=match.game();int ink=target==TouchTargets.BLUE?palette.leftInk:palette.rightInk;
@@ -163,8 +245,9 @@ public final class ScoreView extends View {
     }
     private void drawAmbient(Canvas c,float w,float h,float s){
         c.drawColor(Color.BLACK);int shift=(int)((System.currentTimeMillis()/60000)%5)-2;c.save();c.translate(shift,-shift);
-        text(c,java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")),w*.5f,h*.115f,s*.065f,0xffaaaaaa,false);
-        text(c,tr(match.format().name()).toUpperCase(java.util.Locale.ROOT)+" · "+match.gamesWon(0)+"–"+match.gamesWon(1)+tr(" · BO")+match.bestOf(),w*.5f,h*.23f,s*.035f,0xff999999,false);
+        String heading=java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))+" · "+tr(match.format().name());
+        fittedText(c,heading,w*.5f,h*.108f,s*.059f,w*.53f,h*.09f,0xffbbbbbb,false);
+        periodPanel(c,w,h*.177f,h*.305f,s);
         text(c,fitLabel(ownLabel,w*.36f,s*.04f,false),w*.27f,h*.36f,s*.04f,0xffaaaaaa,false);String label=fitLabel(opponentLabel,w*.36f,s*.04f,false);text(c,label,w*.73f,h*.36f,s*.04f,0xffaaaaaa,false);
         text(c,tr(match.game().displayPoint(0)),w*.27f,h*.51f,s*.20f,0xffbbbbbb,false);
         text(c,tr(match.game().displayPoint(1)),w*.73f,h*.51f,s*.20f,0xffbbbbbb,false);
@@ -175,7 +258,7 @@ public final class ScoreView extends View {
     private void button(Canvas c,float l,float t,float r,float b,String label,int target,boolean enabled,float s) {
         paint.setStyle(Paint.Style.FILL); paint.setColor(pressed==target?palette.leftPressed:enabled?palette.button:palette.id.equals("classic")?0xff123f70:0xff354255);
         c.drawRoundRect(new RectF(l,t,r,b),s*.05f,s*.05f,paint);
-        text(c,fitLabel(label,r-l-dp(5),s*.038f,true),(l+r)/2,(t+b)/2,s*.038f,enabled?palette.buttonInk:0xffd5deeb,true);
+        fittedText(c,label,(l+r)/2,(t+b)/2,s*.038f,r-l-dp(5),b-t-dp(3),enabled?palette.buttonInk:0xffd5deeb,true);
     }
     private void text(Canvas c,String value,float x,float y,float size,int color,boolean bold) {
         paint.setStyle(Paint.Style.FILL); paint.setColor(color); paint.setTextSize(size*fontScale());

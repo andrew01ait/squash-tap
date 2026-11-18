@@ -1,10 +1,10 @@
 import {mountLanguage,language} from './locale.mjs';
 import {validateBackup,datedFile} from './backup.mjs?v=0.16.0';
 import {SPORTS,sportMarkup,rowSport} from './sports.mjs?v=0.16.3';
-import {open,seal,name,parseCsv,writeCsv,HEADER,statistics} from './interchange.mjs?v=0.16.0';
+import {open,seal,name,parseCsv,writeCsv,HEADER,statistics,localDate} from './interchange.mjs?v=0.16.0';
 import {addName,incomingPayload,checkRetirementSupport,initialView,filteredRows,sportsByPlayer,inScope,filterPlayers} from './transfer-state.mjs?v=2';
-import {newest,resultCard,shortRecord,renderStatistics,orderedSports,node} from './transfer-view.mjs?v=2';
-import {tx,errorText,sportText} from './transfer-copy.mjs';
+import {newest,resultCard,shortRecord,renderStatistics,orderedSports,node} from './transfer-view.mjs?v=3';
+import {tx,errorText,sportText,momentText} from './transfer-copy.mjs';
 
 const $=id=>document.getElementById(id);
 const PAGE_SIZE=25;
@@ -58,18 +58,27 @@ function renderResults(reset=true) {
   $('filters-applied').textContent=active?tx('{0} selected',active):'';
   let selected;
   try {selected=newest(filteredRows(context,f));} catch(err) {
-    list.replaceChildren();$('filtered-summary').textContent=errorText(err);$('count').textContent='—';
+    list.replaceChildren();$('filtered-summary').textContent=errorText(err);$('count').hidden=true;
     $('result-pages').hidden=true;$('download').disabled=true;return;
   }
   $('download').disabled=!selected.length;
   if(reset) resultPage=0;
   const pages=Math.max(1,Math.ceil(selected.length/PAGE_SIZE));
   resultPage=Math.max(0,Math.min(resultPage,pages-1));
-  $('count').textContent=selected.length+' / '+context.length;
+  $('count').hidden=selected.length===context.length;
+  $('count').textContent=tx('{0} of {1} matches',selected.length,context.length);
   $('filtered-summary').textContent=shortRecord(statistics(selected));
   list.replaceChildren();
+  const monthFormat=new Intl.DateTimeFormat(language(),{month:'long',year:'numeric',timeZone:'UTC'});
+  let lastMonth='',group;
   for(const row of selected.slice(resultPage*PAGE_SIZE,(resultPage+1)*PAGE_SIZE)) {
-    const r=exportNames(row);list.append(resultCard(r,r[5]||tx('Opponent'),myName||tx('Me')));
+    const month=localDate(row).slice(0,7);
+    if(month!==lastMonth) {
+      group=node('div',undefined,'ledger-group');
+      list.append(node('h3',monthFormat.format(new Date(month+'-01T12:00:00Z')),'ledger-period'),group);
+      lastMonth=month;
+    }
+    const r=exportNames(row);group.append(resultCard(r,r[5]||tx('Opponent'),myName||tx('Me')));
   }
   if(!selected.length) list.append(node('p',tx(rows.length?'No matches fit these filters.':'No saved matches in this transfer.'),'empty'));
   $('result-pages').hidden=pages<=1;$('result-page').textContent=tx('Page {0} of {1}',resultPage+1,pages);
@@ -82,7 +91,13 @@ function showMatches(id='*',role='all',matchId=null) {
   resultPage=Math.floor(Math.max(0,index)/PAGE_SIZE);
   if(id!=='*') $('result-filters').open=true;
   showTab('results');renderResults(false);
-  if(matchId) for(const detail of document.querySelectorAll('details.result')) if(detail.dataset.matchId===matchId){detail.open=true;detail.scrollIntoView({block:'nearest'});}
+  if(matchId) {
+    for(const detail of document.querySelectorAll('details.result')) if(detail.dataset.matchId===matchId){
+      detail.open=true;detail.querySelector('summary').focus({preventScroll:true});detail.scrollIntoView({block:'start'});
+    }
+  } else {
+    $('history-heading').focus({preventScroll:true});$('history-heading').scrollIntoView({block:'start'});
+  }
 }
 function renderStats(){
   renderStatistics({rows:contextRows(),allRows:rows,catalog:directory,mode:$('mode-select').value,selectedSport:$('sport-select').value,totalResults:snapshot.totalResults,
@@ -94,33 +109,63 @@ function stagedNames() {
 }
 function renderDraft() {
   if(!snapshot) return;
-  const names=stagedNames(),modified=!!(names||importCsv);
-  $('send-changes').hidden=tabId==='backup'||(!(tabId==='opponents'||tabId==='import')&&!modified&&!sent);
-  $('changes').textContent=sent?tx('Changes sent.'):modified?[names?tx('These names or assignments have been edited.'):'',importCsv?tx('CSV results ready to send: {0}',importRows.length):''].filter(Boolean).join(' '):tx('No changes prepared.');
-  $('send').disabled=sent||sending||!modified||invalidOwnName;
+  const names=stagedNames(),modified=!!(names||importCsv),renaming=unfinishedRename();
+  const sendBar=$('send-changes');
+  sendBar.hidden=tabId==='backup'||(!(tabId==='opponents'||tabId==='import')&&!modified&&!renaming&&!sent);
+  sendBar.classList.toggle('pending',(modified||renaming)&&!sent);
+  const edits=[names?tx('These names or assignments have been edited.'):'',importCsv?tx('CSV results ready to send: {0}',importRows.length):''].filter(Boolean).join(' ');
+  $('changes').textContent=sent?tx('Changes sent.'):renaming?tx('Save or cancel the open name edit before sending.'):edits||tx('No changes prepared.');
+  $('send').textContent=tx(renaming?'Review name':'Send changes');
+  $('send').disabled=sent||sending||!renaming&&(!modified||invalidOwnName);
   $('change-current').disabled=sent||sending;$('new-name').disabled=sent||sending;$('add-name').disabled=sent||sending;
   $('my-name').disabled=sent||sending;$('csv-file').disabled=sent||sending;$('clear-import').disabled=sent||sending||!importCsv;
+  $('clear-import').hidden=!importCsv;
   $('backup-file').disabled=sent||sending||!snapshot.supportsFullBackup;$('restore-send').disabled=sent||sending||!restoreBackup;
   $('current-opponent').disabled=sent||sending||!changeCurrent;
   $('import-preview').textContent=importCsv?tx('{0} completed matches ready for review.',importRows.length):tx('No file selected.');
   $('backup-preview').textContent=restoreDate?tx('Backup created {0}. Review the restore on your watch.',new Date(restoreDate).toLocaleString(language())):tx('No file selected.');
+}
+function unfinishedRename(){return editPerson!==null&&editValue!==directory.get(editPerson)?.name;}
+function renderImportGames() {
+  const preview=$('import-games');
+  preview.replaceChildren();preview.hidden=!importRows.length;
+  if(preview.hidden)return;
+  const shown=importRows.slice(0,5);
+  const table=node('table',undefined,'import-games');
+  const head=table.createTHead().insertRow(),body=table.createTBody();
+  for(const title of ['Match','Opponent','Final result']){
+    const cell=node('th',tx(title));cell.scope='col';head.append(cell);
+  }
+  for(const row of shown){
+    const line=body.insertRow(),match=line.insertCell();
+    match.append(node('strong',sportText(rowSport(row))),node('small',momentText(row,7,false)));
+    const opponent=row[5]||tx('Opponent');
+    line.insertCell().textContent=row[25]==='doubles'?opponent+' + '+(row[35]||tx('Opponent 2')):opponent;
+    line.insertCell().textContent=row[11]+' – '+row[12];
+  }
+  preview.append(table);
+  if(shown.length<importRows.length)preview.append(node('p',tx('Showing the first {0} of {1} matches.',shown.length,importRows.length),'muted'));
 }
 function makeAction(text,style,fn) {
   const b=node('button',tx(text),style);b.type='button';b.disabled=sent||sending;
   b.addEventListener('click',()=>tryAction(fn));return b;
 }
 function applied() {editPerson=null;editValue='';fillPlayers();renderPeople();renderResults(false);renderStats();renderDraft();setNotice('Changes prepared for your watch.');}
+function searchKey(value) {return value.normalize('NFD').replace(/\p{Mark}/gu,'').toLocaleLowerCase(language()).trim();}
 function renderPeople() {
-  const list=$('opponent-list');list.replaceChildren();const people=[...catalog].filter(e=>!e.archived||$('show-removed').checked).sort(byName);
-  $('player-count').textContent=people.length;
-  if(!people.length) list.append(node('p',tx('No players yet. Add a name above.'),'empty'));
+  const list=$('opponent-list'),query=searchKey($('player-search').value);
+  const available=catalog.filter(e=>!e.archived||$('show-removed').checked);
+  const people=available.filter(e=>!query||searchKey(e.name).includes(query)).sort(byName);
+  list.replaceChildren();
+  $('player-count').textContent=query?people.length+' / '+available.length:people.length;
+  if(!people.length) list.append(node('p',tx(query?'No players match your search.':catalog.length?'No active players.':'No saved players yet.'),'empty'));
   for(const e of people) {
     const row=node('article',undefined,'person');
     const avatar=node('span',initials(e.name),'avatar');avatar.setAttribute('aria-hidden','true');
     const title=node('div',undefined,'person-label');title.append(node('strong',e.name));
     const sportIds=orderedSports(new Set([...(e.sports||[]),...(sportsIndex.get(e.id)||[])].filter(s=>SPORTS.includes(s))));
     const badges=node('div',undefined,'sport-badges');
-    for(const sport of sportIds){const mark=node('span');mark.innerHTML=sportMarkup(sport);mark.title=sportText(sport);mark.setAttribute('aria-label',sportText(sport));mark.setAttribute('role','img');badges.append(mark);}
+    for(const sport of sportIds){const mark=node('span');mark.dataset.sport=sport;mark.innerHTML=sportMarkup(sport);mark.append(document.createTextNode(sportText(sport)));badges.append(mark);}
     if(e.archived) title.append(node('small',tx('Archived'),'muted'));
     if(sportIds.length) title.append(badges);
     const control=e.archived?makeAction('Restore player','quiet',()=>{e.archived=false;applied();}):makeAction('Edit','quiet',()=>{
@@ -131,10 +176,10 @@ function renderPeople() {
       control.hidden=true;
       const form=node('form',undefined,'rename');
       const label=node('label',tx('Name for {0}',e.name)),field=node('input');field.id='edit-player-name';field.maxLength=120;field.value=editValue;field.required=true;field.autocomplete='off';
-      field.addEventListener('input',()=>{editValue=field.value;});label.append(field);
+      field.addEventListener('input',()=>{editValue=field.value;renderDraft();});label.append(field);
       const actions=node('div',undefined,'actions'),save=node('button',tx('Save name'),'people-action');save.type='submit';save.disabled=sent||sending;
       const archive=makeAction('Archive','danger-text',()=>{if(confirm(tx('Archive {0}? Their past results will keep this name.',e.name))){e.archived=true;applied();}});
-      const cancel=makeAction('Cancel','quiet',()=>{editPerson=null;editValue='';renderPeople();});
+      const cancel=makeAction('Cancel','quiet',()=>{editPerson=null;editValue='';renderPeople();renderDraft();});
       actions.append(save,cancel,archive);form.append(label,actions);
       form.addEventListener('submit',ev=>{ev.preventDefault();if(sent||sending)return;tryAction(()=>{
         const next=name(field.value);
@@ -154,6 +199,11 @@ function renderHeading() {
 function showTab(id) {
   if(id==='backup'&&!snapshot?.supportsFullBackup) id='results';
   tabId=id;renderHeading();
+  const tools=$('journal-tools');tools.classList.toggle('active',id==='import'||id==='backup');
+  if(tools.open){
+    if(tools.contains(document.activeElement)) tools.querySelector('summary').focus({preventScroll:true});
+    tools.open=false;
+  }
   document.querySelector('.sport-scope').hidden=!['results','statistics'].includes(id);
   for(const b of document.querySelectorAll('[data-tab]')) {
     const selected=b.dataset.tab===id;b.classList.toggle('selected',selected);
@@ -175,7 +225,7 @@ function renderLanguage() {
   $('expiry').textContent=tx('Expires at {0}',new Date(expiry).toLocaleTimeString(language(),{hour:'2-digit',minute:'2-digit'}));
   $('backup-help').textContent=tx(snapshot.fullBackup?'Keep this complete backup file private.':'To download a backup, open Settings → Backup & restore on the watch.');
   $('match-assignment-help').textContent=tx(snapshot.currentMatchComplete===true?'Changes here apply to your last completed match.':snapshot.currentMatchComplete===false?'Changes here apply to your current match.':'Changes here apply to the current or last completed match on your watch.');
-  fillPlayers();renderPeople();renderResults(false);renderStats();renderDraft();showTab(tabId);
+  fillPlayers();renderPeople();renderResults(false);renderStats();renderImportGames();renderDraft();showTab(tabId);
   if(focus) for(const detail of document.querySelectorAll('details.result')) if(detail.dataset.matchId===focus) detail.open=true;
 }
 function download(file,text,type='text/csv;charset=utf-8'){
@@ -198,7 +248,7 @@ function expire(){
   setNotice('This transfer has expired. Scan a new QR code on your watch.');
 }
 async function sendIncoming(backup=false) {
-  if(!snapshot||sent||sending||(!backup&&invalidOwnName)) return;
+  if(!snapshot||sent||sending||(!backup&&(invalidOwnName||unfinishedRename()))) return;
   const session=link;
   sending=true;renderDraft();renderPeople();
   try {
@@ -213,19 +263,31 @@ async function sendIncoming(backup=false) {
   finally {sending=false;if(link===session){renderDraft();renderPeople();}}
 }
 for(const b of document.querySelectorAll('[data-tab]')) b.addEventListener('click',()=>showTab(b.dataset.tab));
+document.addEventListener('click',ev=>{
+  const tools=$('journal-tools');if(tools?.open&&!tools.contains(ev.target))tools.open=false;
+});
+document.addEventListener('keydown',ev=>{
+  const tools=$('journal-tools');
+  if(ev.key==='Escape'&&tools?.open){tools.open=false;tools.querySelector('summary').focus();}
+});
+const wideFilters=matchMedia('(min-width:720px)');
+function fitFilters(){const filters=$('result-filters');if(filters)filters.open=wideFilters.matches;}
+fitFilters();wideFilters.addEventListener('change',fitFilters);
 for(const id of ['sport-select','mode-select']) $(id).addEventListener('change',()=>{renderResults();renderStats();});
 for(const id of ['opponent-filter','role-filter','outcome-filter','from','to']) $(id).addEventListener('change',()=>{
   if(id==='opponent-filter') $('role-filter').value='all';
   renderResults();
 });
-$('prev-results').addEventListener('click',()=>{resultPage--;renderResults(false);});
-$('next-results').addEventListener('click',()=>{resultPage++;renderResults(false);});
+for(const [id,step] of [['prev-results',-1],['next-results',1]]) $(id).addEventListener('click',()=>{
+  resultPage+=step;renderResults(false);$('history-heading').focus({preventScroll:true});$('history-heading').scrollIntoView({block:'start'});
+});
 $('view-all-history').addEventListener('click',()=>showMatches());
 $('reset-filter').addEventListener('click',()=>{
   $('mode-select').value='all';$('opponent-filter').value='*';$('role-filter').value='all';
   $('outcome-filter').value='all';$('from').value='';$('to').value='';renderResults();renderStats();
 });
 $('show-removed').addEventListener('change',renderPeople);
+$('player-search').addEventListener('input',renderPeople);
 $('add-person').addEventListener('submit',ev=>{ev.preventDefault();if(sent||sending)return;tryAction(()=>{
   addName(catalog,$('new-name').value);$('new-name').value='';applied();$('new-name').focus();
 });});
@@ -254,11 +316,14 @@ $('csv-file').addEventListener('change',async()=>{
     const parsed=parseCsv(text);checkRetirementSupport(snapshot,parsed);
     if(!snapshot.supportsPickleball&&parsed.some(r=>rowSport(r)==='pickleball'))throw Error('pickle');
     if(!snapshot.supportsMultisport&&parsed.some(r=>r[0]==='3'))throw Error('multi');
-    importCsv=text;importRows=parsed;renderDraft();setNotice('Changes prepared for your watch.');
-  }catch(err){if(link!==session)return;importCsv='';importRows=[];field.value='';renderDraft();report(err);}
+    importCsv=text;importRows=parsed;renderImportGames();renderDraft();setNotice('Changes prepared for your watch.');
+  }catch(err){if(link!==session||field.files[0]!==file)return;importCsv='';importRows=[];field.value='';renderImportGames();renderDraft();report(err);}
 });
-$('clear-import').addEventListener('click',()=>{importCsv='';importRows=[];$('csv-file').value='';renderDraft();setNotice();});
-$('send').addEventListener('click',()=>sendIncoming());
+$('clear-import').addEventListener('click',()=>{importCsv='';importRows=[];$('csv-file').value='';renderImportGames();renderDraft();setNotice();});
+$('send').addEventListener('click',()=>{
+  if(!unfinishedRename()){sendIncoming();return;}
+  showTab('opponents');$('player-search').value='';renderPeople();$('edit-player-name').focus();
+});
 $('download-backup').addEventListener('click',()=>tryAction(()=>{
   if(!snapshot?.fullBackup)throw Error('backup');
   download(datedFile('Backup.json'),snapshot.fullBackup,'application/json');setNotice('Complete backup downloaded.');

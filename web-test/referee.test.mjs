@@ -140,11 +140,14 @@ test('AES-GCM authenticates each room ID and keeps every snapshot readable with 
   await assert.rejects(openSnapshot(k,'b'.repeat(32),sealed));assert.equal(refereeLink('#id='+fixtureId+'&key=x&token=y'),null);
   assert.deepEqual(refereeLink('#id='+fixtureId+'&key='+raw+'&token='+raw),{id:fixtureId,key:raw,token:raw});
 });
-test('offline installation precaches every referee module and excludes every room response',()=>{
+test('offline installation precaches the referee page, styles, icon and modules and excludes room responses',()=>{
   const sw=readFileSync('public/referee-sw.js','utf8'),shell=sw.match(/const shell=\[([^\]]+)\]/)[1].match(/'[^']+'/g).map(p=>p.slice(2,-1));
   for(const name of shell){
     const source=readFileSync('public/'+name,'utf8');
     for(const path of source.matchAll(/from ['"]\.\/([^'"?]+)(?:\?[^'"]*)?['"]/g))assert.ok(shell.includes(path[1]),path[1]+' missing offline');
   }
+  const page=readFileSync('public/referee.html','utf8');
+  for(const match of page.matchAll(/(?:src|href)="\/([^"?#]+)(?:[?#][^"]*)?"/g))
+    assert.ok(shell.includes(match[1]),match[1]+' missing from offline page');
   assert.ok(shell.includes('referee.html'));assert.ok(shell.every(s=>!s.startsWith('api')));
 });

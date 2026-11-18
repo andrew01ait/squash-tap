@@ -8,13 +8,13 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
   <title>Keep Score · Match journal</title>
   <link rel="icon" href="/favicon.svg">
-  <link rel="stylesheet" href="/transfer.css?v=2">
-  <script type="module" src="/transfer.mjs?v=2"></script>
+  <link rel="stylesheet" href="/transfer.css?v=3">
+  <script type="module" src="/transfer.mjs?v=3"></script>
 </head>
 <body>
 <main>
   <header class="masthead">
-    <a href="/" class="brand"><img src="/favicon.svg" width="32" height="32" alt="">Keep Score</a>
+    <a href="/" class="brand"><img src="/favicon.svg" width="34" height="34" alt="">Keep Score</a>
     <div id="language-control"></div>
   </header>
   <div class="page-heading">
@@ -25,92 +25,125 @@
 
   <div id="workspace" hidden>
     <nav id="journal-nav" data-aria="Navigate" aria-label="Navigate">
-      <button type="button" data-tab="results" data-i="Results">Results</button>
-      <button type="button" data-tab="statistics" data-i="Statistics">Statistics</button>
-      <button type="button" data-tab="opponents" data-i="Players">Players</button>
-      <button type="button" data-tab="import" data-i="Import CSV">Import CSV</button>
-      <button type="button" data-tab="backup" id="backup-tab" data-i="Backup" hidden>Backup</button>
+      <button type="button" data-tab="results" aria-controls="results" data-i="Results">Results</button>
+      <button type="button" data-tab="statistics" aria-controls="statistics" data-i="Statistics">Statistics</button>
+      <button type="button" data-tab="opponents" aria-controls="opponents" data-i="Players">Players</button>
+      <details id="journal-tools">
+        <summary data-i="Files">Files</summary>
+        <div class="files-menu">
+          <button type="button" data-tab="import" aria-controls="import" data-i="Import CSV">Import CSV</button>
+          <button type="button" id="backup-tab" data-tab="backup" aria-controls="backup" data-i="Backup" hidden>Backup</button>
+        </div>
+      </details>
     </nav>
     <div class="sport-scope">
       <label><span data-i="Sport">Sport</span><select id="sport-select"></select></label>
       <label><span data-i="Mode">Mode</span><select id="mode-select">
-        <option value="all" data-i="All modes">All modes</option>
-        <option value="singles" data-i="Singles">Singles</option><option value="doubles" data-i="Doubles">Doubles</option>
+        <option value="all" data-i="All modes">All modes</option><option value="singles" data-i="Singles">Singles</option><option value="doubles" data-i="Doubles">Doubles</option>
       </select></label>
     </div>
-    <section id="results">
-      <div class="section-head"><h2 data-i="Match history">Match history</h2><span class="counter" id="count"></span></div>
-      <details id="result-filters" class="disclosure">
-        <summary><span data-i="Filters">Filters</span><span id="filters-applied"></span></summary>
-        <div class="filter-grid">
-          <label><span data-i="Player">Player</span><select id="opponent-filter"><option value="*" data-i="All players">All players</option></select></label>
-          <label id="role-field" hidden><span data-i="Player role">Player role</span><select id="role-filter"><option value="all" data-i="Any role">Any role</option><option value="opponent" data-i="Opponent">Opponent</option><option value="partner" data-i="Partner">Partner</option></select></label>
-          <label><span data-i="Outcome">Outcome</span><select id="outcome-filter"><option value="all" data-i="All outcomes">All outcomes</option><option value="won" data-i="Won">Won</option><option value="lost" data-i="Lost">Lost</option></select></label>
-          <label><span data-i="From">From</span><input type="date" id="from"></label>
-          <label><span data-i="To">To</span><input type="date" id="to"></label>
+
+    <section id="results" aria-labelledby="history-heading">
+      <div class="results-layout">
+        <details id="result-filters" class="disclosure filter-panel">
+          <summary><span data-i="Filters">Filters</span><span id="filters-applied"></span></summary>
+          <div class="filter-grid">
+            <label><span data-i="Player">Player</span><select id="opponent-filter"><option value="*" data-i="All players">All players</option></select></label>
+            <label id="role-field" hidden><span data-i="Player role">Player role</span><select id="role-filter"><option value="all" data-i="Any role">Any role</option><option value="opponent" data-i="Opponent">Opponent</option><option value="partner" data-i="Partner">Partner</option></select></label>
+            <label><span data-i="Outcome">Outcome</span><select id="outcome-filter"><option value="all" data-i="All outcomes">All outcomes</option><option value="won" data-i="Won">Won</option><option value="lost" data-i="Lost">Lost</option></select></label>
+            <label><span data-i="From">From</span><input type="date" id="from"></label>
+            <label><span data-i="To">To</span><input type="date" id="to"></label>
+          </div>
+          <button type="button" id="reset-filter" class="quiet" data-i="Reset all filters">Reset all filters</button>
+        </details>
+        <div class="history-column">
+          <div class="section-head"><h2 id="history-heading" tabindex="-1" data-i="Match history">Match history</h2><span class="counter" id="count"></span></div>
+          <p id="filtered-summary" class="summary-line" aria-live="polite"></p>
+          <div id="result-list"></div>
+          <div id="result-pages" class="pagination" hidden>
+            <button class="secondary" id="prev-results" data-i="Newer">Newer</button><span id="result-page"></span><button class="secondary" id="next-results" data-i="Older">Older</button>
+          </div>
+          <div class="section-foot"><button id="download" class="secondary" data-i="Download filtered CSV">Download filtered CSV</button></div>
         </div>
-        <button type="button" id="reset-filter" class="quiet" data-i="Reset all filters">Reset all filters</button>
-      </details>
-      <p id="filtered-summary" class="summary-line" aria-live="polite"></p>
-      <div id="result-list"></div>
-      <div id="result-pages" class="pagination" hidden>
-        <button class="secondary" id="prev-results" data-i="Newer">Newer</button><span id="result-page"></span><button class="secondary" id="next-results" data-i="Older">Older</button>
       </div>
-      <div class="section-foot"><button id="download" class="secondary" data-i="Download filtered CSV">Download filtered CSV</button></div>
     </section>
 
-    <section id="statistics" hidden>
+    <section id="statistics" aria-labelledby="stats-title" hidden>
       <div class="section-head"><h2 id="stats-title" data-i="Your record">Your record</h2></div>
-      <p id="statistics-scope" class="muted"></p><div id="overall-summary" class="metric-grid"></div>
-      <h3 data-i="Recent form">Recent form</h3><p class="muted" data-i="Last 12 matches, oldest first. Select a result for the score.">Last 12 matches, oldest first. Select a result for the score.</p>
-      <div id="recent-form" class="recent-form"></div>
-      <button id="view-all-history" class="quiet" data-i="See match history">See match history</button>
-      <div id="match-insights" class="insights"></div>
-      <h3 data-i="By sport">By sport</h3><div id="sport-records" class="record-list"></div>
-      <h3 data-i="Against each opponent">Against each opponent</h3><div id="opponent-balances" class="record-list"></div>
-      <h3 data-i="With each partner">With each partner</h3><div id="partner-balances" class="record-list"></div>
-    </section>
-
-    <section id="opponents" hidden>
-      <div id="your-name-section" class="profile" hidden>
-        <div class="avatar own" aria-hidden="true" id="my-initial">●</div>
-        <label><span data-i="Your display name">Your display name</span><input id="my-name" maxlength="120" autocomplete="given-name" placeholder="Me" data-placeholder="Me" aria-describedby="my-name-help"></label>
-        <p id="my-name-help" class="muted" data-i="Shown on your scoreboard. Leave blank to use the default name.">Shown on your scoreboard. Leave blank to use the default name.</p>
+      <p id="statistics-scope" class="muted"></p>
+      <div id="overall-summary" class="metric-grid"></div>
+      <div class="stats-layout">
+        <div class="stat-panel">
+          <h3 data-i="Recent form">Recent form</h3><p class="muted" data-i="Last 12 matches, oldest first. Select a result for the score.">Last 12 matches, oldest first. Select a result for the score.</p>
+          <div id="recent-form" class="recent-form"></div>
+          <div id="match-insights" class="insights"></div>
+          <button id="view-all-history" class="quiet" data-i="See match history">See match history</button>
+        </div>
+        <div class="stat-panel"><h3 data-i="By sport">By sport</h3><div id="sport-records" class="record-list"></div></div>
+        <div class="stat-panel"><h3 data-i="Against each opponent">Against each opponent</h3><div id="opponent-balances" class="record-list"></div></div>
+        <div class="stat-panel"><h3 data-i="With each partner">With each partner</h3><div id="partner-balances" class="record-list"></div></div>
       </div>
-      <div class="section-head"><h2 data-i="Saved players">Saved players</h2><span id="player-count" class="counter"></span></div>
-      <form id="add-person" class="add-person">
-        <label><span data-i="New player">New player</span><input id="new-name" maxlength="120" autocomplete="off" enterkeyhint="done" data-placeholder="Player name" placeholder="Player name" required></label>
-        <button id="add-name" class="people-action" type="submit" data-i="Add player">Add player</button>
-      </form>
-      <label class="checkbox"><input id="show-removed" type="checkbox"><span data-i="Include archived players">Include archived players</span></label>
-      <div id="opponent-list"></div>
-      <details id="match-assignment" class="disclosure">
-        <summary data-i="Assign an opponent to a match">Assign an opponent to a match</summary>
-        <p id="match-assignment-help" class="muted"></p>
-        <label class="checkbox"><input type="checkbox" id="change-current"><span data-i="Change match opponent">Change match opponent</span></label>
-        <label><span data-i="Match opponent">Match opponent</span><select id="current-opponent" disabled></select></label>
-      </details>
     </section>
 
-    <section id="import" hidden>
-      <h2 data-i="Import completed matches">Import completed matches</h2>
-      <p data-i="Select an exported Keep Score CSV. Your watch checks for duplicates and asks you to confirm the import.">Select an exported Keep Score CSV. Your watch checks for duplicates and asks you to confirm the import.</p>
-      <label><span data-i="CSV file">CSV file</span><input id="csv-file" type="file" accept=".csv,text/csv"></label>
-      <p id="import-preview" class="muted"></p>
-      <div class="actions"><button id="template" class="secondary" data-i="Download empty template">Download empty template</button><button id="clear-import" class="quiet" data-i="Remove file">Remove file</button></div>
+    <section id="opponents" aria-label="Players" data-aria="Players" hidden>
+      <div class="roster-layout">
+        <div class="roster-editor">
+          <div id="your-name-section" class="profile" hidden>
+            <div class="avatar own" aria-hidden="true" id="my-initial">●</div>
+            <label><span data-i="Your display name">Your display name</span><input id="my-name" maxlength="120" autocomplete="given-name" placeholder="Me" data-placeholder="Me" aria-describedby="my-name-help"></label>
+            <p id="my-name-help" class="muted" data-i="Shown on your scoreboard. Leave blank to use the default name.">Shown on your scoreboard. Leave blank to use the default name.</p>
+          </div>
+          <form id="add-person" class="add-person">
+            <label for="new-name" data-i="New player">New player</label>
+            <div class="input-action"><input id="new-name" maxlength="120" autocomplete="off" enterkeyhint="done" data-placeholder="Player name" placeholder="Player name" required><button id="add-name" class="people-action" type="submit" data-i="Add player">Add player</button></div>
+          </form>
+          <details id="match-assignment" class="disclosure">
+            <summary data-i="Assign an opponent to a match">Assign an opponent to a match</summary>
+            <p id="match-assignment-help" class="muted"></p>
+            <label class="checkbox"><input type="checkbox" id="change-current"><span data-i="Change match opponent">Change match opponent</span></label>
+            <label><span data-i="Match opponent">Match opponent</span><select id="current-opponent" disabled></select></label>
+          </details>
+        </div>
+        <div class="roster-directory">
+          <div class="section-head"><h2 data-i="Saved players">Saved players</h2><span id="player-count" class="counter" aria-live="polite"></span></div>
+          <div class="directory-tools">
+            <label for="player-search" class="sr-only" data-i="Search players">Search players</label>
+            <input type="search" id="player-search" placeholder="Search players" data-placeholder="Search players" autocomplete="off">
+            <label class="checkbox"><input id="show-removed" type="checkbox"><span data-i="Include archived players">Include archived players</span></label>
+          </div>
+          <div id="opponent-list"></div>
+        </div>
+      </div>
     </section>
-    <section id="backup" hidden>
-      <h2 data-i="Complete watch backup">Complete watch backup</h2>
-      <p data-i="Includes every sport, players, favourite formats, settings and your current match with its undo history.">Includes every sport, players, favourite formats, settings and your current match with its undo history.</p>
-      <button id="download-backup" disabled data-i="Download backup">Download backup</button><p id="backup-help" class="muted"></p>
-      <h3 data-i="Restore a backup">Restore a backup</h3>
-      <p data-i="A restore replaces the data on your watch after you review and confirm. An unfinished match returns paused.">A restore replaces the data on your watch after you review and confirm. An unfinished match returns paused.</p>
-      <label><span data-i="Keep Score backup file">Keep Score backup file</span><input id="backup-file" type="file" accept=".json,application/json"></label>
-      <p id="backup-preview" class="muted"></p><button id="restore-send" class="danger" disabled data-i="Send restore to watch">Send restore to watch</button>
+
+    <section id="import" aria-labelledby="import-title" hidden>
+      <div class="file-layout">
+        <div class="file-info"><h2 id="import-title" data-i="Import completed matches">Import completed matches</h2>
+          <p data-i="Select an exported Keep Score CSV. Your watch checks for duplicates and asks you to confirm the import.">Select an exported Keep Score CSV. Your watch checks for duplicates and asks you to confirm the import.</p>
+          <button id="template" class="secondary" data-i="Download empty template">Download empty template</button>
+        </div>
+        <div class="file-panel"><label for="csv-file" data-i="CSV file">CSV file</label><input id="csv-file" type="file" accept=".csv,text/csv" aria-describedby="import-preview">
+          <div class="file-status"><p id="import-preview" class="muted" aria-live="polite"></p><button id="clear-import" class="quiet" data-i="Remove file">Remove file</button></div>
+          <div id="import-games" hidden></div>
+        </div>
+      </div>
+    </section>
+    <section id="backup" aria-label="Backup" data-aria="Backup" hidden>
+      <div class="file-layout">
+        <div class="file-panel"><h2 data-i="Complete watch backup">Complete watch backup</h2>
+          <p data-i="Includes every sport, players, favourite formats, settings and your current match with its undo history.">Includes every sport, players, favourite formats, settings and your current match with its undo history.</p>
+          <button id="download-backup" disabled data-i="Download backup">Download backup</button><p id="backup-help" class="muted"></p>
+        </div>
+        <div class="file-panel"><h2 data-i="Restore a backup">Restore a backup</h2>
+          <p data-i="A restore replaces the data on your watch after you review and confirm. An unfinished match returns paused.">A restore replaces the data on your watch after you review and confirm. An unfinished match returns paused.</p>
+          <label for="backup-file" data-i="Keep Score backup file">Keep Score backup file</label><input id="backup-file" type="file" accept=".json,application/json" aria-describedby="backup-preview">
+          <p id="backup-preview" class="muted" aria-live="polite"></p><button id="restore-send" class="danger" disabled data-i="Send restore to watch">Send restore to watch</button>
+        </div>
+      </div>
     </section>
     <aside id="send-changes" hidden>
       <div><h2 data-i="Send to your watch">Send to your watch</h2><p id="changes"></p><p id="sent-help" data-i="On your watch, choose Receive changes to review and confirm.">On your watch, choose Receive changes to review and confirm.</p></div>
-      <button type="button" id="send" disabled data-i="Send changes">Send changes</button>
+      <button type="button" id="send" data-i="Send changes" disabled>Send changes</button>
     </aside>
   </div>
   <footer data-i="Your watch and this browser exchange encrypted data. Anyone with the complete QR link can open it during its ten-minute lifetime.">Your watch and this browser exchange encrypted data. Anyone with the complete QR link can open it during its ten-minute lifetime.</footer>

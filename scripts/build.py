@@ -6,8 +6,8 @@ import argparse, hashlib, json, os, secrets, shutil, subprocess, sys, zipfile
 ROOT=Path(__file__).resolve().parents[1]
 PKG='at.andrew.squashtap'
 SITE='https://squash-tap-andrew.endruuu.chatgpt.site'
-RELEASES=((24,'0.18.0'),)
-RELEASE_NOTES='Hand scoring to a referee with an offline-ready phone QR, share live scores with other watches by code, and save confirmed results. Browse match and player insights on your phone. English, German, French and Spanish with automatic or manual language selection.'
+RELEASES=((25,'0.18.1'),)
+RELEASE_NOTES='Find the audience link, referee QR and watch pairing together on the watch home screen and in the match menu. Read larger set scores on the scoreboard and in match details. The match broadcast, referee, results and player pages adapt to phones and tablets.'
 
 def run(args, env=None):
     result=subprocess.run([str(x) for x in args],cwd=ROOT,env=env,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)

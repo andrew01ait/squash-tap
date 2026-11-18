@@ -16,6 +16,7 @@ import org.json.JSONObject;
 
 /** Watch-side room navigation and visible-only synchronization. Local book commits never wait for HTTP. */
 final class MatchRooms {
+    enum Entry { SPORTS, SPORT, MATCH }
     private final MainActivity a;
     private final RoomClient client;
     private final ExecutorService io = Executors.newSingleThreadExecutor();
@@ -31,6 +32,7 @@ final class MatchRooms {
     private boolean visible, destroyed, syncing, joining, askQr, blocked, terminalError, outboxRequested;
     private int failures;
     private long generation;
+    private Entry entry=Entry.MATCH;
 
     MatchRooms(MainActivity activity) {
         a = activity;
@@ -40,8 +42,11 @@ final class MatchRooms {
         catch (Exception failure) { blocked = true; error = text("The saved connection could not be opened.","Die gespeicherte Verbindung lässt sich nicht öffnen.","Impossible d’ouvrir la connexion enregistrée.","No se pudo abrir la conexión guardada."); }
     }
     String text(String en, String de, String fr, String es) { return WatchLanguage.get(a).pick(en,de,fr,es); }
-    String title() { return text("Referee & watches","Schiedsrichter & Uhren","Arbitre et montres","Árbitro y relojes"); }
-    String joinTitle() { return text("Follow with a code","Per Code mitlesen","Suivre avec un code","Seguir con un código"); }
+    String title() { return text("Live sharing & referee","Live teilen & Schiedsrichter","Direct et arbitrage","Directo y arbitraje"); }
+    String backToSharing() { return text("Back to sharing","Zurück zum Teilen","Retour au partage","Volver a compartir"); }
+    private String audienceTitle() { return text("Audience live link","Live-Link für Zuschauer","Lien pour le public","Enlace para el público"); }
+    private String joinTitle() { return text("Join with watch code","Mit Uhrencode beitreten","Rejoindre avec un code","Unirse con código"); }
+    void open(Entry from) { entry=from;hub(); }
     boolean readOnly() { return blocked || joining || s != null && !"score".equals(s.role); }
     boolean isHost() { return s != null && "host".equals(s.role); }
     boolean finalScore() { return data != null && data.optBoolean("final"); }
@@ -145,7 +150,7 @@ final class MatchRooms {
             main.post(()->{
                 syncing=false; if(destroyed) return;
                 if(attempt!=generation){schedule(0);return;}
-                String old=shape(); boolean wasFinal=finalScore();
+                String old=shape(); boolean wasFinal=finalScore(); long previousRevision=s==null?-1:s.seenRevision;
                 try { apply(client.current()); } catch(Exception invalid) { blocked=true; }
                 if (failure==null) {error=""; failures=0;}
                 else {
@@ -156,7 +161,8 @@ final class MatchRooms {
                 if (visible && a.roomHubVisible()) {
                     if (askQr && isHost() && s.ready) qr();
                     else if (!old.equals(shape())) hub(); else refreshText();
-                } else if (visible && !wasFinal && finalScore() && readOnly() && a.roomScoreVisible()) hub();
+                } else if(visible && a.roomDetailsVisible() && s!=null && s.seenRevision!=previousRevision) a.showSharedMatchDetails();
+                else if (visible && !wasFinal && finalScore() && readOnly() && a.roomScoreVisible()) hub();
                 schedule(failures>0 ? Math.min(30000,2000L<<failures) : 3000);
             });
         });
@@ -182,15 +188,13 @@ final class MatchRooms {
         if(blocked){a.backButton(page,text("Close app","App schließen","Fermer","Cerrar"),a::finish);return;}
         if(joining){a.backButton(page,text("Close","Schließen","Fermer","Cerrar"),a::finish);return;}
         if(s==null) {
-            a.paragraph(page,text("Let a referee score on a phone, or share your watch score with another watch.",
-                "Lass einen Schiedsrichter am Handy zählen oder teile den Spielstand deiner Uhr mit weiteren Uhren.",
-                "Confiez le score à un arbitre sur téléphone ou partagez-le avec une autre montre.",
-                "Deja que un árbitro anote en su móvil o comparte el marcador con otro reloj."));
-            if(!a.roomMatchComplete()) {
-                a.button(page,text("Referee on phone","Schiedsrichter am Handy","Arbitre sur téléphone","Árbitro en el móvil"),()->start(true));
-                a.button(page,text("Share with watches","Mit Uhren teilen","Partager avec des montres","Compartir con relojes"),()->start(false));
-            }
-            a.backButton(page,text("Back to match","Zurück zur Partie","Retour au match","Volver al partido"),a::showMatchControls);
+            a.navigationButton(page,audienceTitle(),()->a.chooseSharingMatch(entry,true,null,a::showLive));
+            a.navigationButton(page,text("Referee on phone","Schiedsrichter am Handy","Arbitre sur téléphone","Árbitro en el móvil"),
+                ()->a.chooseSharingMatch(entry,false,text("Create & invite referee","Erstellen & Schiedsrichter einladen","Créer et inviter l’arbitre","Crear e invitar al árbitro"),()->start(true)));
+            a.navigationButton(page,text("Share with watches","Mit Uhren teilen","Partager avec des montres","Compartir con relojes"),
+                ()->a.chooseSharingMatch(entry,false,text("Create & invite watches","Erstellen & Uhren einladen","Créer et inviter des montres","Crear e invitar a otros relojes"),()->start(false)));
+            a.navigationButton(page,joinTitle(),this::joinPage);
+            a.sharingBack(page,entry);
             return;
         }
         summary=a.paragraph(page,""); refreshText();
@@ -199,6 +203,8 @@ final class MatchRooms {
         } else if(readOnly()) {
             a.button(page,text("Show score","Spielstand anzeigen","Afficher le score","Ver marcador"),a::closePanel);
         }
+        if(readOnly() && match!=null)
+            a.navigationButton(page,text("Set scores","Satzstände","Scores des manches","Marcadores parciales"),a::showSharedMatchDetails);
         if(isHost() && s.ready && !finalScore() && !terminalError)
             a.navigationButton(page,text("Referee QR","Schiedsrichter-QR","QR de l’arbitre","QR del árbitro"),this::qr);
         if("score".equals(s.role) && !finalScore() && !terminalError)
@@ -206,21 +212,24 @@ final class MatchRooms {
         if(!"follow".equals(s.role) && !terminalError) {
             if(s.watchJoinReady) {
                 TextView code=a.paragraph(page,s.joinCode.substring(0,5)+" "+s.joinCode.substring(5)); code.setTextSize(22);
-                a.paragraph(page,text("On the other watch, open Follow with a code.","Auf der anderen Uhr „Per Code mitlesen“ öffnen.","Sur l’autre montre, ouvrez « Suivre avec un code ».","En el otro reloj abre « Seguir con un código »."));
+                a.paragraph(page,text("On the other watch","Auf der anderen Uhr","Sur l’autre montre","En el otro reloj")+"\n"+title()+" → "+joinTitle());
             }
             a.navigationButton(page,s.watchJoin ? text("Hide joining code","Beitrittscode deaktivieren","Désactiver le code","Desactivar el código")
                 : text("Invite other watches","Weitere Uhren einladen","Inviter d’autres montres","Invitar a otros relojes"),this::toggleJoin);
+            if(!finalScore()||a.hasAudienceLink())a.navigationButton(page,audienceTitle(),a::showLive);
         }
         if(s.pending || !error.isEmpty()) a.navigationButton(page,text("Sync now","Jetzt abgleichen","Synchroniser","Sincronizar"),()->{terminalError=false;schedule(0);});
         if(readOnly()) a.navigationButton(page,text("Language","Sprache","Langue","Idioma"),()->a.roomLanguage(this::hub));
         a.navigationButton(page,readOnly() ? text("Leave shared match","Geteilte Partie verlassen","Quitter le match partagé","Salir del partido compartido")
             : text("Stop watch sharing","Uhrenfreigabe beenden","Arrêter le partage","Dejar de compartir"),this::confirmLeave);
-        a.backButton(page,readOnly() ? text("Back to score","Zurück zum Spielstand","Retour au score","Volver al marcador")
-            : text("Back to match","Zurück zur Partie","Retour au match","Volver al partido"),readOnly()?a::closePanel:a::showMatchControls);
+        if(readOnly())a.backButton(page,text("Back to score","Zurück zum Spielstand","Retour au score","Volver al marcador"),a::closePanel);
+        else a.sharingBack(page,entry);
     }
     private void start(boolean referee) {
+        if(readOnly() || finalScore() || s!=null&&!referee){hub();return;}
         try {
             JSONObject score=local();
+            if(score.getBoolean("final")){hub();return;}
             apply(s==null ? client.prepare(score,referee,!referee) : client.delegate(score));
             ++generation; failures=0;terminalError=false; error="";askQr=referee;
             if(referee) a.pauseForRoom();
@@ -241,7 +250,7 @@ final class MatchRooms {
         field.setFilters(new InputFilter[]{new InputFilter.AllCaps(),new InputFilter.LengthFilter(14)});
         field.setContentDescription(joinTitle());p.addView(field);
         a.button(p,text("Join match","Partie beitreten","Rejoindre le match","Unirse al partido"),()->join(field.getText().toString()));
-        a.backButton(p,text("Back","Zurück","Retour","Volver"),a::showSports);
+        a.backButton(p,backToSharing(),this::hub);
     }
     private void join(String code) {
         if(joining || s!=null) return;

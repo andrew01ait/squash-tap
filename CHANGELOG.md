@@ -1,5 +1,11 @@
 # Releases
 
+## v0.18.1 · 2026-11-18 · direct APK code 25
+
+- Open Live sharing & referee from the sports launcher, a sport menu or an active match. Share an audience link, invite a phone referee, or pair additional watches with a short code. A new host selects the sport and confirms the match before sharing.
+- Read the current period and match tally above the points on the watch. Match details lists completed and current scores with the most recent first. The same layout supports referee-host and spectator watches, ambient mode and large text.
+- The website uses the original Keep Score launcher artwork. The audience broadcast, referee console, results journal and roster adapt to phones in either orientation and to wider tablet screens.
+
 ## v0.18.0 · 2026-11-18 · direct APK code 24
 
 - Hand over scoring to a phone referee by private QR. An offline rally, correction or confirmed finish is stored locally and uploaded on reconnect. Both the host watch and other watches follow read-only and can save the confirmed result independently.

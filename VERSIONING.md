@@ -1,6 +1,6 @@
 # Versions and compatibility
 
-Current official watch release: **v0.18.0**, Android version code **24**; package **`at.andrew.squashtap`**. `public/release.properties` is the machine-readable update feed; `public/builds.json` and `SHA256SUMS.txt` record retained artifacts.
+Current official watch release: **v0.18.1**, Android version code **25**; package **`at.andrew.squashtap`**. `public/release.properties` is the machine-readable update feed; `public/builds.json` and `SHA256SUMS.txt` record retained artifacts.
 
 ## Independent version numbers
 
@@ -52,3 +52,5 @@ The separate `play-release.json` reserves 0.17.0-play.1/code 23 for a preparatio
 ## Linked matches release
 
 The v0.18.0 direct APK uses code 24 and the existing package and signer. Code 23 remains assigned to the earlier Play preparation artifact. The separate room schema uses migration 0003. Existing B1–B5 books, transfer QR protocols, CSV schemas, and audience links remain readable.
+
+The v0.18.1 direct APK uses code 25 and the original signer. Its navigation and responsive interface updates use the existing room, audience and transfer protocols. All 21 prior direct APKs retain their published checksums.

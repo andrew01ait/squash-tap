@@ -1,6 +1,12 @@
 # Testing and verification
 
-Current watch release: **v0.18.0 / code 24**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
+Current watch release: **v0.18.1 / code 25**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
+
+## Direct v0.18.1 · 2026-11-18
+
+The direct release passed all 335 core JUnit tests and 214 Robolectric watch UI tests. The final web and relay suite passed 91 tests, including Java-to-browser scoring parity, referee offline cache coverage, and a check that the website logo uses the native watch artwork. An additional 41 Play-source UI checks covered navigation, distribution and the period panel. APK signature, package, code 25, ZIP alignment, embedded language files, feed and SHA-256 were verified along with all 21 older direct APKs.
+
+The managed browser exercised phone, foldable and tablet layouts from 320 to 1024 CSS pixels, plus a desktop broadcast. Tests included a long doubles team name, a staged roster edit across language changes, per-sport statistics, referee scoring and undo. With the preview server stopped, the referee recorded a point, reloaded it offline, completed two squash games and confirmed the final. A separate native host/follower integration run exercised referee handover, an interrupted upload and a restart, then verified independent final imports. Wear OS checks use native rendering and simulated watches. Physical screen readability, battery and radio behaviour require hardware.
 
 ## Direct v0.18.0 · 2026-11-18
 

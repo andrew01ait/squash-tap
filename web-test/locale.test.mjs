@@ -1,10 +1,26 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {resolveLanguage, mountLanguage, t, language} from '../public/locale.mjs';
 import {ruleLabel, label, liveCopy, scoreRules, audienceNames} from '../public/live-copy.mjs';
 import {validateLive} from '../public/live-data.mjs';
 import {landingCopy} from '../public/landing-copy.mjs';
 import {bindPageCopy} from '../public/page-copy.mjs';
+
+test('landing navigation uses the watch launcher artwork and translates the sharing route', () => {
+  const read = file => readFileSync(new URL(file, import.meta.url), 'utf8');
+  const html = read('../public/index.html');
+  const brand = html.match(/<a class="brand"[^>]*>(.*?)<\/a>/s)[1];
+  assert.match(brand, /<img[^>]+src="\/favicon\.svg"/);
+  assert.match(html, /for="preview-squash"[^>]*>.*?#icon-squash/);
+  const web = [...read('../public/favicon.svg').matchAll(/<path fill="([^"]+)" d="([^"]+)"/g)];
+  const watch = [...read('../android/res/drawable/ic_launcher.xml').matchAll(/<path android:fillColor="([^"]+)" android:pathData="([^"]+)"/g)];
+  assert.ok(watch.length > 0);
+  assert.deepEqual(web.map(path => path.slice(1)), watch.map(path => path.slice(1)));
+  const route = 'Live sharing & referee → Audience live link → Start live sharing';
+  assert.ok(html.includes(route.replace('&', '&amp;')));
+  assert.equal(landingCopy[route].length, 3);
+});
 
 test('choose an explicit supported language, then the first supported browser language, then English', () => {
   assert.equal(resolveLanguage('es', ['de-AT']), 'es');

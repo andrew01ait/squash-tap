@@ -3,6 +3,16 @@ import {rowWinner, localMoment} from './interchange.mjs?v=0.16.0';
 
 const messages = {
   'Navigate': ['Navigation','Navigation','Navegación'],
+  'Files': ['Dateien','Fichiers','Archivos'],
+  'Search players': ['Spieler suchen','Rechercher un joueur','Buscar jugadores'],
+  'No players match your search.': ['Keine Spieler für diese Suche.','Aucun joueur ne correspond à votre recherche.','Ningún jugador coincide con la búsqueda.'],
+  'No active players.': ['Keine aktiven Spieler.','Aucun joueur actif.','No hay jugadores activos.'],
+  'No saved players yet.': ['Noch keine Spieler gespeichert.','Aucun joueur enregistré pour le moment.','Aún no hay jugadores guardados.'],
+  'Match': ['Partie','Match','Partido'],
+  'Review name': ['Namen prüfen','Vérifier le nom','Revisar nombre'],
+  'Save or cancel the open name edit before sending.': ['Speichere oder verwirf die Namensänderung vor dem Senden.','Enregistrez ou annulez le changement de nom avant l’envoi.','Guarda o cancela la modificación del nombre antes de enviar.'],
+  '{0} of {1} matches': ['{0} von {1} Partien','{0} matchs sur {1}','{0} de {1} partidos'],
+  'Showing the first {0} of {1} matches.': ['Die ersten {0} von {1} Partien werden angezeigt.','Les {0} premiers matchs sur {1} sont affichés.','Se muestran los primeros {0} de {1} partidos.'],
   'Match journal': ['Partienübersicht','Carnet de matchs','Historial de partidos'],
   'Results from your watch': ['Ergebnisse von deiner Uhr','Les résultats de votre montre','Resultados de tu reloj'],
   'Results': ['Ergebnisse','Résultats','Resultados'],

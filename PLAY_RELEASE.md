@@ -1,6 +1,6 @@
 # Google Play preparation
 
-The current direct watch release is **v0.18.0 / code 24**. The separate **0.17.0-play.1 / code 23** candidate is preparation only, targets API 35 and has not been submitted to Play Console. Its version code is reserved across distribution channels; any later official release must advance monotonically.
+The current direct watch release is **v0.18.1 / code 25**. The separate **0.17.0-play.1 / code 23** candidate is preparation only, targets API 35 and has not been submitted to Play Console. Its version code is reserved across distribution channels; any later official release must advance monotonically.
 
 The code 23 bundle predates the referee and watch-room release. The next Play candidate must use a free code above 24.
 

@@ -1,4 +1,5 @@
 import {t, mountLanguage} from './locale.mjs';
+import {renderScorecard} from './match-sheet.mjs';
 import {applyAction,readSnapshot} from './referee-scoring.mjs';
 import {refereeLink,roomKey,sealSnapshot,openSnapshot,storage,transport,acceptRemote,dirty,
   updateLocal,synchronize,resolveConflict,rememberUploadToken,isClosed,clearExpiredCopies} from './referee-store.mjs';
@@ -31,6 +32,11 @@ function fillFixedCopy(){
   el('title').textContent=t('Referee','Schiedsrichter','Arbitrage','Arbitraje');
   document.title=el('title').textContent+' · Keep Score';
   el('board').setAttribute('aria-label',t('Match','Partie','Match','Partido'));
+  el('sheet-title').textContent=t('Scorecard','Satzverlauf','Détail du score','Parciales');
+  button('choose-starters',t('Choose starting players','Startspieler auswählen','Choisir les premiers joueurs','Elegir jugadores iniciales'),()=>{
+    el('server-settings').open=true;
+    el('first').focus();
+  });
   button('retry',t('Try again','Erneut versuchen','Réessayer','Reintentar'),()=>{if(storageFailed){location.reload();return;}schedule(0);});
   button('undo',t('Undo','Zurücknehmen','Annuler','Deshacer'),()=>dispatch({type:'undo'}));
   button('advance',t('Next game','Nächster Satz','Manche suivante','Siguiente juego'),()=>dispatch({type:'next'}));
@@ -79,8 +85,9 @@ function stateCopy(){
     else if(offlineShell)hint=t('Ready to score offline. Tap the side that wins each rally.','Bereit für Offline-Betrieb. Tippe bei jedem Ballwechsel auf die Gewinnerseite.','Prêt pour le mode hors ligne. Touchez le camp qui gagne chaque échange.','Listo para arbitrar sin conexión. Toca el lado que gana cada punto.');
     else hint=t('Tap the rally winner. Keep this page open to score if the connection drops.','Tippe auf den Gewinner des Ballwechsels. Lass die Seite zum Zählen ohne Verbindung offen.','Touchez le gagnant de l’échange. Gardez cette page ouverte pour arbitrer en cas de coupure.','Toca el lado que gana el punto. Deja esta página abierta para arbitrar si se pierde la conexión.');
   }
-  el('status').textContent=hint;
-  el('connection').textContent=badge||'';el('connection').hidden=!badge;el('connection').dataset.mode=mode;
+  if(el('status').textContent!==hint)el('status').textContent=hint;
+  if(el('connection').textContent!==(badge||''))el('connection').textContent=badge||'';
+  el('connection').hidden=!badge;el('connection').dataset.mode=mode;
   el('retry').hidden=!retry;
 }
 function finalSent(){return t('Final result sent. Connected watch users can now save it to their results.','Endergebnis übertragen. Die verbundenen Uhren können es jetzt in ihre Ergebnisse übernehmen.','Résultat final transmis. Les utilisateurs connectés peuvent l’enregistrer sur leur montre.','Resultado final enviado. Quienes estén conectados pueden guardarlo en su reloj.');}
@@ -94,7 +101,7 @@ function refreshReceiver(prefer){
 }
 function summary(m) {return m.sets.join('–')+' · '+m.games.map(g=>g.score.join('–')+(g.format.nested&&!g.tie&&!g.entered&&g.winner<0?' ('+g.display(0)+'–'+g.display(1)+')':'')).join(', ');}
 function render(){
-  stateCopy();el('board').hidden=!match;
+  stateCopy();el('board').hidden=!match;el('match-sheet').hidden=!match;
   if(!match||!active)return;
   const m=match, g=m.game, f=m.format, blocked=!!(active.conflict||active.unavailable||storageFailed), writable=!local.final&&!blocked;
   const single=t('Singles','Einzel','Simple','Individual'),double=t('Doubles','Doppel','Double','Dobles');
@@ -107,14 +114,17 @@ function render(){
   const server=m.server, needServer=g.pickle&&g.first<0;
   for(const side of [0,1]){
     const label=sideName(side);el('name-'+side).textContent=label;
-    el('point-'+side).textContent=g.display(side);
+    const points=String(g.display(side));
+    el('point-'+side).textContent=points;
+    el('point-'+side).dataset.length=String(points.length);
     const scoring=writable&&g.winner<0&&m.winner<0&&!needServer;
     el('rally-'+side).textContent=scoring?t('Rally won  +','Ballwechsel gewonnen  +','Échange gagné  +','Punto ganado  +'):'';
     const b=el('side-'+side);b.disabled=!scoring;b.classList.toggle('next',server>=0&&server%2===side);
-    b.setAttribute('aria-label',scoring?t('Rally won by {0}, {1}','Ballwechsel für {0}, {1}','Échange gagné par {0}, {1}','Punto ganado por {0}, {1}',label,g.display(side)):label+' · '+g.display(side));
+    b.setAttribute('aria-label',scoring?t('Rally won by {0}, {1}','Ballwechsel für {0}, {1}','Échange gagné par {0}, {1}','Punto ganado por {0}, {1}',label,points):label+' · '+points);
   }
   el('serve').textContent='';
-  if(needServer&&m.winner<0)el('serve').textContent=t('Choose the starting players below before the first rally.','Wähle vor dem ersten Ballwechsel unten die Startspieler.','Choisissez les premiers joueurs ci-dessous avant le premier échange.','Elige abajo a los jugadores iniciales antes del primer punto.');
+  el('choose-starters').hidden=!(needServer&&m.winner<0&&writable);
+  if(needServer&&m.winner<0)el('serve').textContent=t('Choose the starting players before the first rally.','Wähle vor dem ersten Ballwechsel die Startspieler.','Choisissez les premiers joueurs avant le premier échange.','Elige a los jugadores iniciales antes del primer punto.');
   else if(server>=0){
     const name=server<4?slot(server):sideName(server%2);
     el('serve').textContent=t('Serving · {0}','Aufschlag · {0}','Au service · {0}','Al saque · {0}',name);
@@ -127,10 +137,15 @@ function render(){
   }
   const wins=m.sets.join('–');
   el('sets').textContent=f.nested?t('Sets {0}','Sätze {0}','Sets {0}','Sets {0}',wins):t('Games {0}','Sätze {0}','Manches {0}','Juegos {0}',wins);
-  const history=el('history');history.replaceChildren();for(const [i,game] of m.games.entries()){
-    const li=document.createElement('li');li.textContent=(game.tie?'TB ':'')+game.score.join('–');
-    if(i===count-1)li.className='current';history.append(li);
-  }
+  const unit=f.nested?t('Set','Satz','Set','Set'):t('Game','Satz','Manche','Juego');
+  renderScorecard(el('scorecard'),unit,[sideName(0),sideName(1)],m.games.map((game,index)=>{
+    const current=index===count-1&&game.winner<0&&m.winner<0;
+    return {
+      label:game.tie?t('Match tie-break','Match-Tiebreak','Super jeu décisif','Supertiebreak'):unit+' '+(index+1),
+      score:game.score,current,
+      note:current?t('Current','Aktuell','En cours','Actual'):m.retired>=0&&game.winner<0?t('Unfinished','Unvollständig','Inachevé','Sin terminar'):''
+    };
+  }));
   const finish=m.winner>=0;
   el('outcome').hidden=!finish;
   if(finish){

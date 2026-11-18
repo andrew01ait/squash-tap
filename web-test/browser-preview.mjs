@@ -11,6 +11,30 @@ function audienceScore(phase='playing'){
 }
 export async function preview(request,env){
  const url=new URL(request.url);
+ if(url.pathname==='/__transfer-preview/web-layout'){
+  const pages={
+   landing:'/',audience:'/__transfer-preview/live',referee:'/__transfer-preview/referee',
+   journal:'/__transfer-preview/?view=results',players:'/__transfer-preview/?view=opponents',
+   backup:'/__transfer-preview/?view=backup',diagnostics:'/__transfer-preview/diagnostics'
+  };
+  const name=url.searchParams.get('screen')||'journal';
+  if(!Object.hasOwn(pages,name))return new Response('Unknown fixture',{status:404});
+  const sizes=[['Small phone',320,690],['Phone',393,852],['Landscape phone',852,393],['Foldable',674,780],['Tablet portrait',768,1024],['Tablet landscape',1024,768]];
+  const controls=sizes.map(([label,width,height])=>`<button type="button" data-w="${width}" data-h="${height}">${label}</button>`).join('');
+  const views=Object.keys(pages).map(key=>`<a href="?screen=${key}">${key}</a>`).join('');
+  const html=`<!doctype html><meta charset="utf-8"><title>Keep Score responsive QA</title>
+   <style>body{margin:12px;background:#263449;color:white;font:14px system-ui}nav{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}button,a{padding:6px 10px;color:#edf4ff;background:#132337;border:1px solid #64819c;border-radius:4px}iframe{display:block;border:0;background:#101725}</style>
+   <nav aria-label="Screens">${views}</nav><nav aria-label="Viewport">${controls}</nav>
+   <iframe title="Application" width="393" height="852" src="${pages[name]}"></iframe>
+   <script>const frame=document.querySelector('iframe');for(const button of document.querySelectorAll('button'))button.onclick=()=>{frame.width=button.dataset.w;frame.height=button.dataset.h}</script>`;
+  return new Response(html,{headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
+ }
+ if(url.pathname==='/__transfer-preview/diagnostics'){
+  const report='Keep Score · Wear OS\nApplication 0.18.1\n\nMatch screen\nSquash · best of 3\n\nConnection\nLast public score received successfully.';
+  const stream=new Blob([report]).stream().pipeThrough(new CompressionStream('gzip'));
+  const bytes=new Uint8Array(await new Response(stream).arrayBuffer());
+  return Response.redirect(url.origin+'/diagnostics.html#d='+b64(bytes),302);
+ }
  if(url.pathname==='/__transfer-preview/referee'){
   const id=crypto.randomUUID().replaceAll('-',''), random=()=>b64(crypto.getRandomValues(new Uint8Array(32)));
   const writer=random(),reader=random(),secret=random(),joinCode=id.slice(0,10).toUpperCase();

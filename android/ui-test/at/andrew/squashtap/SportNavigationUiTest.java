@@ -87,4 +87,60 @@ public class SportNavigationUiTest {
         newMatch("Tennis");click("Create match");assertFalse(book().current().hasPoints());activity.action(TouchTargets.MENU);click("Change sport");assertFalse(button("Squash").isEnabled());ShadowDialog.getLatestDialog().dismiss();controller.pause().stop().destroy();controller=Robolectric.buildActivity(MainActivity.class,new Intent(Intent.ACTION_MAIN)).setup();activity=controller.get();assertFalse(button("Badminton").isEnabled());assertTrue(button("Tennis").isEnabled());
     }
 
+    @Test public void launcherPutsSharingBeforeSportsAndJoiningNeverNeedsALocalMatch(){
+        cancelCurrent();click("Change sport");
+        String before=book().encode();
+        assertTrue(views().indexOf(button("Live sharing & referee"))<views().indexOf(button("Badminton")));
+        click("Live sharing & referee");
+        for(String item:new String[]{"Audience live link","Referee on phone","Share with watches","Join with watch code"})assertNotNull(button(item));
+        click("Join with watch code");assertNotNull(button("Join match"));swipe();
+        assertNotNull(button("Audience live link"));back();assertNotNull(button("Tennis"));assertEquals(before,book().encode());
+    }
+
+    @Test public void hostingFromTheLauncherChoosesTheSportAndCancelKeepsThePreviousBook(){
+        cancelCurrent();click("Change sport");String before=book().encode();
+        click("Live sharing & referee");click("Referee on phone");click("Badminton");
+        assertNotNull(button("Create & invite referee"));click("Cancel");assertNotNull(button("Tennis"));
+        back();click("Share with watches");click("Tennis");assertNotNull(button("Create & invite watches"));
+        click("Cancel");back();back();assertEquals(before,book().encode());assertNull(LiveScoreClient.get(activity).session());
+    }
+
+    @Test public void audienceSetupReturnsToTheChosenSportAndOnlySharesOnRequest(){
+        cancelCurrent();click("Change sport");click("Tennis");click("Live sharing & referee");
+        click("Audience live link");click("Create match");
+        assertEquals("tennis",book().current().format().sport);assertNotNull(button("Start live sharing"));
+        assertNull(LiveScoreClient.get(activity).session());back();back();assertNotNull(button("Current match"));
+        click("Current match");click("Live sharing & referee");click("Join with watch code");back();back();
+        assertNotNull(button("Start match"));assertFalse(book().current().hasPoints());
+    }
+
+    @Test public void refereeAndOtherWatchesAreAvailableTogetherAndScoringStaysLocked() throws Exception {
+        MatchRooms rooms=ReflectionHelpers.getField(activity,"rooms");
+        rooms.pause();
+        RoomClient client=new RoomClient(new RoomClient.Vault(){
+            private String data="{}";
+            public org.json.JSONObject read()throws Exception{return new org.json.JSONObject(data);}
+            public void write(org.json.JSONObject room){data=room.toString();}
+        },(method,path,token,body)->{throw new java.io.IOException("offline");});
+        ReflectionHelpers.setField(rooms,"client",client);
+        cancelCurrent();click("Change sport");click("Live sharing & referee");click("Referee on phone");
+        click("Tennis");click("Create & invite referee");
+        assertEquals("host",client.current().role);assertEquals("tennis",rooms.displayed().format().sport);
+        String before=book().encode();
+        click("Invite other watches");assertTrue(client.current().watchJoin);
+        click("Set scores");assertTrue(text().contains("Sets won"));back();click("Show score");
+        activity.action(TouchTargets.RED);assertEquals(before,book().encode());assertNotNull(button("Set scores"));
+    }
+
+    @Test public void matchDetailsSeparatesTheTallyFromEachGameAndShowsLatestFirst(){
+        MatchBook live=ReflectionHelpers.getField(activity,"book");
+        while(!live.current().nextReady())live.add(0);
+        live.nextGame();live.add(1);
+        String before=live.encode();
+        click("Current match");click("Match details");
+        String details=text();assertTrue(details.contains("Games won"));assertTrue(details.contains("1  –  0"));
+        assertTrue(details.contains("11 – 1"));assertTrue(details.contains("0 – 1"));
+        assertTrue(details.indexOf("Game 2")<details.indexOf("Game 1"));back();assertEquals(before,live.encode());
+    }
+
 }
