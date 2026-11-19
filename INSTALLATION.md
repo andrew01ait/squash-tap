@@ -1,6 +1,6 @@
 # Install, update and diagnose
 
-[Official download page](https://squash-tap-andrew.endruuu.chatgpt.site/) · Current watch APK: **v0.21.1 / code 31**.
+[Official download page](https://squash-tap-andrew.endruuu.chatgpt.site/) · Current watch APK: **v0.21.2 / code 32**.
 
 The APK runs on the watch. Wear Installer 2 is a helper on the Android phone; no PC development tools are required. The app is currently distributed by APK through this site, not the watch app store.
 
@@ -77,7 +77,7 @@ In v0.16.4, use Results → Filters → Reset all filters, or the direct reset r
 
 ## Using NFC after updating
 
-On the host, open **Live sharing & referee → Share with watches → Pair a watch via NFC**. On the receiving watch choose **Live sharing & referee → Join via NFC**. For browser pages, choose **Share page via NFC** on the watch. Hold the back of the unlocked phone against the watch until it shows **Link read**. If the phone reports an empty tag, move it away before tapping again. You can also return to the QR and scan the same link with the camera. Each watch displays the options its hardware supports. Manual codes and QR links are available as usual.
+On the host, open **Live sharing & referee → Share with watches → Pair a watch via NFC**. On the receiving watch choose **Live sharing & referee → Join via NFC**. For browser pages, choose **Share page via NFC** on the watch. Hold the back of the unlocked phone against the watch until it shows **Link read**. If the phone reports an empty tag, move it away before tapping again. You can also return to the QR and scan the same link with the camera. If you want to diagnose an empty tag, keep the NFC page open for the full minute. The watch reports whether a request reached Keep Score or the read was interrupted. See Settings → Diagnostics for the last attempt. Contactless payment settings apply to the wallet. Each watch displays the options its hardware supports. Manual codes and QR links are available as usual.
 
 ## Updating for referee and watch sharing
 

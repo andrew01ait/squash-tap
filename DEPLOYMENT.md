@@ -1,6 +1,6 @@
 # Building and installing Keep Score
 
-The current direct Wear OS release is **v0.21.1**, Android version code **31**. To install or update the app on a watch, follow the [phone installation guide](INSTALLATION.md). The latest user-facing changes are in the [changelog](CHANGELOG.md).
+The current direct Wear OS release is **v0.21.2**, Android version code **32**. To install or update the app on a watch, follow the [phone installation guide](INSTALLATION.md). The latest user-facing changes are in the [changelog](CHANGELOG.md).
 
 ## Development builds
 
@@ -13,7 +13,7 @@ python3 scripts/bootstrap_android.py
 python3 scripts/build.py --sdk .local/android-sdk --junit .local/android-sdk/junit.jar --hamcrest .local/android-sdk/hamcrest-core.jar --unsigned
 ```
 
-The aligned development APK is written to `build/0.21.1/aligned.apk`. For installation over an existing official app, use the release on the download page.
+The aligned development APK is written to `build/0.21.2/aligned.apk`. For installation over an existing official app, use the release on the download page.
 
 The native tests exercise Android views and scoring behavior. The web suite covers the phone interfaces, scoring interoperability and temporary sharing. See the [test guide](TESTING.md) for the commands and prerequisites appropriate to these suites.
 

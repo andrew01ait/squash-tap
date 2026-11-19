@@ -1,6 +1,6 @@
 # Keep Score components
 
-Keep Score v0.21.1 runs on Wear OS and supports six racket sports. The watch stores match history, scoring rules and player names. Phones and tablets can open a match journal, follow an audience scoreboard or score a match as referee.
+Keep Score v0.21.2 runs on Wear OS and supports six racket sports. The watch stores match history, scoring rules and player names. Phones and tablets can open a match journal, follow an audience scoreboard or score a match as referee.
 
 ## Watch app
 
@@ -10,7 +10,7 @@ Keep Score v0.21.1 runs on Wear OS and supports six racket sports. The watch sto
 
 ## NFC handover
 
-The installed watch app declares the NFC Forum Type 4 NDEF identifier in Android’s non-payment category. Opening the handover page prepares the complete record in memory before requesting foreground routing. Outside an active handover the service rejects every read. Browser handovers carry one HTTPS URI record including its fragment. Watch invitations carry one Keep Score external record containing the existing ten-character watch code. The foreground reader accepts only this invitation format and passes it to the ordinary read-only room join. The HCE service keeps the offered file in memory and enforces its elapsed-time deadline on every read. The watch reports contact on application selection and reports a complete read once a single reader session has requested every payload byte. It removes the offer on navigation or backgrounding. The match and its score updates still use their existing network connection.
+The installed watch app declares both NFC Forum Type 4 NDEF identifiers (mapping v2 and v1) in Android’s non-payment category. Opening the handover page prepares the complete record in memory before requesting foreground routing. Outside an active handover the service rejects every read. Browser handovers carry one HTTPS URI record including its fragment. Watch invitations carry one Keep Score external record containing the existing ten-character watch code. The foreground reader accepts only this invitation format and passes it to the ordinary read-only room join. The HCE service keeps the offered file in memory and enforces its elapsed-time deadline on every read. The capability file advertises the mapping requested by each reader. Local diagnostics record the foreground preference result, the reported default for each identifier, the command count and the last read stage. The record omits the link, invitation and command bytes. The watch reports contact on application selection and reports a complete read once a single reader session has requested every payload byte. It removes the offer on navigation or backgrounding. The match and its score updates still use their existing network connection.
 
 ## Web interfaces and tests
 

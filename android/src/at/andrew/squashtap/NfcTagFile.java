@@ -7,14 +7,18 @@ import java.util.function.Consumer;
 /** A read-only NFC Forum Type 4 tag. The file contains one length-prefixed NDEF message. */
 final class NfcTagFile {
     static final String AID = "D2760000850101";
+    static final String LEGACY_AID = "D2760000850100";
     enum ReadProgress { SELECTED, COMPLETE }
     private static final byte[] NDEF_AID = {(byte)0xD2, 0x76, 0, 0, (byte)0x85, 1, 1};
+    private static final byte[] NDEF_V1_AID = {(byte)0xD2, 0x76, 0, 0, (byte)0x85, 1, 0};
     private final byte[] contents;
     private final byte[] capability;
     private final int messageLength;
     private final BitSet bytesRead = new BitSet();
     private final Consumer<ReadProgress> listener;
     private ReadProgress progress;
+    private int commandsReceived;
+    private int lastMapping;
     private boolean applicationSelected;
     private byte[] selectedFile;
 
@@ -42,6 +46,7 @@ final class NfcTagFile {
     }
 
     byte[] respond(byte[] command) {
+        commandsReceived++;
         if (command == null || command.length < 4) return status(0x6700);
         if (command[0] != 0) return status(0x6E00);
         int p1 = command[2] & 255, p2 = command[3] & 255;
@@ -50,9 +55,14 @@ final class NfcTagFile {
                 selectedFile = null;
                 if (p1 == 4) {
                     reset();
-                    applicationSelected = (p2 == 0 || p2 == 12) && selects(command, NDEF_AID);
-                    if (applicationSelected && progress == null) notifyProgress(ReadProgress.SELECTED);
-                    return status(applicationSelected ? 0x9000 : 0x6A82);
+                    if (p2 != 0 && p2 != 12) return status(0x6A82);
+                    if (selects(command, NDEF_AID)) lastMapping = 2;
+                    else if (selects(command, NDEF_V1_AID)) lastMapping = 1;
+                    else return status(0x6A82);
+                    capability[2] = (byte)(lastMapping << 4);
+                    applicationSelected = true;
+                    if (progress == null) notifyProgress(ReadProgress.SELECTED);
+                    return status(0x9000);
                 }
                 if (!applicationSelected || p1 != 0 || (p2 != 0 && p2 != 12)) return status(0x6A82);
                 if (selects(command, new byte[]{(byte)0xE1, 3})) selectedFile = capability;
@@ -96,6 +106,13 @@ final class NfcTagFile {
     private void notifyProgress(ReadProgress next) {
         progress = next;
         if (listener != null) listener.accept(next);
+    }
+
+    boolean receivedCommand() { return commandsReceived != 0; }
+
+    String diagnosticSummary() {
+        String stage = progress == ReadProgress.COMPLETE ? "complete" : progress == ReadProgress.SELECTED ? "selected" : "waiting";
+        return "commands=" + commandsReceived + " mapping=" + lastMapping + " stage=" + stage;
     }
 
     private static boolean selects(byte[] command, byte[] name) {

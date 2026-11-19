@@ -1,6 +1,6 @@
 # Keep Score on GitHub
 
-The [Keep Score repository](https://github.com/andrew01ait/squash-tap) contains the Wear OS application, web interfaces, tests and documentation. The latest direct version is **0.21.1**. The [source download for the direct release](https://squash-tap-andrew.endruuu.chatgpt.site/KeepScore-source.zip) includes the NFC handover and result cards. Development updates are reviewed in the [public mirror pull request](https://github.com/andrew01ait/squash-tap/pull/1).
+The [Keep Score repository](https://github.com/andrew01ait/squash-tap) contains the Wear OS application, web interfaces, tests and documentation. The latest direct version is **0.21.2**. The [source download for the direct release](https://squash-tap-andrew.endruuu.chatgpt.site/KeepScore-source.zip) includes the NFC handover and result cards. Development updates are reviewed in the [public mirror pull request](https://github.com/andrew01ait/squash-tap/pull/1).
 
 ## Finding the source
 

@@ -1,5 +1,10 @@
 # Releases
 
+## v0.21.2 · 2026-11-19 · direct APK code 32
+
+- The watch now accepts the older NFC reader request that Android can try when its first attempt to open the shared link fails. Both formats serve the same page or watch invitation.
+- If the watch is still waiting after a minute, it shows whether it received any NFC request. Settings → Diagnostics records the command count and the last stage reached.
+
 ## v0.21.1 · 2026-11-19 · direct APK code 31
 
 - Android can discover the watch’s NFC link service as soon as the app is installed. Opening the share page supplies the complete link before the watch asks Android to route a tap.

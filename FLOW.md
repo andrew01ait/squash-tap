@@ -1,4 +1,4 @@
-# Navigation and match flows — v0.21.1
+# Navigation and match flows — v0.21.2
 
 The separate Play preparation candidate retains these scoring/navigation flows. Its Settings → Check for updates opens a Google Play explanation, Open Google Play and Back to Settings. All website update/download/install/setup entry points route there in that build; a missing Store produces an actionable message and keeps the match. The public direct-APK release keeps its existing updater. See [PLAY_RELEASE.md](PLAY_RELEASE.md).
 
@@ -10,7 +10,7 @@ The separate Play preparation candidate retains these scoring/navigation flows. 
 | Host already broadcasting to browsers | Open **Audience live link → Invite a watch**. | The host opens watch sharing for this match. A referee can keep scoring while other watches join. |
 | Audience, referee or private transfer QR | Choose **Share page via NFC** and bring an unlocked NFC phone close. | The phone offers the same page and role as the displayed QR. **Back to QR** returns to the same code. |
 
-Keep the devices together until the watch confirms the link or invitation was read. If the phone reports an empty tag, move it away, return to the QR and retry or scan it with the camera. Each NFC attempt lasts up to one minute while its page is in the foreground. Returning, leaving the app or timing out ends the attempt. Sending requires host card emulation on the host. Watch reception requires NFC reader mode on the joining watch. Manual watch codes and optical QR work independently of these modes.
+Keep the devices together until the watch confirms the link or invitation was read. If the phone reports an empty tag, move it away, return to the QR and retry or scan it with the camera. If Keep Score is still waiting, leave the NFC page open to see whether a reader command reached the app. Settings → Diagnostics contains the command count and last stage. Each NFC attempt lasts up to one minute while its page is in the foreground. Returning, leaving the app or timing out ends the attempt. Sending requires host card emulation on the host. Watch reception requires NFC reader mode on the joining watch. Manual watch codes and optical QR work independently of these modes.
 
 ## Sport entry and scope
 

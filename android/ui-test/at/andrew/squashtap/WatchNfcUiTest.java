@@ -40,6 +40,7 @@ public class WatchNfcUiTest {
         return result;
     }
     private final byte[] selectNdef = bytes(0,0xA4,4,0,7,0xD2,0x76,0,0,0x85,1,1,0);
+    private final byte[] selectLegacyNdef = bytes(0,0xA4,4,0,7,0xD2,0x76,0,0,0x85,1,0);
     private final byte[] selectFile = bytes(0,0xA4,0,12,2,0xE1,4);
 
     private byte[] read(WatchNfcService service, byte[] command) {
@@ -48,12 +49,17 @@ public class WatchNfcUiTest {
         return Arrays.copyOf(response,response.length-2);
     }
     private NdefMessage scan(WatchNfcService service) throws Exception {
-        read(service,selectNdef);
-        read(service,bytes(0,0xA4,0,12,2,0xE1,3));
+        return scan(service, false);
+    }
+    private NdefMessage scan(WatchNfcService service, boolean legacy) throws Exception {
+        read(service,legacy ? selectLegacyNdef : selectNdef);
+        int selectParameter = legacy ? 0 : 12;
+        read(service,bytes(0,0xA4,0,selectParameter,2,0xE1,3));
         byte[] cc = read(service,bytes(0,0xB0,0,0,15));
+        assertEquals(legacy ? 0x10 : 0x20, cc[2]);
         assertArrayEquals(bytes(4,6,0xE1,4),Arrays.copyOfRange(cc,7,11));
         assertEquals((byte)0xFF,cc[14]);
-        read(service,selectFile);
+        read(service,bytes(0,0xA4,0,selectParameter,2,0xE1,4));
         byte[] nlen = read(service,bytes(0,0xB0,0,0,2));
         int length = ((nlen[0]&255)<<8) + (nlen[1]&255);
         ByteArrayOutputStream data = new ByteArrayOutputStream();
@@ -72,14 +78,18 @@ public class WatchNfcUiTest {
         String ns = "http://schemas.android.com/apk/res/android";
         try (XmlResourceParser xml = info.loadXmlMetaData(pm, "android.nfc.cardemulation.host_apdu_service")) {
             assertNotNull(xml);
-            boolean group = false, aid = false;
+            boolean group = false;
+            List<String> routes = new ArrayList<>();
             while (xml.next() != XmlPullParser.END_DOCUMENT) {
+                if (xml.getEventType() == XmlPullParser.END_TAG && "aid-group".equals(xml.getName())) group = false;
                 if (xml.getEventType() != XmlPullParser.START_TAG) continue;
                 if ("host-apdu-service".equals(xml.getName())) assertTrue(xml.getAttributeBooleanValue(ns, "requireDeviceUnlock", false));
                 if ("aid-group".equals(xml.getName())) group = "other".equals(xml.getAttributeValue(ns, "category"));
-                if ("aid-filter".equals(xml.getName())) aid = group && NfcTagFile.AID.equals(xml.getAttributeValue(ns, "name"));
+                if ("aid-filter".equals(xml.getName()) && group) routes.add(xml.getAttributeValue(ns, "name"));
             }
-            assertTrue("NDEF must be routable when the app is installed", aid);
+            assertEquals(2, routes.size());
+            assertTrue(routes.contains("D2760000850101"));
+            assertTrue(routes.contains("D2760000850100"));
         }
     }
 
@@ -135,7 +145,7 @@ public class WatchNfcUiTest {
         assertArrayEquals(bytes(0x6A,0x82), service.processCommandApdu(selectNdef, null));
         click(a.tr("Try NFC again"));
         shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(61));
-        assertTrue(ShadowView.innerText(currentPage()).contains("Kein NFC-Lesegerät"));
+        assertTrue(ShadowView.innerText(currentPage()).contains("Keine NFC-Anfrage"));
         click(a.tr("Try NFC again"));
         read(service, selectNdef);
         shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(61));
@@ -147,6 +157,55 @@ public class WatchNfcUiTest {
         controller.pause();
         assertArrayEquals(bytes(0x6A,0x82), service.processCommandApdu(selectNdef, null));
         controller.stop().destroy();
+    }
+
+    @Test public void androidLegacyFallbackReadsTheFullLinkAndModernReaderCanTapNext() throws Exception {
+        String link = "https://example.org/live.html#k=" + new String(new char[350]).replace('\0','x');
+        NfcTagFile file = new NfcTagFile(new NdefMessage(NdefRecord.createUri(link)).toByteArray());
+        WatchNfcService service = new WatchNfcService();
+        WatchNfcService.publish(file);
+        try {
+            byte[] other = selectNdef.clone();
+            other[11] = 42;
+            assertArrayEquals(bytes(0x6A,0x82),service.processCommandApdu(other,null));
+            assertArrayEquals(bytes(0x6A,0x82),service.processCommandApdu(selectFile,null));
+            assertEquals(link,scan(service,true).getRecords()[0].toUri().toString());
+            service.onDeactivated(0);
+            assertEquals(link,scan(service,false).getRecords()[0].toUri().toString());
+        } finally { WatchNfcService.withdraw(file); }
+        assertArrayEquals(bytes(0x6A,0x82),service.processCommandApdu(selectLegacyNdef,null));
+    }
+
+    @Test @Config(qualifiers="de-rAT") public void failedTapSeparatesNoRequestFromRejectedRequestWithoutLoggingLink() throws Exception {
+        ActivityController<MainActivity> controller = Robolectric.buildActivity(MainActivity.class).setup();
+        MainActivity a = controller.get();
+        shadowOf(a.getPackageManager()).setSystemFeature(PackageManager.FEATURE_NFC, true);
+        shadowOf(a.getPackageManager()).setSystemFeature(PackageManager.FEATURE_NFC_HOST_CARD_EMULATION, true);
+        shadowOf(NfcAdapter.getDefaultAdapter(a)).setEnabled(true);
+        String link = "https://example.org/referee.html#k=private-nfc-diagnostic-test";
+        a.showQr(link, "Audience QR", a::closePanel, "Back");
+        click("Seite per NFC teilen");
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(61));
+        assertTrue(ShadowView.innerText(currentPage()).contains("Keine NFC-Anfrage"));
+        click(a.tr("Try NFC again"));
+        WatchNfcService service = new WatchNfcService();
+        byte[] other = selectNdef.clone();
+        other[11] = 42;
+        assertArrayEquals(bytes(0x6A,0x82), service.processCommandApdu(other,null));
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(61));
+        assertTrue(ShadowView.innerText(currentPage()).contains("NFC-Anfrage angekommen."));
+        click(a.tr("Try NFC again"));
+        assertEquals(link, scan(service,true).getRecords()[0].toUri().toString());
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(61));
+        assertTrue(ShadowView.innerText(currentPage()).contains("Link ausgelesen"));
+        String trace = a.getSharedPreferences("squash",0).getString("lifecycle_trace","");
+        assertTrue(trace.contains("NFC share: foreground=true"));
+        assertTrue(trace.contains("commands=0 mapping=0 stage=waiting"));
+        assertTrue(trace.contains("commands=1 mapping=0 stage=waiting"));
+        assertTrue(trace.contains("mapping=1 stage=complete"));
+        assertFalse(trace.contains("private-nfc-diagnostic-test"));
+        assertFalse(trace.contains("example.org"));
+        controller.pause().stop().destroy();
     }
 
     @Test public void browserReadsExactHttpsLinkIncludingPrivateFragmentAcrossChunks() throws Exception {

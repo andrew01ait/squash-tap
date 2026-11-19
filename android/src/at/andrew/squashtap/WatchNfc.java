@@ -122,7 +122,12 @@ final class WatchNfc {
                 }));
                 WatchNfcService.publish(offer);
                 cards = CardEmulation.getInstance(adapter);
-                if (!cards.setPreferredService(activity, service) && !cards.isDefaultServiceForAid(service, NfcTagFile.AID)) {
+                boolean preferred = cards.setPreferredService(activity, service);
+                Boolean modern = defaultForAid(NfcTagFile.AID);
+                Boolean legacy = defaultForAid(NfcTagFile.LEGACY_AID);
+                AppDiagnostics.record(activity, "NFC share: foreground=" + preferred
+                    + " defaultV2=" + modern + " defaultV1=" + legacy);
+                if (!preferred && !Boolean.TRUE.equals(modern) && !Boolean.TRUE.equals(legacy)) {
                     stopped("NFC sharing is unavailable here. Use the QR or watch code.");
                     return;
                 }
@@ -132,6 +137,11 @@ final class WatchNfc {
         } catch (RuntimeException unavailable) {
             stopped("NFC sharing is unavailable here. Use the QR or watch code.");
         }
+    }
+
+    private Boolean defaultForAid(String aid) {
+        try { return cards.isDefaultServiceForAid(service, aid); }
+        catch (RuntimeException unavailable) { return null; }
     }
 
     private static String readCode(Tag tag) {
@@ -153,8 +163,10 @@ final class WatchNfc {
             retry.setVisibility(View.VISIBLE);
         } else if (readProgress == NfcTagFile.ReadProgress.SELECTED) {
             stopped("Read interrupted. Separate the devices and try again.");
+        } else if (offer.receivedCommand()) {
+            stopped("NFC request received. The reader did not select the shared data.");
         } else {
-            stopped("No NFC reader reached Keep Score. Separate the devices and try again.");
+            stopped("No NFC request reached Keep Score. Details are in Settings → Diagnostics.");
         }
     }
 
@@ -175,6 +187,7 @@ final class WatchNfc {
     private void disarm() {
         main.removeCallbacks(timeout);
         WatchNfcService.withdraw(offer);
+        if (offer != null) AppDiagnostics.record(activity, "NFC share: " + offer.diagnosticSummary());
         offer = null;
         readProgress = null;
         if (cards != null) {

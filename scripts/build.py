@@ -6,8 +6,8 @@ import argparse, os, subprocess, sys, zipfile
 ROOT=Path(__file__).resolve().parents[1]
 PKG='at.andrew.squashtap'
 SITE='https://squash-tap-andrew.endruuu.chatgpt.site'
-RELEASES=((31,'0.21.1'),)
-RELEASE_NOTES='Improved NFC page sharing. The watch shows when a device connects and when it has read the complete link.'
+RELEASES=((32,'0.21.2'),)
+RELEASE_NOTES='NFC sharing now supports a second Android reader format. The watch shows whether a failed tap reached Keep Score.'
 
 def run(args, env=None):
     result=subprocess.run([str(x) for x in args],cwd=ROOT,env=env,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)

@@ -1,6 +1,6 @@
 # Versions and compatibility
 
-Current official watch release: **v0.21.1**, Android version code **31**; package **`at.andrew.squashtap`**. `public/release.properties` is the machine-readable update feed; `public/builds.json` and `SHA256SUMS.txt` record retained artifacts.
+Current official watch release: **v0.21.2**, Android version code **32**; package **`at.andrew.squashtap`**. `public/release.properties` is the machine-readable update feed; `public/builds.json` and `SHA256SUMS.txt` record retained artifacts.
 
 ## Independent version numbers
 
@@ -78,3 +78,7 @@ The updated menus and player pickers use existing match identifiers, settings an
 ## NFC page sharing · direct v0.21.1 / code 31
 
 The watch update changes NFC routing and reader compatibility. The audience, referee and journal links use the same record and page permissions as their QR codes.
+
+## NFC reader compatibility · direct v0.21.2 / code 32
+
+The watch accepts both Android Type 4 NDEF application identifiers. Each reader receives the capability version it selected. The diagnostics for an explicit handover record whether the reader reached the app.

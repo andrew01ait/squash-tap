@@ -1,6 +1,10 @@
 # Testing and verification
 
-Current watch release: **v0.21.1 / code 31**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
+Current watch release: **v0.21.2 / code 32**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
+
+## Direct v0.21.2 · 2026-11-19
+
+The release suite passed 340 core, 241 watch UI and 101 web/relay tests. Before the fix the Android v1 application-selection command returned `6A82`. Tests now exercise both mapped application identifiers from the compiled manifest, read the exact URI and fragment with each reader sequence, and check that a modern reader can tap after a legacy reader. The German QR-to-NFC flow distinguishes zero commands, an unrecognized selection, an interrupted read and a complete read. It also checks that local diagnostics omit the URI and fragment. A physical watch-to-phone retest is pending.
 
 ## Direct v0.21.1 · 2026-11-19
 
