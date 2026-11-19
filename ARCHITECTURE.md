@@ -1,12 +1,16 @@
 # Keep Score components
 
-Keep Score v0.21.2 runs on Wear OS and supports six racket sports. The watch stores match history, scoring rules and player names. Phones and tablets can open a match journal, follow an audience scoreboard or score a match as referee.
+Keep Score v0.21.3 runs on Wear OS and supports six racket sports. The watch stores match history, scoring rules and player names. Phones and tablets can open a match journal, follow an audience scoreboard or score a match as referee.
 
 ## Watch app
 
 - The scoring classes in `android/src` calculate points, service order and match outcomes. Completed matches provide the data for statistics.
 - The native watch UI uses contextual menus for match setup, active play, following and results. Each multi-purpose menu exposes its translated section headings to Android accessibility services. The player catalog is accessible from the launcher and each sport menu. A current match has its own player or team selector. Shared page components provide headings, action rows, pickers, inputs and contextual Back, including QR pages. Settings contains watch language for every role.
 - The score view reserves separate space for names, points and serving. Round and rectangular layouts use the same geometry for drawing each scorecard and detecting taps.
+
+## Diagnostic QR
+
+The watch keeps twelve timestamped events with up to 160 characters each. Recording a new event also trims logs from earlier installations. The export includes the app version, time, device information and the newest event. It adds a crash summary and older events as space allows, then checks whether other status details fit. The size check covers the complete URL after gzip and base64url encoding. Its 318-byte limit fits a version 11-L QR with a four-module quiet zone. A separate field in the same URL fragment holds the battery, match score and device flags. The phone expands these into the watch language. Links from earlier watches still open directly. The watch’s Copy details action includes the stored crash stack and system exit descriptions.
 
 ## NFC handover
 

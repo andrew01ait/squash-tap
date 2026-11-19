@@ -1,6 +1,6 @@
 # Versions and compatibility
 
-Current official watch release: **v0.21.2**, Android version code **32**; package **`at.andrew.squashtap`**. `public/release.properties` is the machine-readable update feed; `public/builds.json` and `SHA256SUMS.txt` record retained artifacts.
+Current official watch release: **v0.21.3**, Android version code **33**; package **`at.andrew.squashtap`**. `public/release.properties` is the machine-readable update feed; `public/builds.json` and `SHA256SUMS.txt` record retained artifacts.
 
 ## Independent version numbers
 
@@ -82,3 +82,7 @@ The watch update changes NFC routing and reader compatibility. The audience, ref
 ## NFC reader compatibility · direct v0.21.2 / code 32
 
 The watch accepts both Android Type 4 NDEF application identifiers. Each reader receives the capability version it selected. The diagnostics for an explicit handover record whether the reader reached the app.
+
+## Diagnostic QR · direct v0.21.3 / code 33
+
+The text uses the existing gzip fragment format. A second fragment field carries the current watch and match state. The phone also accepts links with only the original text field. The watch automatically trims the stored diagnostic event log during an update’s first launch and on every subsequent event.

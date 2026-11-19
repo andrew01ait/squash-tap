@@ -1,5 +1,6 @@
 import {mountLanguage, t} from './locale.mjs';
 import {bindPageCopy} from './page-copy.mjs';
+import {withWatchState} from './diagnostic-report.mjs';
 
 const copy = {
   "Watch report": ["Uhrenbericht","Rapport de la montre","Informe del reloj"],
@@ -45,7 +46,8 @@ async function loadReport() {
   $('report').textContent = translate('No report loaded.');
   setStatus('Reading the diagnostic QR code…');
   for (const id of ['save','share','copy']) $(id).disabled = true;
-  const payload = new URLSearchParams(location.hash.slice(1)).get('d');
+  const fields = new URLSearchParams(location.hash.slice(1));
+  const payload = fields.get('d');
   if (!payload) {
     setStatus('On your watch open MENU → Settings → Diagnostics → Send to phone, then scan its QR code.');
     return;
@@ -70,7 +72,7 @@ async function loadReport() {
     }
     const text = await new Blob(chunks).text();
     if (number !== requestNumber) return;
-    report = text;
+    report = withWatchState(text, fields.get('s'));
     $('diagnostics').dataset.loaded = 'true';
     $('report').textContent = report;
     setStatus('Ready. Save, copy or share the report with support.');

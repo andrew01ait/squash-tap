@@ -1,5 +1,10 @@
 # Releases
 
+## v0.21.3 · 2026-11-19 · direct APK code 33
+
+- The diagnostic QR takes up more of the watch display and carries only the most recent events that fit. The watch automatically discards events beyond the newest twelve.
+- Copy details in Diagnostics includes the system report and the recorded crash stack.
+
 ## v0.21.2 · 2026-11-19 · direct APK code 32
 
 - The watch now accepts the older NFC reader request that Android can try when its first attempt to open the shared link fails. Both formats serve the same page or watch invitation.

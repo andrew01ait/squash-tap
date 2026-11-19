@@ -59,6 +59,11 @@
       "date": "2026-11-19",
       "version": "0.21.1",
       "observation": "The phone showed NFC-Dienst with Neues Tag erfasst / Leeres Tag after the watch update. The watch showed Bereit zum Teilen when photographed and NFC was enabled. The reader commands and the result at timeout are unknown."
+    },
+    {
+      "date": "2026-11-19",
+      "version": "0.21.2",
+      "observation": "Two watch-to-phone NFC offers ended with zero reader commands. The watch reported foreground routing and both NFC mappings available. One offer ended when the activity paused. The user reported that the diagnostic QR had become hard to scan as the log grew."
     }
   ]
 }

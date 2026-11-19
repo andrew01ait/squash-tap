@@ -1,6 +1,6 @@
 # Maintenance instructions
 
-Read [README.md](README.md), [ARCHITECTURE.md](ARCHITECTURE.md), [FLOW.md](FLOW.md), [DEPLOYMENT.md](DEPLOYMENT.md), [TESTING.md](TESTING.md), [VERSIONING.md](VERSIONING.md) and [GITHUB.md](GITHUB.md) before changing the corresponding behavior. Current release is v0.21.2/code 32; older release-specific decisions remain in Git history and [CHANGELOG.md](CHANGELOG.md).
+Read [README.md](README.md), [ARCHITECTURE.md](ARCHITECTURE.md), [FLOW.md](FLOW.md), [DEPLOYMENT.md](DEPLOYMENT.md), [TESTING.md](TESTING.md), [VERSIONING.md](VERSIONING.md) and [GITHUB.md](GITHUB.md) before changing the corresponding behavior. Current release is v0.21.3/code 33; older release-specific decisions remain in Git history and [CHANGELOG.md](CHANGELOG.md).
 
 ## Scope, identity and publication
 
@@ -68,7 +68,7 @@ Reset all result filters clears player/date/mode together, retains the sport and
 
 ## Google Play preparation
 
-Keep the public v0.21.2/code 32 APK/update feed distinct from the 0.17.0-play.1/code 23 preparation candidate. Build Play with `scripts/build_play.py`, verify with `scripts/verify_play.py` and retain the original signer/package/preference namespace. Never package the real APK downloader/installer or install permissions in Play. Keep compile-time guards on every legacy update entry point and test the direct and Play source sets separately. Reserve version codes across channels.
+Keep the public v0.21.3/code 33 APK/update feed distinct from the 0.17.0-play.1/code 23 preparation candidate. Build Play with `scripts/build_play.py`, verify with `scripts/verify_play.py` and retain the original signer/package/preference namespace. Never package the real APK downloader/installer or install permissions in Play. Keep compile-time guards on every legacy update entry point and test the direct and Play source sets separately. Reserve version codes across channels.
 
 Do not generate a replacement app signing key, register a new publisher, submit declarations or claim Play approval automatically. Signing enrollment must use the original app key; a separate upload key is a different role. Review publisher/contact/provider details before publishing the privacy-policy draft. Preserve clear remaining release gates and physical-testing limits in [PLAY_RELEASE.md](PLAY_RELEASE.md). Keep build-tool hashes locked and source exports free of AAB/APKS/signing artifacts.
 

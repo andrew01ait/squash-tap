@@ -1429,16 +1429,14 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     }
     private void showDiagnostics(){
         LinearLayout details=panel("Diagnostics");
-        String text=diagnosticText(false);
+        String text=diagnosticText();
         paragraph(details,text);settingsButton(details,tr("Send to phone"),this::showDiagnosticTransfer);
         settingsAction(details,tr("Copy details"),()->((ClipboardManager)getSystemService(CLIPBOARD_SERVICE)).setPrimaryClip(ClipData.newPlainText("Keep Score diagnostics",text)));
         backButton(details,"Back to Settings",this::showSettings);
     }
-    private String diagnosticText(boolean compact){
-        String trace=preferences.getString("lifecycle_trace","");
-        if(compact)trace=AppDiagnostics.tailLines(trace,1800);
+    private String diagnosticText(){
+        String trace=AppDiagnostics.recentTrace(preferences.getString("lifecycle_trace",""));
         String crash=preferences.getString("last_crash",tr("No recorded Java crash"));
-        if(compact&&crash.length()>1400)crash=crash.substring(0,1400);
         android.os.PowerManager power=getSystemService(android.os.PowerManager.class);
         String text="Keep Score v"+BuildConfig.VERSION_NAME+" ("+BuildConfig.VERSION_CODE+")\n"+java.time.LocalDateTime.now()+"\nAndroid API "+Build.VERSION.SDK_INT
             +tr("\nDevice: ")+Build.MANUFACTURER+" "+Build.MODEL+tr("\nDirect install allowed: ")+getPackageManager().canRequestPackageInstalls()
@@ -1451,11 +1449,46 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
             +tr("\nBest of ")+book.current().bestOf()+tr("; saved results ")+book.count()
             +tr("\nPaused / waiting to resume: ")+needsResume()+tr("; ambient: ")+ambient+tr("; keep awake setting: ")+preferences.getBoolean("match_keep_awake_v3",true)
             +"\n\n"+updateDescription()+"\n\n"+tr(preferences.getString("diagnostic",""))
-            +tr("\n\nLast crash:\n")+crash+tr("\n\nProcess exit reasons:\n")+AppDiagnostics.recentExits(this)+tr("\n\nLifecycle trace:\n")+trace;
+            +tr("\n\nLast crash:\n")+crash+tr("\n\nProcess exit reasons:\n")+AppDiagnostics.recentExits(this,false)+tr("\n\nLifecycle trace:\n")+trace;
         return text;
     }
+    private String diagnosticQrState() {
+        android.os.PowerManager power = getSystemService(android.os.PowerManager.class);
+        android.os.BatteryManager battery = getSystemService(android.os.BatteryManager.class);
+        int level = battery == null ? -1 : battery.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY);
+        if (level < 0 || level > 100) level = -1;
+        // Fragment schema 1. The phone expands these flags into the watch language.
+        String bits = DiagnosticTransfer.flags(getPackageManager().canRequestPackageInstalls(),
+            getSystemService(android.app.NotificationManager.class).areNotificationsEnabled(),
+            ambientObserver != null, resumed, panel != null,
+            (getWindow().getAttributes().flags & WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) != 0,
+            power.isInteractive(), power.isPowerSaveMode(), power.isDeviceIdleMode(),
+            power.isIgnoringBatteryOptimizations(getPackageName()), sessionOngoing(), needsResume(),
+            ambient, preferences.getBoolean("match_keep_awake_v3", true), battery != null && battery.isCharging());
+        MatchState match = book.current();
+        return "1." + ui.code + "." + bits + "." + level + "." + match.game().blue() + "." + match.game().red()
+            + "." + match.gamesWon(0) + "." + match.gamesWon(1) + "." + match.bestOf() + "." + book.count();
+    }
+
     private void showDiagnosticTransfer(){
-        try{showQr(DiagnosticTransfer.link(BuildConfig.SITE_URL,diagnosticText(true)),tr("Scan with phone"),this::showDiagnostics);}
+        try {
+            String device = DiagnosticTransfer.excerpt(Build.MANUFACTURER + " " + Build.MODEL, 32);
+            String header = "Keep Score v" + BuildConfig.VERSION_NAME + " (" + BuildConfig.VERSION_CODE + ")\n"
+                + java.time.LocalDateTime.now().withNano(0) + "\n" + device + " · API " + Build.VERSION.SDK_INT;
+            String trace = AppDiagnostics.recentTrace(preferences.getString("lifecycle_trace", ""));
+            String crash = preferences.getString("last_crash", "");
+            if (!crash.isEmpty()) {
+                // The saved first two lines identify the time, thread and exception.
+                String[] lines = crash.split("\n", 3);
+                crash = tr("Last crash:") + " " + DiagnosticTransfer.excerpt(lines[0], 48);
+                if (lines.length > 1) crash += " " + DiagnosticTransfer.excerpt(lines[1], 64);
+            }
+            String exit = AppDiagnostics.recentExits(this, true);
+            if (!exit.isEmpty()) exit = tr("Process exit reasons:") + " " + exit;
+            String note = DiagnosticTransfer.excerpt(tr(preferences.getString("diagnostic", "")), 100);
+            String link = DiagnosticTransfer.watchLink(BuildConfig.SITE_URL, header, diagnosticQrState(), trace, crash, note, exit);
+            showQr(link, tr("Scan with phone"), this::showDiagnostics);
+        }
         catch(Exception error){message(tr("Diagnostic transfer"),safe(error),this::showDiagnostics);}
     }
     private void showQr(String link,String title,Runnable back){
@@ -1466,16 +1499,23 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
             java.util.Map<com.google.zxing.EncodeHintType,Object> hints=new java.util.EnumMap<>(com.google.zxing.EncodeHintType.class);
             hints.put(com.google.zxing.EncodeHintType.ERROR_CORRECTION,com.google.zxing.qrcode.decoder.ErrorCorrectionLevel.L);
             hints.put(com.google.zxing.EncodeHintType.MARGIN,4);hints.put(com.google.zxing.EncodeHintType.CHARACTER_SET,"UTF-8");
-            int size=Math.round(Math.min(getResources().getDisplayMetrics().widthPixels,getResources().getDisplayMetrics().heightPixels)*.64f);
-            com.google.zxing.common.BitMatrix matrix=new com.google.zxing.qrcode.QRCodeWriter().encode(link,com.google.zxing.BarcodeFormat.QR_CODE,size,size,hints);
+            boolean diagnostic = "Back to Diagnostics".equals(backLabel);
+            android.util.DisplayMetrics screen=getResources().getDisplayMetrics();
+            boolean round=getResources().getConfiguration().isScreenRound();
+            float fraction = diagnostic ? (round ? .69f : .78f) : .64f;
+            int size = Math.round(Math.min(screen.widthPixels, screen.heightPixels) * fraction);
+            // Grow the diagnostic symbol to its frame with a sharp four-module quiet zone.
+            int requested = diagnostic ? 0 : size;
+            com.google.zxing.common.BitMatrix matrix=new com.google.zxing.qrcode.QRCodeWriter().encode(link,com.google.zxing.BarcodeFormat.QR_CODE,requested,requested,hints);
             int width=matrix.getWidth(),height=matrix.getHeight();
             android.graphics.Bitmap bitmap=android.graphics.Bitmap.createBitmap(width,height,android.graphics.Bitmap.Config.RGB_565);
-            bitmap.setDensity(android.graphics.Bitmap.DENSITY_NONE);
             int[] row=new int[width];
             for(int y=0;y<height;y++){
                 for(int x=0;x<width;x++)row[x]=matrix.get(x,y)?Color.BLACK:Color.WHITE;
                 bitmap.setPixels(row,0,width,0,y,width,1);
             }
+            if (diagnostic) bitmap = android.graphics.Bitmap.createScaledBitmap(bitmap, size, size, false);
+            bitmap.setDensity(android.graphics.Bitmap.DENSITY_NONE);
             LinearLayout page=panel(title,null,PanelTitle.QR);
             panelPage=backLabel.equals("Back to Diagnostics")?"Diagnostic QR":backLabel.equals("Back to Live scoreboard")?"Audience QR":"Phone QR";
             ImageView qr=new ImageView(this);
@@ -1484,8 +1524,6 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
             qr.setImageDrawable(code);
             qr.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
             qr.setContentDescription(tr(title));
-            android.util.DisplayMetrics screen=getResources().getDisplayMetrics();
-            boolean round=getResources().getConfiguration().isScreenRound();
             int titleWidth=screen.widthPixels-panelScroll.getPaddingLeft()-panelScroll.getPaddingRight();
             if(round)titleWidth=Math.min(titleWidth,Math.round(screen.widthPixels*.62f));
             TextView heading=panelHeading(page,tr(title),true);

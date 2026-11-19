@@ -1,6 +1,6 @@
 # Install, update and diagnose
 
-[Official download page](https://squash-tap-andrew.endruuu.chatgpt.site/) · Current watch APK: **v0.21.2 / code 32**.
+[Official download page](https://squash-tap-andrew.endruuu.chatgpt.site/) · Current watch APK: **v0.21.3 / code 33**.
 
 The APK runs on the watch. Wear Installer 2 is a helper on the Android phone; no PC development tools are required. The app is currently distributed by APK through this site, not the watch app store.
 
@@ -51,7 +51,7 @@ An in-place update with the same package/signing key replaces the installed appl
 
 ## Diagnostics and common problems
 
-MENU → Settings → Diagnostics offers an explicit Send to phone QR. Scan it and use the browser decoder to copy/save the report. This diagnostic QR is separate from results/name/CSV transfers. Treat the report and any active transfer link as private when sharing with support.
+MENU → Settings → Diagnostics offers an explicit Send to phone QR. Scan the code to copy or save the most recent diagnostic events on your phone. For the full system and crash details, choose **Copy details** on the watch. This diagnostic QR is separate from results/name/CSV transfers. Treat the report and any active transfer link as private when sharing with support.
 
 If installation cannot connect, refresh the watch IP/connection port; do not use the phone's hotspot IP or the pairing port. If the updater rejects an APK, keep the installed app and check that the download is the official package/newer version; signature validation must not be bypassed.
 

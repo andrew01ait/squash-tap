@@ -1,6 +1,10 @@
 # Testing and verification
 
-Current watch release: **v0.21.2 / code 32**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
+Current watch release: **v0.21.3 / code 33**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
+
+## Direct v0.21.3 · 2026-11-19
+
+343 core, 242 native UI and 103 web/relay tests passed. A regression test seeds an older installation with eighty events and a long synthetic crash stack. The next event trims the stored trace to twelve. A German 192 dp round-watch render at 130% text decodes after the physical circular mask is applied. The 317-byte URL from that render opens as a German phone report with the newest NFC event, the current match state and the correct saved-results count. Additional cases cover long Unicode events, sparse logs, old phone links and the 318-byte URL ceiling. An optical scan on the OnePlus watch remains a device check.
 
 ## Direct v0.21.2 · 2026-11-19
 

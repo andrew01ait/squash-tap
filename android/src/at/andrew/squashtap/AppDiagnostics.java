@@ -13,6 +13,10 @@ import java.time.format.DateTimeFormatter;
 
 /** Private, bounded lifecycle/crash evidence. No telemetry or background upload. */
 public final class AppDiagnostics extends Application {
+    static final int MAX_TRACE_EVENTS = 12;
+    private static final int MAX_EVENT_LENGTH = 160;
+    private static final DateTimeFormatter EVENT_TIME = DateTimeFormatter.ofPattern("HH:mm:ss");
+
     @Override public void onCreate(){
         super.onCreate();
         final Thread.UncaughtExceptionHandler previous=Thread.getDefaultUncaughtExceptionHandler();
@@ -30,22 +34,29 @@ public final class AppDiagnostics extends Application {
     public static synchronized void record(Context context,String event){
         try{
             SharedPreferences prefs=context.getSharedPreferences("squash",Context.MODE_PRIVATE);
-            String trace=prefs.getString("lifecycle_trace","")+LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"))+" "+event+"\n";
-            trace=tailLines(trace,6000);
-            prefs.edit().putString("lifecycle_trace",trace).apply();
+            String line = LocalTime.now().format(EVENT_TIME) + " " + event.replace('\n', ' ').replace('\r', ' ');
+            String previous = prefs.getString("lifecycle_trace", "");
+            if (!previous.isEmpty() && !previous.endsWith("\n")) previous += "\n";
+            String trace = recentTrace(previous + line);
+            prefs.edit().putString("lifecycle_trace", trace).apply();
         }catch(Exception ignored){}
     }
-    public static String tailLines(String text,int limit){
-        if(text.length()<=limit)return text;
-        int start=text.length()-limit,newline=text.indexOf('\n',start);
-        return text.substring(newline>=0?newline+1:start);
+
+    static String recentTrace(String trace) {
+        String[] lines = trace.split("\n");
+        StringBuilder recent = new StringBuilder();
+        for (int i = Math.max(0, lines.length - MAX_TRACE_EVENTS); i < lines.length; i++) {
+            if (!lines[i].isEmpty()) recent.append(DiagnosticTransfer.excerpt(lines[i], MAX_EVENT_LENGTH)).append('\n');
+        }
+        return recent.toString();
     }
-    public static String recentExits(Context context){
-        if(Build.VERSION.SDK_INT<30)return "Unavailable on this OS";
+
+    static String recentExits(Context context, boolean compact) {
+        if(Build.VERSION.SDK_INT<30)return compact ? "" : "Unavailable on this OS";
         try{
             ActivityManager manager=(ActivityManager)context.getSystemService(Context.ACTIVITY_SERVICE);
             StringBuilder out=new StringBuilder();
-            for(ApplicationExitInfo exit:manager.getHistoricalProcessExitReasons(context.getPackageName(),0,3)){
+            for(ApplicationExitInfo exit:manager.getHistoricalProcessExitReasons(context.getPackageName(),0,compact ? 1 : 3)){
                 String reason;
                 switch(exit.getReason()){
                     case ApplicationExitInfo.REASON_CRASH:reason="Crash";break;
@@ -57,10 +68,12 @@ public final class AppDiagnostics extends Application {
                     case ApplicationExitInfo.REASON_CRASH_NATIVE:reason="Native crash";break;
                     default:reason="System reason "+exit.getReason();
                 }
-                out.append(java.time.Instant.ofEpochMilli(exit.getTimestamp()).atZone(java.time.ZoneId.systemDefault()).toLocalDateTime())
+                java.time.LocalDateTime time = java.time.Instant.ofEpochMilli(exit.getTimestamp()).atZone(java.time.ZoneId.systemDefault()).toLocalDateTime();
+                if (compact) return time.withNano(0) + " · " + reason;
+                out.append(time)
                     .append(" · ").append(reason).append(" · ").append(exit.getDescription()).append('\n');
             }
-            return out.length()==0?"No recorded process exits":out.toString();
-        }catch(Exception error){return "Exit reasons unavailable: "+error.getClass().getSimpleName();}
+            return out.length()==0 && !compact ? "No recorded process exits" : out.toString();
+        }catch(Exception error){return compact ? "" : "Exit reasons unavailable: "+error.getClass().getSimpleName();}
     }
 }

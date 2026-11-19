@@ -123,6 +123,11 @@ public class MenuRevisionUiTest {
         int spec=View.MeasureSpec.makeMeasureSpec(diameter,View.MeasureSpec.EXACTLY);
         root.measure(spec,spec);root.layout(0,0,diameter,diameter);
         assertTrue(backButton.getHeight()>=48*activity.getResources().getDisplayMetrics().density);
+        assertEquals(payload, decodeRoundQr(root, diameter, "qr-round-192-de-large"));
+        backButton.performClick();
+        assertTrue(hasButton("Partie pausieren"));
+    }
+    private String decodeRoundQr(View root, int diameter, String name) throws Exception {
         android.graphics.Bitmap frame=android.graphics.Bitmap.createBitmap(diameter,diameter,android.graphics.Bitmap.Config.ARGB_8888);
         root.draw(new android.graphics.Canvas(frame));
         int[] pixels=new int[diameter*diameter];
@@ -132,16 +137,61 @@ public class MenuRevisionUiTest {
         for(int y=0;y<diameter;y++)for(int x=0;x<diameter;x++)
             if(Math.hypot(x-radius,y-radius)>radius)pixels[y*diameter+x]=Color.BLACK;
         frame.setPixels(pixels,0,diameter,0,0,diameter,diameter);
-        java.io.File output=new java.io.File("build/qa/qr-round-192-de-large.png");
+        java.io.File output=new java.io.File("build/qa/" + name + ".png");
         output.getParentFile().mkdirs();
         try(java.io.OutputStream out=new java.io.FileOutputStream(output)){
             assertTrue(frame.compress(android.graphics.Bitmap.CompressFormat.PNG,100,out));
         }
         com.google.zxing.RGBLuminanceSource source=new com.google.zxing.RGBLuminanceSource(diameter,diameter,pixels);
-        assertEquals(payload,new com.google.zxing.qrcode.QRCodeReader().decode(new com.google.zxing.BinaryBitmap(new com.google.zxing.common.HybridBinarizer(source))).getText());
-        backButton.performClick();
-        assertTrue(hasButton("Partie pausieren"));
+        return new com.google.zxing.qrcode.QRCodeReader().decode(new com.google.zxing.BinaryBitmap(new com.google.zxing.common.HybridBinarizer(source))).getText();
     }
+
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(qualifiers="w192dp-h192dp-round-xhdpi") public void diagnosticsQrPrunesLegacyHistoryAndScansFromTheGermanWatchScreen() throws Exception {
+        RuntimeEnvironment.setFontScale(1.3f);
+        preferences.edit().putString(WatchLanguage.PREFERENCE,"de").commit();
+        close(); launch(); root(); click("Einstellungen");
+        StringBuilder legacy = new StringBuilder();
+        for (int i=0; i<80; i++) legacy.append("11:01:30 legacy event ").append(i).append('\n');
+        StringBuilder crash = new StringBuilder("2026-02-01 v1 main\nIllegalStateException: Demo");
+        for (int i=0; i<120; i++) crash.append("\n at synthetic.frame").append(i);
+        preferences.edit().putString("lifecycle_trace",legacy.toString()).putString("last_crash",crash.toString()).commit();
+        AppDiagnostics.record(activity, "NFC share: commands=0 mapping=0 stage=waiting");
+        String trace = preferences.getString("lifecycle_trace","");
+        assertEquals(12, trace.split("\n").length);
+        assertFalse(trace.contains("legacy event 0\n"));
+        assertTrue(trace.contains("legacy event 79\n"));
+
+        click("Diagnose"); click(activity.tr("Send to phone"));
+        View root = dialog().getWindow().getDecorView();
+        int diameter = activity.getResources().getDisplayMetrics().widthPixels;
+        int spec = View.MeasureSpec.makeMeasureSpec(diameter,View.MeasureSpec.EXACTLY);
+        root.measure(spec,spec); root.layout(0,0,diameter,diameter);
+        String link = decodeRoundQr(root, diameter, "diagnostics-qr-round-192-de");
+        assertTrue(link.startsWith(BuildConfig.SITE_URL + "/diagnostics.html#d="));
+        assertTrue(link.getBytes("UTF-8").length <= 318);
+        android.net.Uri uri = android.net.Uri.parse("https://example.test/?" + java.net.URI.create(link).getFragment());
+        String[] state = uri.getQueryParameter("s").split("\\.");
+        assertEquals("de", state[1]);
+        assertEquals("17", state[9]);
+        assertTrue((Integer.parseInt(state[2], 36) & (1 << 10)) != 0);
+        com.google.zxing.qrcode.encoder.QRCode symbol = com.google.zxing.qrcode.encoder.Encoder.encode(link,
+            com.google.zxing.qrcode.decoder.ErrorCorrectionLevel.L,
+            java.util.Collections.singletonMap(com.google.zxing.EncodeHintType.CHARACTER_SET,"UTF-8"));
+        assertTrue(symbol.getVersion().getVersionNumber() <= 11);
+        byte[] bytes = Base64.getUrlDecoder().decode(uri.getQueryParameter("d"));
+        try (java.util.Scanner decoded = new java.util.Scanner(new java.util.zip.GZIPInputStream(
+            new java.io.ByteArrayInputStream(bytes)), "UTF-8").useDelimiter("\\A")) {
+            String report = decoded.next();
+            assertTrue(report.contains("Keep Score v" + BuildConfig.VERSION_NAME));
+            assertTrue(report.contains("NFC share: commands=0 mapping=0 stage=waiting"));
+            assertFalse(report.contains("synthetic.frame"));
+            assertFalse(report.contains("legacy event 0\n"));
+        }
+        click(activity.tr("Back to Diagnostics"));
+        assertTrue(has("synthetic.frame119"));
+    }
+
     private void matchInGerman(){
         root();click("Aktuelle Partie");
         assertEquals(Arrays.asList("Spielstand","Partie einrichten","Teilen","Partie beenden"),sections());

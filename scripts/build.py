@@ -6,8 +6,8 @@ import argparse, os, subprocess, sys, zipfile
 ROOT=Path(__file__).resolve().parents[1]
 PKG='at.andrew.squashtap'
 SITE='https://squash-tap-andrew.endruuu.chatgpt.site'
-RELEASES=((32,'0.21.2'),)
-RELEASE_NOTES='NFC sharing now supports a second Android reader format. The watch shows whether a failed tap reached Keep Score.'
+RELEASES=((33,'0.21.3'),)
+RELEASE_NOTES='Diagnostic QR codes show the newest events and use larger squares for easier scanning.'
 
 def run(args, env=None):
     result=subprocess.run([str(x) for x in args],cwd=ROOT,env=env,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
