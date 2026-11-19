@@ -8,4 +8,7 @@
         <item name="android:colorAccent">#76CFFF</item>
         <item name="android:fontFamily">sans</item>
     </style>
+    <style name="WatchPanel" parent="@android:style/ThemeOverlay.Material.Dialog">
+        <item name="android:windowSwipeToDismiss">false</item>
+    </style>
 </resources>

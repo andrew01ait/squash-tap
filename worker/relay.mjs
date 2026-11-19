@@ -1,10 +1,10 @@
 /** Only opaque encrypted payloads reach this service. Keys never leave URL fragments/devices. */
-export const TTL=600_000,MAX_BODY=1_500_600;
+export const TTL=600_000,MAX_BODY=6_000_600;
 const baseHeaders={"Cache-Control":"no-store, private","Content-Type":"application/json; charset=utf-8","X-Content-Type-Options":"nosniff","Referrer-Policy":"no-referrer","X-Frame-Options":"DENY"};
 function response(value,status=200){return new Response(JSON.stringify(value),{status,headers:baseHeaders});}
 async function hash(value){return [...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(value)))].map(x=>x.toString(16).padStart(2,"0")).join("");}
 function equal(a,b){if(typeof a!=="string"||a.length!==b.length)return false;let n=0;for(let i=0;i<a.length;i++)n|=a.charCodeAt(i)^b.charCodeAt(i);return n===0;}
-function validCipher(value){return typeof value==="string"&&value.length<=1_500_000&&/^1\.[A-Za-z0-9_-]{16}\.[A-Za-z0-9_-]{22,}$/.test(value);}
+function validCipher(value){return typeof value==="string"&&value.length<=(value.startsWith("2.")?6_000_000:1_500_000)&&/^[12]\.[A-Za-z0-9_-]{16}\.[A-Za-z0-9_-]{22,}$/.test(value);}
 async function json(request){
   if(!request.headers.get("Content-Type")?.startsWith("application/json"))throw new Error("Use JSON");
   const reader=request.body?.getReader();if(!reader)throw new Error("Empty request");let size=0,chunks=[];

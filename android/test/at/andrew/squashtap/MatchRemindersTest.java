@@ -1,0 +1,9 @@
+package at.andrew.squashtap;
+import org.junit.Test;import static org.junit.Assert.*;
+public class MatchRemindersTest {
+ @Test public void badmintonIntervalsFollowTheSelectedOldOrNewTarget(){for(int target:new int[]{21,15}){MatchState m=new MatchState("badminton",3,MatchFormat.defaults("badminton").target(target));int interval=target==21?11:8;for(int n=0;n<interval-1;n++)m.add(0);MatchState before=MatchState.decode(m.encode());m.add(0);assertEquals("INTERVAL",MatchReminders.transition(before,m));m.undo();assertEquals("",MatchReminders.transition(m,m));}}
+ @Test public void decidingTableTennisGameSignalsOnlyAtFive(){MatchState m=new MatchState("table",3,MatchFormat.defaults("table-tennis"));m.enterCompletedSet(11,0);m.enterCompletedSet(0,11);m.nextGame();for(int i=0;i<4;i++)m.add(0);MatchState before=MatchState.decode(m.encode());m.add(0);assertEquals("CHANGE ENDS",MatchReminders.transition(before,m));}
+ @Test public void evenTennisSetDoesNotIncorrectlyRequestAnEndChange(){MatchState m=new MatchState("tennis",3,MatchFormat.defaults("tennis"));for(int i=0;i<23;i++)m.add(0);MatchState before=MatchState.decode(m.encode());m.add(0);assertEquals("SET INTERVAL",MatchReminders.transition(before,m));}
+ @Test public void matchTieBreakChangesEndsAtSixPoints(){MatchState m=new MatchState("tie",3,MatchFormat.defaults("tennis").finalTie(true));m.enterCompletedSet(6,0);m.enterCompletedSet(0,6);m.nextGame();for(int i=0;i<5;i++)m.add(i%2);MatchState before=MatchState.decode(m.encode());m.add(1);assertEquals("CHANGE ENDS",MatchReminders.transition(before,m));}
+ @Test public void manualSummariesDoNotInventMidGameReminders(){MatchState m=new MatchState("manual",3,MatchFormat.defaults("badminton"));MatchState before=MatchState.decode(m.encode());m.enterCompletedSet(21,5);assertEquals("",MatchReminders.transition(before,m));}
+}

@@ -21,6 +21,7 @@ public final class MatchBook {
     private boolean deletedCurrent;
     public MatchBook(MatchState current){this(current,Clock.systemDefaultZone());}
     public MatchBook(MatchState current,Clock clock){this.current=Objects.requireNonNull(current);this.clock=Objects.requireNonNull(clock);timingEligible=!current.hasPoints();}
+    public String currentZoneId(){return zoneId;}
     public long currentStartedAt(){return startedAt;}
     public long currentFinishedAt(){return finishedAt;}
     public String currentStartedText(){return startedAt>0?MatchResult.formatMoment(startedAt,zoneId,"dd.MM.yyyy HH:mm:ss z"):timingEligible?"Starts with first point":"Not recorded";}
@@ -78,9 +79,18 @@ public final class MatchBook {
     }
     public boolean nextGame(){return current.nextGame();}
     public boolean changeBestOf(int value){return current.changeBestOf(value);}
+    /** Discard only an unfinished current match. No result or daily reference is created. */
+    public void discardCurrent(String replacementId){
+        if(current.complete())throw new IllegalStateException("Finished matches must be deleted from Results");
+        newMatch(replacementId,current.bestOf(),current.format());
+    }
     public void newMatch(String id,int bestOf){
         if(id.equals(current.id())||results.containsKey(id))throw new IllegalArgumentException("Match identifier already used");
-        MatchState replacement=new MatchState(id,bestOf);
+        newMatch(id,bestOf,MatchFormat.squash());
+    }
+    public void newMatch(String id,int bestOf,MatchFormat format){
+        if(id.equals(current.id())||results.containsKey(id))throw new IllegalArgumentException("Match identifier already used");
+        MatchState replacement=new MatchState(id,bestOf,format);
         current=replacement;completionDate="";completionNumber=0;deletedCurrent=false;startedAt=0;finishedAt=0;zoneId="";timingEligible=true;
     }
     public boolean delete(String id){
@@ -94,31 +104,57 @@ public final class MatchBook {
     public MatchResult importResult(MatchResult result){
         if(result.id.equals(current.id())||results.containsKey(result.id))throw new IllegalArgumentException("Match ID already exists");
         if(results.size()>=MAX_RESULTS)throw new IllegalArgumentException("Result storage is full");
-        int old=dailyNumbers.containsKey(result.date)?dailyNumbers.get(result.date):0;
-        if(old==Integer.MAX_VALUE)throw new IllegalArgumentException("Daily match number limit reached");
-        int number=old+1;
-        int[][] scores=new int[result.gameCount()][2];for(int i=0;i<scores.length;i++){scores[i][0]=result.points(i,0);scores[i][1]=result.points(i,1);}
-        MatchResult imported=new MatchResult(result.id,result.date,number,result.bestOf,scores,result.startedAt,result.finishedAt,result.zoneId,result.retiredPlayer);
-        if(!dailyNumbers.containsKey(result.date)&&dailyNumbers.size()>=10000)throw new IllegalArgumentException("Date storage is full");
-        dailyNumbers.put(result.date,number);results.put(result.id,imported);return imported;
+        MatchResult imported = result.renumber(nextNumber(result.date));
+        results.put(imported.id, imported);
+        return imported;
+    }
+    private int nextNumber(String date) {
+        int last = dailyNumbers.getOrDefault(date, 0);
+        if (last == Integer.MAX_VALUE) throw new IllegalArgumentException("Daily match number limit reached");
+        if (last == 0 && dailyNumbers.size() >= 10000) throw new IllegalArgumentException("Date storage is full");
+        dailyNumbers.put(date, last + 1);
+        return last + 1;
+    }
+    /** A corrected result keeps its identity. Moving to a different day consumes a new daily reference. */
+    void correctResult(MatchResult value) {
+        MatchResult old = result(value.id);
+        if (old == null) throw new IllegalArgumentException("This result was removed. Start a fresh phone transfer.");
+        if (!old.format.equals(value.format) || old.bestOf != value.bestOf ||
+                old.startedAt != value.startedAt || old.finishedAt != value.finishedAt || !old.zoneId.equals(value.zoneId) ||
+                (old.startedAt != 0 || old.finishedAt != 0) && !old.date.equals(value.date))
+            throw new IllegalArgumentException("Recorded rules and timing must be preserved");
+        boolean onScoreboard = current.id().equals(value.id);
+        MatchState corrected = onScoreboard ? current.corrected(value) : null;
+        int number = old.date.equals(value.date) ? old.number : nextNumber(value.date);
+        MatchResult saved = value.renumber(number);
+        if (onScoreboard) {
+            current = corrected;
+            completionDate = saved.date;
+            completionNumber = saved.number;
+            saved = MatchResult.from(current, saved.date, saved.number, startedAt, finishedAt, zoneId);
+        }
+        results.put(saved.id, saved);
     }
     public String encode(){
         try{
             ByteArrayOutputStream bytes=new ByteArrayOutputStream();DataOutputStream out=new DataOutputStream(bytes);
-            out.writeUTF(current.encode());out.writeUTF(completionDate);out.writeInt(completionNumber);out.writeBoolean(deletedCurrent);
+            String currentState=current.encode();
+            boolean multi=currentState.startsWith("M4|")||currentState.startsWith("M5|");for(MatchResult result:results.values())if(!result.format.legacy())multi=true;
+            if(multi){byte[] state=currentState.getBytes(java.nio.charset.StandardCharsets.UTF_8);out.writeInt(state.length);out.write(state);}else out.writeUTF(currentState);out.writeUTF(completionDate);out.writeInt(completionNumber);out.writeBoolean(deletedCurrent);
             out.writeLong(startedAt);out.writeLong(finishedAt);out.writeUTF(zoneId);out.writeBoolean(timingEligible);
             out.writeInt(dailyNumbers.size());for(Map.Entry<String,Integer> entry:dailyNumbers.entrySet()){out.writeUTF(entry.getKey());out.writeInt(entry.getValue());}
-            out.writeInt(results.size());for(MatchResult result:results.values())result.write(out);out.flush();
-            return "B4:"+Base64.getEncoder().encodeToString(bytes.toByteArray());
+            out.writeInt(results.size());for(MatchResult result:results.values()){if(multi)result.writeExtended(out);else result.write(out);}out.flush();
+            return (multi?"B5:":"B4:")+Base64.getEncoder().encodeToString(bytes.toByteArray());
         }catch(IOException error){throw new IllegalStateException("Cannot serialize match history",error);}
     }
     public static MatchBook decode(String encoded){return decode(encoded,Clock.systemDefaultZone());}
     public static MatchBook decode(String encoded,Clock clock){
         try{
-            if(encoded==null||!(encoded.startsWith("B1:")||encoded.startsWith("B2:")||encoded.startsWith("B3:")||encoded.startsWith("B4:"))||encoded.length()>5000000)throw new IOException("Unknown or oversized match history");
-            boolean entered=encoded.startsWith("B4:"),retirements=entered||encoded.startsWith("B3:"),timed=!encoded.startsWith("B1:");
+            if(encoded==null||!(encoded.startsWith("B1:")||encoded.startsWith("B2:")||encoded.startsWith("B3:")||encoded.startsWith("B4:")||encoded.startsWith("B5:"))||encoded.length()>5000000)throw new IOException("Unknown or oversized match history");
+            boolean multi=encoded.startsWith("B5:"),entered=multi||encoded.startsWith("B4:"),retirements=entered||encoded.startsWith("B3:"),timed=!encoded.startsWith("B1:");
             DataInputStream in=new DataInputStream(new ByteArrayInputStream(Base64.getDecoder().decode(encoded.substring(3))));
-            MatchBook book=new MatchBook(MatchState.decode(in.readUTF()),clock);book.completionDate=in.readUTF();book.completionNumber=in.readInt();book.deletedCurrent=in.readBoolean();
+            String state;if(multi){int size=in.readInt();if(size<1||size>75000)throw new IOException("Invalid current match length");byte[] data=new byte[size];in.readFully(data);state=new String(data,java.nio.charset.StandardCharsets.UTF_8);}else state=in.readUTF();
+            MatchBook book=new MatchBook(MatchState.decode(state),clock);book.completionDate=in.readUTF();book.completionNumber=in.readInt();book.deletedCurrent=in.readBoolean();
             if(!retirements&&book.current.retired())throw new IOException("Retirement requires B3 storage");
             if(!entered&&book.current.hasEnteredSets())throw new IOException("Entered scores require B4 storage");
             if(timed){book.startedAt=in.readLong();book.finishedAt=in.readLong();book.zoneId=in.readUTF();book.timingEligible=in.readBoolean();}
@@ -134,7 +170,7 @@ public final class MatchBook {
             int count=in.readInt();if(count<0||count>MAX_RESULTS)throw new IOException("Invalid result count");
             HashSet<String> references=new HashSet<>();
             for(int i=0;i<count;i++){
-                MatchResult result=MatchResult.read(in,timed,retirements);
+                MatchResult result=MatchResult.read(in,timed,retirements,multi);
                 if(book.results.put(result.id,result)!=null||!references.add(result.date+"/"+result.number)
                     ||!book.dailyNumbers.containsKey(result.date)||book.dailyNumbers.get(result.date)<result.number)throw new IOException("Invalid result identity");
             }

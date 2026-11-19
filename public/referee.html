@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="referrer" content="no-referrer">
+  <meta name="theme-color" content="#0b1019">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; worker-src 'self'; connect-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Referee · Keep Score</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/match-web.css">
+  <link rel="stylesheet" href="/score-outcome.css">
+  <link rel="stylesheet" href="/referee.css">
+  <script type="module" src="/referee.mjs"></script>
+</head>
+<body>
+<header class="site-head"><div class="sheet-frame masthead">
+  <a href="/" class="brand-link"><img src="/favicon.svg" alt="" width="34" height="34">Keep Score</a>
+  <div id="language"></div>
+</div></header>
+<main class="sheet-frame">
+  <div class="section-head"><h1 id="title">Referee</h1><span id="connection" class="connection" role="status" hidden></span></div>
+  <div class="workspace">
+    <div class="score-column">
+      <section id="board" class="panel panel-pad" aria-label="Match" hidden>
+        <section id="conflict" hidden>
+          <h2 id="conflict-title"></h2><p id="conflict-text"></p>
+          <div class="comparisons"><p id="local-score"></p><p id="remote-score"></p></div>
+          <div class="main-actions"><button type="button" class="secondary" id="take-remote"></button><button type="button" class="secondary" id="keep-local"></button></div>
+        </section>
+        <div class="matchline"><div><span id="format"></span><h2 id="period"></h2></div><span id="rule"></span></div>
+        <div class="teams">
+          <button type="button" class="court blue" id="side-0">
+            <span class="name" id="name-0"></span><strong id="point-0"></strong><span class="rally" id="rally-0"></span>
+          </button>
+          <button type="button" class="court red" id="side-1">
+            <span class="name" id="name-1"></span><strong id="point-1"></strong><span class="rally" id="rally-1"></span>
+          </button>
+        </div>
+        <p id="serve"></p>
+        <button type="button" id="choose-starters" class="secondary" hidden></button>
+        <p id="outcome" role="status" hidden></p>
+        <div class="main-actions">
+          <button type="button" id="undo" class="secondary"></button>
+          <button type="button" id="advance" class="primary" hidden></button>
+          <button type="button" id="finalize" class="primary" hidden></button>
+        </div>
+      </section>
+      <p id="action-message" role="alert"></p>
+      <div class="sync-feedback"><p id="status" role="status">Opening the match…</p>
+        <button type="button" id="retry" class="secondary" hidden>Try again</button>
+      </div>
+    </div>
+    <aside id="match-sheet" hidden>
+      <section class="panel panel-pad" aria-labelledby="sheet-title">
+        <div class="panel-heading"><h2 id="sheet-title"></h2><strong id="sets"></strong></div>
+        <table id="scorecard" class="series" aria-labelledby="sheet-title">
+          <colgroup><col><col><col></colgroup><thead><tr><th scope="col"></th><th scope="col"></th><th scope="col"></th></tr></thead>
+          <tbody id="history"></tbody>
+        </table>
+      </section>
+      <div class="options">
+        <details id="server-settings" hidden>
+          <summary id="server-title"></summary>
+          <div class="form-grid">
+            <label><span id="first-label"></span><select id="first"></select></label>
+            <label><span id="other-label"></span><select id="other"></select></label>
+          </div><button type="button" id="set-server" class="secondary"></button>
+        </details>
+        <details id="retirement"><summary id="retire-summary"></summary><div class="retire-content">
+          <label><span id="retire-label"></span><select id="retire-side"></select></label><button type="button" id="retire" class="secondary"></button>
+        </div></details>
+      </div>
+    </aside>
+  </div>
+  <small id="device-id"></small>
+</main>
+</body>
+</html>

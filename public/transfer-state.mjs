@@ -1,5 +1,7 @@
-import {name,statistics} from './interchange.mjs?v=0.11.0';
-export function initialView(value){return ['results','statistics','opponents','import'].includes(value)?value:'results';}
+import {participants, rowMode, rowSport, scorePairs, sportRows} from './sports.mjs?v=0.16.3';
+import {name, statistics, localDate, rowWinner} from './interchange.mjs?v=0.16.0';
+
+export function initialView(value){return ['results','statistics','opponents','import','backup'].includes(value)?value:'results';}
 /** Catalog edits never select a match opponent. Match reassignment is a separate opt-in. */
 export function addName(catalog,value){
  const n=name(value),found=catalog.find(e=>e.name.toLowerCase()===n.toLowerCase());
@@ -7,8 +9,88 @@ export function addName(catalog,value){
  if(catalog.length>=1000)throw Error('Opponent storage is full');
  const entry={id:crypto.randomUUID(),name:n,archived:false};catalog.push(entry);return entry;
 }
-export function incomingPayload({snapshot,catalog,current,changeCurrent,csv,sessionId}){
- return {schema:1,sessionId,baseDirectory:snapshot.baseDirectory,currentMatchId:snapshot.currentMatchId,currentOpponentId:changeCurrent?current:(snapshot.currentOpponentId||''),changeCurrentOpponent:!!changeCurrent,opponents:catalog,csv};
+export function incomingPayload({snapshot,catalog,current,changeCurrent,csv,sessionId,myName}){
+ const out={schema:1,sessionId,baseDirectory:snapshot.baseDirectory,currentMatchId:snapshot.currentMatchId,currentOpponentId:changeCurrent?current:(snapshot.currentOpponentId||''),changeCurrentOpponent:!!changeCurrent,opponents:catalog,csv};if(snapshot.supportsYourName&&typeof myName==='string'&&myName!==(snapshot.myName||'')){out.changeMyName=true;out.myName=myName;out.baseMyName=snapshot.myName||'';}return out;
 }
-export function checkRetirementSupport(snapshot,rows){if(!snapshot.supportsRetirement&&rows.some(r=>r[23]))throw Error('Update Squash Tap on your watch to v0.11.0 or newer before importing retired matches.');}
-export function opponentStatistics(rows){const groups=new Map();for(const r of rows){const id=r[4]||'';if(!groups.has(id))groups.set(id,[]);groups.get(id).push(r);}return [...groups].map(([id,list])=>({id,fallback:list[0][5]||'Unnamed',...statistics(list)}));}
+export function checkRetirementSupport(snapshot,rows){if(!snapshot.supportsRetirement&&rows.some(r=>r[23]))throw Error('Update Keep Score on your watch to v0.11.0 or newer before importing retired matches.');}
+
+export function byPlayer(rows, role) {
+  const groups=new Map();
+  for(const row of rows) {
+    const columns=role==='partner'?(row[0]==='3'&&row[32]?[32]:[]):[4,...(row[0]==='3'&&row[34]?[34]:[])];
+    for(const index of columns) {
+      const id=row[index]||'';
+      if(!groups.has(id)) groups.set(id,{fallback:row[index+1]||'',rows:[]});
+      groups.get(id).rows.push(row);
+    }
+  }
+  return [...groups].map(([id,group])=>({id,fallback:group.fallback,...statistics(group.rows)}));
+}
+export const opponentStatistics=rows=>byPlayer(rows,'opponent');
+
+export function matchesPerson(row,id,role='all') {
+  if(id==='*') return true;
+  if(role==='opponent') return (row[4]||'')===id || Boolean(id&&row[0]==='3'&&row[34]===id);
+  if(role==='partner') return Boolean(id&&row[0]==='3'&&row[32]===id);
+  return id?participants(row).includes(id):participants(row).length===0;
+}
+const recordedDays=new WeakMap();
+function recordedDay(row) {
+  let entry=recordedDays.get(row);
+  if(!entry||entry.start!==row[7]||entry.zone!==row[9]||entry.date!==row[2]) {
+    entry={start:row[7],zone:row[9],date:row[2],day:localDate(row)};
+    recordedDays.set(row,entry);
+  }
+  return entry.day;
+}
+export function filteredRows(rows,{id='*',role='all',outcome='all',from='',to=''}={}) {
+  if(from&&to&&from>to) throw Error('date');
+  return rows.filter(row=>{
+    if(!matchesPerson(row,id,role) || outcome!=='all' && (rowWinner(row)===0?'won':'lost')!==outcome) return false;
+    if(!from&&!to) return true;
+    const date=recordedDay(row);
+    return (!from||date>=from)&&(!to||date<=to);
+  });
+}
+export function newest(rows) {
+  // Match the watch's recorded local day, known start time, then daily reference.
+  return rows.map(row=>({row,day:recordedDay(row),start:row[7]?Date.parse(row[7]):0}))
+    .sort((a,b)=>b.day.localeCompare(a.day)||b.start-a.start||Number(b.row[3])-Number(a.row[3]))
+    .map(item=>item.row);
+}
+export function matchInsights(rows) {
+  const ordered=newest(rows);
+  let run=0, best=0, current=0, deciding=0, decidingWon=0, seconds=0, timed=0;
+  const last=ordered.length?rowWinner(ordered[0]):null;
+  for(const [index,row] of ordered.entries()) {
+    const winner=rowWinner(row);
+    if(index===current&&winner===last) current++;
+    run=winner===0?run+1:0;best=Math.max(best,run);
+    if(!row[23]&&Number(row[6])>1&&scorePairs(row).filter(Boolean).length===Number(row[6])) {
+      deciding++;
+      if(winner===0) decidingWon++;
+    }
+    if(row[10]!==''&&row[10]!=null) {seconds+=Number(row[10]);timed++;}
+  }
+  return {last,current,best,deciding,decidingWon,timed,averageSeconds:timed?Math.round(seconds/timed):null};
+}
+export function sportsByPlayer(rows) {
+  const index=new Map();
+  for(const row of rows) for(const id of participants(row)) {
+    if(!index.has(id)) index.set(id,new Set());
+    index.get(id).add(rowSport(row));
+  }
+  return index;
+}
+
+export function inScope(rows,sport,mode) {
+  return sport==='all'?rows.filter(row=>mode==='all'||rowMode(row)===mode):sportRows(rows,sport,mode);
+}
+export function filterPlayers(catalog, rows) {
+  const players=new Map(catalog.map(player=>[player.id,player]));
+  for(const row of rows) for(const index of row[0]==='3'?[4,32,34]:[4]) {
+    const id=row[index];
+    if(id&&!players.has(id)) players.set(id,{id,name:row[index+1]||id,archived:false});
+  }
+  return [...players.values()];
+}

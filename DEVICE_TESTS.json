@@ -39,6 +39,31 @@
       "date": "2026-11-04",
       "version": "0.8.0",
       "observation": "After the v0.8 release the user reported that the workflow worked and requested distinct name styling plus optional opponent selection during new-match setup. This general confirmation does not identify every CSV/import, dictation or battery scenario as individually tested."
+    },
+    {
+      "date": "2026-11-10",
+      "version": "0.15.0",
+      "observation": "User reported that the new navigation is much easier to understand. Subsequently reported that serving information was difficult to see or clipped with missing or long opponent names. This does not validate the v0.15.1 serving fix, ambient behavior or battery use."
+    },
+    {
+      "date": "2026-11-11",
+      "version": "0.16.0",
+      "observation": "User reported that some setting selections, including vibrations, immediately return to the previous menu; live sharing does not automatically present its ready QR; a discarded watch match leaves the audience scoreboard looking active. These are reported defects, not acceptance of the v0.16.1 corrections."
+    },
+    {
+      "date": "2026-11-19",
+      "version": "0.21.0",
+      "observation": "The user tested Seite per NFC teilen. The phone displayed Neues Tag erfasst and Leeres Tag instead of a page link. The exact handset version and the stage of that NFC exchange were not recorded."
+    },
+    {
+      "date": "2026-11-19",
+      "version": "0.21.1",
+      "observation": "The phone showed NFC-Dienst with Neues Tag erfasst / Leeres Tag after the watch update. The watch showed Bereit zum Teilen when photographed and NFC was enabled. The reader commands and the result at timeout are unknown."
+    },
+    {
+      "date": "2026-11-19",
+      "version": "0.21.2",
+      "observation": "Two watch-to-phone NFC offers ended with zero reader commands. The watch reported foreground routing and both NFC mappings available. One offer ended when the activity paused. The user reported that the diagnostic QR had become hard to scan as the log grew."
     }
   ]
 }

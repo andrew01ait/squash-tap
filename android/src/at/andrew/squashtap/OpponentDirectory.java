@@ -14,6 +14,7 @@ public final class OpponentDirectory {
     }
     private final LinkedHashMap<String,Entry> entries=new LinkedHashMap<>();
     private final LinkedHashMap<String,String> assignments=new LinkedHashMap<>();
+    private final LinkedHashMap<String,String[]> teams=new LinkedHashMap<>();
     static void validId(String id){if(id==null||!id.matches("[A-Za-z0-9-]{1,80}"))throw new IllegalArgumentException("Invalid identifier");}
     public static String validName(String value){
         if(value==null)throw new IllegalArgumentException("Enter a name");
@@ -27,6 +28,20 @@ public final class OpponentDirectory {
     public Entry get(String id){return entries.get(id);}
     public String opponentId(String matchId){String id=assignments.get(matchId);return id==null?"":id;}
     public String nameFor(String matchId){Entry e=get(opponentId(matchId));return e==null?"":e.name;}
+    public String roleId(String matchId,int slot){if(slot<0||slot>2)throw new IllegalArgumentException("Invalid player role");String[] team=teams.get(matchId);return slot==0?opponentId(matchId):team==null?"":team[slot-1];}
+    public String roleName(String matchId,int slot){Entry e=get(roleId(matchId,slot));return e==null?"":e.name;}
+    /** Forget an abandoned match's role links, retaining the shared player catalog. */
+    public void forgetMatch(String matchId){validId(matchId);assignments.remove(matchId);teams.remove(matchId);}
+    public void assignRole(String matchId,int slot,String id){String[] values={roleId(matchId,0),roleId(matchId,1),roleId(matchId,2)};if(slot<0||slot>2)throw new IllegalArgumentException("Invalid player role");values[slot]=id;assignTeam(matchId,values[0],values[1],values[2]);}
+    public void assignTeam(String matchId,String opponent,String partner,String other){
+        java.util.HashSet<String> unique=new java.util.HashSet<>();for(String id:new String[]{opponent,partner,other})if(id!=null&&!id.isEmpty()&&!unique.add(id))throw new IllegalArgumentException("Choose a different person for each position");
+        for(String id:new String[]{opponent,partner,other})if(id!=null&&!id.isEmpty()&&get(id)==null)throw new IllegalArgumentException("Player not found");
+        validId(matchId);if(partner==null)partner="";if(other==null)other="";
+        if((!partner.isEmpty()||!other.isEmpty())&&!teams.containsKey(matchId)&&teams.size()>=20000)throw new IllegalArgumentException("Player assignment storage is full");
+        assign(matchId,opponent);if(partner.isEmpty()&&other.isEmpty())teams.remove(matchId);else teams.put(matchId,new String[]{partner,other});
+    }
+    public boolean involved(String matchId,String id){if(id==null)return true;if(id.isEmpty())return roleId(matchId,0).isEmpty()&&roleId(matchId,1).isEmpty()&&roleId(matchId,2).isEmpty();for(int i=0;i<3;i++)if(roleId(matchId,i).equals(id))return true;return false;}
+    public java.util.Set<String> sportsFor(String id,Iterable<MatchResult> results){java.util.Set<String> sports=new java.util.LinkedHashSet<>();for(MatchResult result:results)if(involved(result.id,id))sports.add(result.format.sport);return sports;}
     public List<Entry> list(boolean includeArchived){List<Entry> out=new ArrayList<>();for(Entry e:entries.values())if(includeArchived||!e.archived)out.add(e);Collections.sort(out,(a,b)->a.name.compareToIgnoreCase(b.name));return out;}
     public String add(String name){
         name=validName(name);for(Entry e:entries.values())if(key(e.name).equals(key(name))){entries.put(e.id,new Entry(e.id,e.name,false));return e.id;}
@@ -60,14 +75,14 @@ public final class OpponentDirectory {
     public String encode(){
         try{ByteArrayOutputStream bytes=new ByteArrayOutputStream();DataOutputStream out=new DataOutputStream(bytes);out.writeInt(entries.size());
             for(Entry e:entries.values()){out.writeUTF(e.id);out.writeUTF(e.name);out.writeBoolean(e.archived);}out.writeInt(assignments.size());
-            for(Map.Entry<String,String> e:assignments.entrySet()){out.writeUTF(e.getKey());out.writeUTF(e.getValue());}out.flush();return "O1:"+Base64.getEncoder().encodeToString(bytes.toByteArray());
+            for(Map.Entry<String,String> e:assignments.entrySet()){out.writeUTF(e.getKey());out.writeUTF(e.getValue());}if(!teams.isEmpty()){out.writeInt(teams.size());for(Map.Entry<String,String[]> e:teams.entrySet()){out.writeUTF(e.getKey());out.writeUTF(e.getValue()[0]);out.writeUTF(e.getValue()[1]);}}out.flush();return (teams.isEmpty()?"O1:":"O2:")+Base64.getEncoder().encodeToString(bytes.toByteArray());
         }catch(IOException error){throw new IllegalStateException(error);}
     }
     public static OpponentDirectory decode(String encoded){
         if(encoded==null||encoded.isEmpty())return new OpponentDirectory();
-        try{if(!encoded.startsWith("O1:")||encoded.length()>4000000)throw new IOException();DataInputStream in=new DataInputStream(new ByteArrayInputStream(Base64.getDecoder().decode(encoded.substring(3))));OpponentDirectory d=new OpponentDirectory();
+        try{boolean multi=encoded.startsWith("O2:");if(!multi&&!encoded.startsWith("O1:")||encoded.length()>8000000)throw new IOException();DataInputStream in=new DataInputStream(new ByteArrayInputStream(Base64.getDecoder().decode(encoded.substring(3))));OpponentDirectory d=new OpponentDirectory();
             int n=in.readInt();if(n<0||n>MAX_OPPONENTS)throw new IOException();for(int i=0;i<n;i++){Entry e=new Entry(in.readUTF(),in.readUTF(),in.readBoolean());if(d.get(e.id)!=null)throw new IOException();d.put(e);}
-            n=in.readInt();if(n<0||n>20000)throw new IOException();for(int i=0;i<n;i++){String match=in.readUTF(),id=in.readUTF();if(d.assignments.containsKey(match)||id.isEmpty())throw new IOException();d.assign(match,id);}if(in.read()!=-1)throw new IOException();return d;
+            n=in.readInt();if(n<0||n>20000)throw new IOException();for(int i=0;i<n;i++){String match=in.readUTF(),id=in.readUTF();if(d.assignments.containsKey(match)||id.isEmpty())throw new IOException();d.assign(match,id);}if(multi){n=in.readInt();if(n<0||n>20000)throw new IOException();for(int i=0;i<n;i++){String id=in.readUTF(),partner=in.readUTF(),other=in.readUTF();if(d.teams.containsKey(id)||partner.isEmpty()&&other.isEmpty())throw new IOException();d.assignTeam(id,d.opponentId(id),partner,other);}}if(in.read()!=-1)throw new IOException();return d;
         }catch(Exception e){throw new IllegalArgumentException("Saved opponents could not be read",e);}
     }
 }
