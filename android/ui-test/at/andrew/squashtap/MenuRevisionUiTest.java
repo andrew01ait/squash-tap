@@ -156,7 +156,7 @@ public class MenuRevisionUiTest {
         StringBuilder crash = new StringBuilder("2026-02-01 v1 main\nIllegalStateException: Demo");
         for (int i=0; i<120; i++) crash.append("\n at synthetic.frame").append(i);
         preferences.edit().putString("lifecycle_trace",legacy.toString()).putString("last_crash",crash.toString()).commit();
-        AppDiagnostics.record(activity, "NFC share: commands=0 mapping=0 stage=waiting");
+        AppDiagnostics.record(activity, "NFC share: commands=0 mapping=0 stage=waiting end=pause after=2s");
         String trace = preferences.getString("lifecycle_trace","");
         assertEquals(12, trace.split("\n").length);
         assertFalse(trace.contains("legacy event 0\n"));
@@ -184,7 +184,7 @@ public class MenuRevisionUiTest {
             new java.io.ByteArrayInputStream(bytes)), "UTF-8").useDelimiter("\\A")) {
             String report = decoded.next();
             assertTrue(report.contains("Keep Score v" + BuildConfig.VERSION_NAME));
-            assertTrue(report.contains("NFC share: commands=0 mapping=0 stage=waiting"));
+            assertTrue(report.contains("NFC share: commands=0 mapping=0 stage=waiting end=pause after=2s"));
             assertFalse(report.contains("synthetic.frame"));
             assertFalse(report.contains("legacy event 0\n"));
         }
@@ -196,12 +196,62 @@ public class MenuRevisionUiTest {
         root();click("Aktuelle Partie");
         assertEquals(Arrays.asList("Spielstand","Partie einrichten","Teilen","Partie beenden"),sections());
     }
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(qualifiers="de-rAT-w192dp-h192dp-round-xhdpi") public void tappingDownloadRevealsUpdateProgressOnASmallWatch() throws Exception {
+        org.junit.Assume.assumeFalse(BuildConfig.PLAY_DISTRIBUTION);
+        RuntimeEnvironment.setFontScale(1.3f);
+        preferences.edit().putString(WatchLanguage.PREFERENCE, "de").commit();
+        close(); launch();
+        shadowOf(activity.getPackageManager()).setCanRequestPackageInstalls(true);
+        String feed = "schema=1\npackageName=" + activity.getPackageName()
+            + "\nversionCode=" + (BuildConfig.VERSION_CODE + 1) + "\nversionName=9.9.9\nminSdk=30\nsizeBytes=100"
+            + "\napkUrl=https://example.test/update.apk\nsha256=" + String.join("", Collections.nCopies(64,"a"))
+            + "\nnotes=" + String.join(" ", Collections.nCopies(24, "Neue Funktion für die Uhr."));
+        ReflectionHelpers.setField(activity, "latest", UpdatePolicy.parse(feed, activity.getPackageName(), "example.test"));
+        root(); click("Einstellungen"); click("Nach Updates suchen");
+        ScrollView updates = scroll();
+        Button download = button("Laden und aktualisieren");
+        layout();
+        updates.scrollTo(0, download.getTop() - updates.getPaddingTop());
+        assertTrue(updates.getScrollY() > updates.getHeight());
+
+        click("Laden und aktualisieren");
+        assertEquals(0, updates.getScrollY());
+        assertUpdateMessageVisible("Geprüftes Update wird geladen …");
+        for (String status : Arrays.asList("Downloading: 37%", "Verified. Requesting installation…")) {
+            ReflectionHelpers.callInstanceMethod(activity, "setUpdateStatus",
+                ReflectionHelpers.ClassParameter.from(String.class, status));
+            assertUpdateMessageVisible(WatchLanguage.get(activity).status(status));
+        }
+    }
+
+    private void assertUpdateMessageVisible(String message) {
+        layout();
+        TextView text = ReflectionHelpers.getField(activity, "updateText");
+        int offset = text.getText().toString().indexOf(message);
+        assertTrue("Missing " + message, offset >= 0);
+        android.text.Layout layout = text.getLayout();
+        android.graphics.Rect visible = new android.graphics.Rect();
+        assertTrue(text.getLocalVisibleRect(visible));
+        int first = layout.getLineForOffset(offset);
+        int last = layout.getLineForOffset(offset + message.length() - 1);
+        assertTrue(message + " clipped at top", text.getTotalPaddingTop() + layout.getLineTop(first) >= visible.top);
+        assertTrue(message + " clipped at bottom", text.getTotalPaddingTop() + layout.getLineBottom(last) <= visible.bottom);
+    }
+
     @Test public void aHistoricalResultHasNoNextMatchSectionAndKeepsItsReturn(){
         results();openFirstResult();assertEquals(Arrays.asList("Manage result"),sections());
         assertFalse(hasButton("Quick rematch"));back();assertTrue(hasButton("Filters"));
     }
     private ScrollView scroll(){for(View v:all())if(v instanceof ScrollView)return (ScrollView)v;throw new AssertionError("Missing scroll");}
-    private void layout(){View v=dialog().getWindow().getDecorView();int side=(int)(233*activity.getResources().getDisplayMetrics().density);v.measure(View.MeasureSpec.makeMeasureSpec(side,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(side,View.MeasureSpec.EXACTLY));v.layout(0,0,side,side);shadowOf(Looper.getMainLooper()).idle();}
+    private void layout() {
+        View view = dialog().getWindow().getDecorView();
+        android.util.DisplayMetrics screen = activity.getResources().getDisplayMetrics();
+        view.measure(View.MeasureSpec.makeMeasureSpec(screen.widthPixels, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(screen.heightPixels, View.MeasureSpec.EXACTLY));
+        view.layout(0, 0, screen.widthPixels, screen.heightPixels);
+        shadowOf(Looper.getMainLooper()).idle();
+    }
 
     @Test public void rootGroupsSportHistoryAndSharedAppDestinations(){root();List<String> labels=new ArrayList<>();for(View v:all())if(v instanceof Button)labels.add(((Button)v).getText().toString());assertEquals(Arrays.asList("Current match","Players","Live sharing & referee","Results (17)","Statistics","Favourite formats","Scoring rules","Change sport","Settings","Back to score"),labels);assertFalse(hasButton("Manage on phone"));int c=button("Players").getBackgroundTintList().getDefaultColor();assertTrue(Color.red(c)>Color.green(c)&&Color.blue(c)>Color.green(c));}
     @Test public void currentMatchPutsTheSessionActionBeforeSecondaryControls(){match();List<String> labels=new ArrayList<>();for(View v:all())if(v instanceof Button&&!((Button)v).getText().toString().equals("Scoreboard"))labels.add(((Button)v).getText().toString());assertEquals(Arrays.asList("Pause match","Enter set score","Match details","Opponent: Alice","Match options","Live sharing & referee","Save retirement result","Cancel match","Back to Menu"),labels);click("Pause match");assertFalse(awake());match();assertTrue(hasButton("Resume match"));assertFalse(hasButton("Pause match"));}

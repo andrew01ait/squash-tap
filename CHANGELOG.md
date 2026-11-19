@@ -1,5 +1,10 @@
 # Releases
 
+## Next direct watch update (unreleased)
+
+- Tapping **Download & update** scrolls the watch back to the current download and installation status.
+- The last NFC sharing event records how long the offer was active and whether it timed out, the app paused, or the sharing page closed.
+
 ## v0.21.3 · 2026-11-19 · direct APK code 33
 
 - The diagnostic QR takes up more of the watch display and carries only the most recent events that fit. The watch automatically discards events beyond the newest twelve.

@@ -1380,6 +1380,8 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         if(downloading||latest==null)return;
         if(!getPackageManager().canRequestPackageInstalls()){allowUpdates();return;}
         downloading=true;persistScore();setUpdateStatus("Downloading verified update…");
+        final ScrollView updates = panelScroll;
+        if (updates != null) updates.post(() -> updates.scrollTo(0, 0));
         final UpdatePolicy release=latest;
         tasks.execute(()->{
             try{

@@ -153,8 +153,13 @@ public class WatchNfcUiTest {
         click(a.tr("Try NFC again"));
         click(a.tr("Back to QR"));
         assertArrayEquals(bytes(0x6A,0x82), service.processCommandApdu(selectNdef, null));
+        String trace = a.getSharedPreferences("squash",0).getString("lifecycle_trace","");
+        assertTrue(trace.contains("commands=0 mapping=0 stage=waiting end=page_closed"));
         click("Seite per NFC teilen");
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(2));
         controller.pause();
+        trace = a.getSharedPreferences("squash",0).getString("lifecycle_trace","");
+        assertTrue(trace.contains("commands=0 mapping=0 stage=waiting end=pause after=2s"));
         assertArrayEquals(bytes(0x6A,0x82), service.processCommandApdu(selectNdef, null));
         controller.stop().destroy();
     }
@@ -200,7 +205,7 @@ public class WatchNfcUiTest {
         assertTrue(ShadowView.innerText(currentPage()).contains("Link ausgelesen"));
         String trace = a.getSharedPreferences("squash",0).getString("lifecycle_trace","");
         assertTrue(trace.contains("NFC share: foreground=true"));
-        assertTrue(trace.contains("commands=0 mapping=0 stage=waiting"));
+        assertTrue(trace.contains("commands=0 mapping=0 stage=waiting end=timeout after=60s"));
         assertTrue(trace.contains("commands=1 mapping=0 stage=waiting"));
         assertTrue(trace.contains("mapping=1 stage=complete"));
         assertFalse(trace.contains("private-nfc-diagnostic-test"));
