@@ -1,8 +1,9 @@
 import {SPORTS,rowRules,scorePairs} from './sports.mjs?v=0.16.3';
 import {localDate,name} from './interchange.mjs?v=0.16.0';
 import {tx,sportText,errorText} from './transfer-copy.mjs?v=5';
-import {node,orderedSports} from './transfer-view.mjs?v=5';
-import {bestOptions,defaultRules,resultFromEntry,todayLocal} from './result-entry.mjs';
+import {node,orderedSports} from './transfer-view.mjs?v=6';
+import {bestOptions,defaultRules,entryWinners,resultFromEntry,todayLocal} from './result-entry.mjs?v=2';
+import {winMark} from './match-sheet.mjs?v=2';
 import {addName} from './transfer-state.mjs?v=2';
 
 export function mountResultEditor(dialog,onSave) {
@@ -17,7 +18,7 @@ export function mountResultEditor(dialog,onSave) {
     select.value=String(selected);
   }
   function rebuildRules() {
-    const s=format.sport,nested=['padel','tennis'].includes(s);
+    const s=format.sport,nested=format.nested;
     const sportIds=orderedSports(context.sports||SPORTS);
     options('sport',sportIds.map(id=>[id,sportText(id)]),s);
     const modes=s==='squash'?[false]:s==='padel'?[true]:[false,true];
@@ -41,22 +42,43 @@ export function mountResultEditor(dialog,onSave) {
   function drawScores() {
     const grid=field('scores');
     grid.replaceChildren();
-    for(const label of [tx(['tennis','padel'].includes(format.sport)?'Set':'Game'),context.myName||tx('Me'),field('opponent').value||tx('Opponent')])
-      grid.append(node('span',label,'score-col-head'));
+    const heading=node('span',tx(format.nested?'Set':'Game'),'score-col-head');
+    grid.append(heading);
+    for(const side of [0,1]){
+      const team=node('span','','score-col-head');
+      team.id='entry-team-'+side;
+      grid.append(team);
+    }
     for(let i=0;i<best;i++) {
-      const label=format.finalTie&&i===best-1?tx('Match tie-break'):tx(['tennis','padel'].includes(format.sport)?'Set {0}':'Game {0}',i+1);
-      grid.append(node('span',label,'score-row-label'));
+      const label=format.finalTie&&i===best-1?tx('Match tie-break'):tx(format.nested?'Set {0}':'Game {0}',i+1);
+      const period=node('span',label,'score-row-label');
+      period.id='entry-period-'+i;
+      grid.append(period);
       for(let side=0;side<2;side++){
+        const cell=node('span',undefined,'entry-score');
         const el=node('input');el.type='number';el.inputMode='numeric';el.min='0';el.max='10000';el.step='1';
-        el.setAttribute('aria-label',label+' · '+(side===0?(context.myName||tx('Me')):tx('Opponent')));
-        el.dataset.index=i;el.dataset.side=side;el.value=scoreValues[i]?.[side]??'';grid.append(el);
+        el.setAttribute('aria-labelledby',period.id+' entry-team-'+side);
+        el.dataset.index=i;el.dataset.side=side;el.value=scoreValues[i]?.[side]??'';
+        cell.append(el,winMark());grid.append(cell);
       }
     }
     refreshTeams();
+    refreshWinners();
+  }
+  function refreshWinners() {
+    const winners=entryWinners(format,best,scoreValues);
+    for(const input of field('scores').querySelectorAll('input')){
+      const won=winners[Number(input.dataset.index)]===Number(input.dataset.side);
+      input.parentElement.classList.toggle('is-winner',won);
+      if(won)input.setAttribute('aria-describedby','entry-won');
+      else input.removeAttribute('aria-describedby');
+    }
   }
   field('scores').addEventListener('input',ev=>{
     const {index,side}=ev.target.dataset;
-    if(index!==undefined){scoreValues[index]??=['',''];scoreValues[index][side]=ev.target.value;}
+    if(index===undefined)return;
+    scoreValues[index]??=['',''];scoreValues[index][side]=ev.target.value;
+    refreshWinners();
   });
   function refreshTeams() {
     const heads=field('scores').querySelectorAll('.score-col-head');

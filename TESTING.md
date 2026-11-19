@@ -1,6 +1,24 @@
 # Testing and verification
 
-Current watch release: **v0.20.1 / code 28**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
+Current watch release: **v0.21.1 / code 31**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
+
+## Direct v0.21.1 · 2026-11-19
+
+The release build passed 340 core, 239 watch UI and 101 web/relay tests. The NFC regression opens the German share action on an actual watch QR screen, exercises the HCE service and reads back the exact HTTPS link and fragment. It checks the compiled non-payment NDEF route, interrupted and complete reads, expiry, retry, Back and pause. Split, overlapping and extended-length requests cross-check the read status. The user reported “Neues Tag erfasst – Leeres Tag” with the previous release. A radio tap on the new version still needs a physical watch and phone.
+
+## Direct v0.21.0 · 2026-11-18
+
+340 core, 236 native UI and 101 web/relay tests passed. NFC tests read a multi-chunk HTTPS record including its fragment and pair a read-only follower using the transmitted invitation. They check role separation, file selection, write rejection, disconnection, expiry, reader and sender capability gates, and reader shutdown when navigating away or backgrounding the app. Radio handover between physical watches and tag dispatch on a real phone require hardware verification.
+
+In a browser, editing a tennis set from 6–3 to 6–6 removed the winner mark. Entering 6–7 moved it to the other player. A downloaded PNG for a three-set match showed both players, the 2–1 finish and the correct winner of each set. Automated web tests cover sport-specific win margins and caps, unfinished and retired periods, deciding tie-breaks and snapshots from older watches.
+
+## Direct v0.20.2 · 2026-11-18
+
+The release suite covers 340 core, 231 watch UI and 98 web/relay tests. A separate run of 100 navigation and distribution checks exercises the Play source set.
+
+Native tests open the player list from the launcher and sport menu, assign a singles opponent and doubles partner from Current match, and cancel both retirement steps. They check the selected player, saved score, active session and return destination. The Results actions use the full menu width and have a minimum height of 48 dp.
+
+The layout suite renders nine watch size and font profiles. A QR regression test renders a German page on a 192 dp round viewport at 130% text, masks the physical circle, decodes the displayed pixels and activates the native Back button. Physical watch use and optical scans remain device checks.
 
 ## Direct v0.20.1 · 2026-11-18
 

@@ -1,0 +1,26 @@
+:root {
+  --score-win-ink: #b8f3d1;
+  --score-win-surface: #193a30;
+  --score-win-edge: #72c99a;
+}
+.won-score {
+  display: inline-flex;
+  align-items: baseline;
+  gap: .26em;
+  padding: .12em .44em;
+  border-radius: .4em;
+  background: var(--score-win-surface);
+  color: var(--score-win-ink);
+  font-weight: 750;
+  line-height: 1.24;
+  white-space: nowrap;
+}
+.score-win-mark { font-size: .76em; font-weight: 750; }
+.score-win-description {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

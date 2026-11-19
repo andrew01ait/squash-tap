@@ -1,6 +1,6 @@
 # Versions and compatibility
 
-Current official watch release: **v0.20.1**, Android version code **28**; package **`at.andrew.squashtap`**. `public/release.properties` is the machine-readable update feed; `public/builds.json` and `SHA256SUMS.txt` record retained artifacts.
+Current official watch release: **v0.21.1**, Android version code **31**; package **`at.andrew.squashtap`**. `public/release.properties` is the machine-readable update feed; `public/builds.json` and `SHA256SUMS.txt` record retained artifacts.
 
 ## Independent version numbers
 
@@ -66,3 +66,15 @@ New rooms use independent grants for each watch installation and referee browser
 ## Grouped watch menus and score layout · direct v0.20.1 / code 28
 
 This patch revises watch navigation and adapts score and touch geometry to round and rectangular displays. It uses the existing score, backup, room and relay formats.
+
+## NFC handover and scorecards · direct v0.21.0 / code 30
+
+NFC uses the existing room invitations and HTTPS page links. Older watch versions can use the same manual code and browser pages. The website highlights completed periods in records from previous versions and exports the redesigned PNG directly in the browser.
+
+## Watch menu consistency · direct v0.20.2 / code 29
+
+The updated menus and player pickers use existing match identifiers, settings and score records. Direct updates use the original signing certificate.
+
+## NFC page sharing · direct v0.21.1 / code 31
+
+The watch update changes NFC routing and reader compatibility. The audience, referee and journal links use the same record and page permissions as their QR codes.

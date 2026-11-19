@@ -49,6 +49,11 @@
       "date": "2026-11-11",
       "version": "0.16.0",
       "observation": "User reported that some setting selections, including vibrations, immediately return to the previous menu; live sharing does not automatically present its ready QR; a discarded watch match leaves the audience scoreboard looking active. These are reported defects, not acceptance of the v0.16.1 corrections."
+    },
+    {
+      "date": "2026-11-19",
+      "version": "0.21.0",
+      "observation": "The user tested Seite per NFC teilen. The phone displayed Neues Tag erfasst and Leeres Tag instead of a page link. The exact handset version and the stage of that NFC exchange were not recorded."
     }
   ]
 }

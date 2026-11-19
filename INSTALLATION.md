@@ -1,6 +1,6 @@
 # Install, update and diagnose
 
-[Official download page](https://squash-tap-andrew.endruuu.chatgpt.site/) · Current watch APK: **v0.20.1 / code 28**.
+[Official download page](https://squash-tap-andrew.endruuu.chatgpt.site/) · Current watch APK: **v0.21.1 / code 31**.
 
 The APK runs on the watch. Wear Installer 2 is a helper on the Android phone; no PC development tools are required. The app is currently distributed by APK through this site, not the watch app store.
 
@@ -74,6 +74,10 @@ In v0.16.2, shared menus such as Players, Settings and their subpages show Keep 
 Update to v0.16.3 and start a fresh broadcast to share the head-to-head summary and use the ten-minute final window. Refresh an already-open audience page once for the new layout and share icons. Head-to-head requires matching saved players; doubles requires the same partner and both opponents. Sports are listed alphabetically on the watch and phone.
 
 In v0.16.4, use Results → Filters → Reset all filters, or the direct reset row in filtered Results. It clears player, dates and Singles/Doubles mode, retains your sport, and returns to the first page. The phone results page has the same action; refresh an already-open phone page once for this correction.
+
+## Using NFC after updating
+
+On the host, open **Live sharing & referee → Share with watches → Pair a watch via NFC**. On the receiving watch choose **Live sharing & referee → Join via NFC**. For browser pages, choose **Share page via NFC** on the watch. Hold the back of the unlocked phone against the watch until it shows **Link read**. If the phone reports an empty tag, move it away before tapping again. You can also return to the QR and scan the same link with the camera. Each watch displays the options its hardware supports. Manual codes and QR links are available as usual.
 
 ## Updating for referee and watch sharing
 

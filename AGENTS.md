@@ -1,6 +1,6 @@
 # Maintenance instructions
 
-Read [README.md](README.md), [ARCHITECTURE.md](ARCHITECTURE.md), [FLOW.md](FLOW.md), [DEPLOYMENT.md](DEPLOYMENT.md), [TESTING.md](TESTING.md), [VERSIONING.md](VERSIONING.md) and [GITHUB.md](GITHUB.md) before changing the corresponding behavior. Current release is v0.20.1/code 28; older release-specific decisions remain in Git history and [CHANGELOG.md](CHANGELOG.md).
+Read [README.md](README.md), [ARCHITECTURE.md](ARCHITECTURE.md), [FLOW.md](FLOW.md), [DEPLOYMENT.md](DEPLOYMENT.md), [TESTING.md](TESTING.md), [VERSIONING.md](VERSIONING.md) and [GITHUB.md](GITHUB.md) before changing the corresponding behavior. Current release is v0.21.1/code 31; older release-specific decisions remain in Git history and [CHANGELOG.md](CHANGELOG.md).
 
 ## Scope, identity and publication
 
@@ -17,7 +17,7 @@ Read [README.md](README.md), [ARCHITECTURE.md](ARCHITECTURE.md), [FLOW.md](FLOW.
 - Preserve M1 ordinary, M2 retirement-only and M3 entered-summary states; entered `2|me|opponent` totals are not fabricated rallies and cannot be relabelled as old encodings.
 - Me/our team always appears first. Squash retains PAR-11/win by two, BO3/BO5 and explicit NEXT. Use validated immutable MatchFormat presets for the six sports in RULES.md. Tennis/padel games advance automatically; NEXT stays explicit between sets. Do not record serve attempts, lets or strokes. Optional ServiceOrder indicators must restore with Undo and leave unknown initial data unknown. In-place format changes preserve state; reject completed-match edits and BO5→BO3 once either player has two set wins.
 - Save completed results atomically; deleting never reuses daily numbers or resurrects a deleted current result. Undo/re-completion reuses its reference. A full history keeps the completed scoreboard for later explicit saving after space is freed.
-- Retirement belongs under Current match → Match options → Save retirement result with player choice and confirmation, not the main scoreboard. Current match → Cancel match → Discard match atomically discards only an unfinished match without a result; clear role links/session/pause/prepared marker, preserve catalog/history/counters, and leave no resumable or undoable old match. Retirement determines match W/L without inventing sets/points. Undo retirement precedes rally Undo, clears the outcome and waits for Resume.
+- Retirement is available from Current match → End match and Match options, with player choice, confirmation and return to the original caller. Current match → Cancel match → Discard match atomically discards only an unfinished match without a result; clear role links/session/pause/prepared marker, preserve catalog/history/counters, and leave no resumable or undoable old match. Retirement determines match W/L without inventing sets/points. Undo retirement precedes rally Undo, clears the outcome and waits for Resume.
 - First accepted live point starts timing; Start match only enables availability. A valid explicitly saved manual set supplies the current time/zone only if start is missing, including old untimed current matches. Keep existing starts through edits/Undo/reopening; never backfill on launch/cancel/invalid input.
 - A manually submitted finish is unknown; later genuine live completion/retirement may record it. Independent past-match capture stays date-only. Keep recorded-zone display/filter behavior, overnight end dates, unknown legacy times and nonnegative/unknown elapsed durations.
 
@@ -68,7 +68,7 @@ Reset all result filters clears player/date/mode together, retains the sport and
 
 ## Google Play preparation
 
-Keep the public v0.20.1/code 28 APK/update feed distinct from the 0.17.0-play.1/code 23 preparation candidate. Build Play with `scripts/build_play.py`, verify with `scripts/verify_play.py` and retain the original signer/package/preference namespace. Never package the real APK downloader/installer or install permissions in Play. Keep compile-time guards on every legacy update entry point and test the direct and Play source sets separately. Reserve version codes across channels.
+Keep the public v0.21.1/code 31 APK/update feed distinct from the 0.17.0-play.1/code 23 preparation candidate. Build Play with `scripts/build_play.py`, verify with `scripts/verify_play.py` and retain the original signer/package/preference namespace. Never package the real APK downloader/installer or install permissions in Play. Keep compile-time guards on every legacy update entry point and test the direct and Play source sets separately. Reserve version codes across channels.
 
 Do not generate a replacement app signing key, register a new publisher, submit declarations or claim Play approval automatically. Signing enrollment must use the original app key; a separate upload key is a different role. Review publisher/contact/provider details before publishing the privacy-policy draft. Preserve clear remaining release gates and physical-testing limits in [PLAY_RELEASE.md](PLAY_RELEASE.md). Keep build-tool hashes locked and source exports free of AAB/APKS/signing artifacts.
 
@@ -78,6 +78,6 @@ Explicit watch rooms have their own grants, expiry, encrypted local restart reco
 
 Explicit result edits require a shared ID, matching original result and fresh watch confirmation. Preserve ordinary CSV conflict handling. Cover date renumbering, current-scoreboard Undo, retirement corrections and recorded timing when changing the journal.
 
-Keep sharing below all sport rows on the launcher. Preserve one code across player watches and room-scoped watch and referee access. Host removal must leave other members and the common code usable and reject queued writes from the removed device. The device list uses existing traffic for last contact. Keep pending joins cancellable without attaching a late response.
+Keep Players immediately below the sport list and ahead of sharing on the launcher. In a sport menu place Players beside the match action. Use the opponent/team picker in Current match for match assignment. Preserve one code across player watches and room-scoped watch and referee access. Host removal must leave other members and the common code usable and reject queued writes from the removed device. The device list uses existing traffic for last contact. Keep pending joins cancellable without attaching a late response.
 
 Group mixed-purpose watch menus by task with localized, accessible headings. Keep single-choice lists, QR pages and confirmations compact. Watch language lives in Settings for every role. A read-only scoreboard opens Shared match, with Settings and sharing as sibling destinations. Size scorecards and their hit regions from the same viewport geometry. Verify large-text score/badge separation and round margins.

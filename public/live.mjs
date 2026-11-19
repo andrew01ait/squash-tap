@@ -1,10 +1,10 @@
 import {open} from './interchange.mjs?v=0.16.1';
 import {sportName, sportMarkup} from './sports.mjs?v=0.16.3';
-import {validateLive} from './live-data.mjs?v=locales1';
+import {livePeriodComplete,validateLive} from './live-data.mjs?v=2';
 import {language, mountLanguage} from './locale.mjs';
 import {bindPageCopy} from './page-copy.mjs';
 import {label, liveCopy, scoreRules, audienceNames} from './live-copy.mjs?v=0.18.1';
-import {renderScorecard} from './match-sheet.mjs?v=0.18.1';
+import {renderScorecard,scoreValue} from './match-sheet.mjs?v=2';
 
 const $ = id => document.getElementById(id);
 const staticCopy = bindPageCopy(document, liveCopy);
@@ -77,12 +77,14 @@ function renderHistory(d, names) {
   ].join(' · ');
   $('last-date').dateTime = h.last.date;
   $('last-date').textContent = new Date(h.last.date + 'T12:00:00').toLocaleDateString(language(), {day:'numeric',month:'short',year:'numeric'});
-  $('last-score').textContent = h.last.sets.join('–');
+  $('last-score').replaceChildren(scoreValue(h.last.sets[0],h.last.winner===0),' – ',scoreValue(h.last.sets[1],h.last.winner===1));
   $('last-winner').textContent = label(h.last.retiredPlayer >= 0 ? '{0} won by retirement' : '{0} won', names[h.last.winner]);
   $('last-games').replaceChildren();
   for (const game of h.last.scores) {
     const item = document.createElement('span');
-    item.textContent = (game.matchTie ? label('Match tie-break') + ' ' : '') + game.a + '–' + game.b + (game.complete ? '' : label(' · unfinished'));
+    if (game.matchTie) item.append(label('Match tie-break') + ' ');
+    item.append(scoreValue(game.a,game.complete && game.a>game.b),' – ',scoreValue(game.b,game.complete && game.b>game.a));
+    if (!game.complete) item.append(label(' · unfinished'));
     $('last-games').append(item);
   }
 }
@@ -135,11 +137,13 @@ function render(d) {
   $('rules').textContent = scoreRules(d);
   const unit = label(nested ? 'Set' : 'Game');
   renderScorecard($('scorecard'), unit, names, d.setScores.map((game, index) => {
-    const current = index === d.setScores.length - 1 && !final && d.phase !== 'interval' && game.complete !== true;
+    const complete = livePeriodComplete(d,index);
+    const current = index === d.setScores.length - 1 && !final && d.phase !== 'interval' && !complete;
     return {
       label: game.matchTie ? label('Match tie-break') : unit + ' ' + (index + 1),
       score: [game.a, game.b], current,
-      note: current ? label('Current') : final && game.complete === false ? label('Unfinished') : ''
+      winner: complete && game.a !== game.b ? (game.a > game.b ? 0 : 1) : -1,
+      note: current ? label('Current') : final && !complete ? label('Unfinished') : ''
     };
   }));
   $('freshness').textContent = label('Last score update {0}. Updates arrive after a rally or match action.', clock(updated, true));

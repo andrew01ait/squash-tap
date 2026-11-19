@@ -1,11 +1,12 @@
-import {mountResultEditor} from './result-editor.mjs';
-import {entryChanges} from './result-entry.mjs';
+import {scoreValue} from './match-sheet.mjs?v=2';
+import {mountResultEditor} from './result-editor.mjs?v=2';
+import {entryChanges} from './result-entry.mjs?v=2';
 import {mountLanguage,language} from './locale.mjs';
 import {validateBackup,datedFile} from './backup.mjs?v=0.16.0';
 import {SPORTS,sportMarkup,rowSport} from './sports.mjs?v=0.16.3';
-import {open,seal,name,parseCsv,writeCsv,HEADER,statistics,localDate} from './interchange.mjs?v=0.16.0';
+import {open,seal,name,parseCsv,writeCsv,HEADER,statistics,localDate,rowWinner} from './interchange.mjs?v=0.16.0';
 import {addName,incomingPayload,checkRetirementSupport,initialView,filteredRows,sportsByPlayer,inScope,filterPlayers} from './transfer-state.mjs?v=2';
-import {newest,resultCard,shortRecord,renderStatistics,orderedSports,node} from './transfer-view.mjs?v=5';
+import {newest,resultCard,shortRecord,renderStatistics,orderedSports,node} from './transfer-view.mjs?v=6';
 import {tx,errorText,sportText,momentText} from './transfer-copy.mjs?v=5';
 
 const $=id=>document.getElementById(id);
@@ -181,7 +182,8 @@ function renderImportGames() {
     match.append(node('strong',sportText(rowSport(row))),node('small',momentText(row,7,false)));
     const opponent=row[5]||tx('Opponent');
     line.insertCell().textContent=row[25]==='doubles'?opponent+' + '+(row[35]||tx('Opponent 2')):opponent;
-    line.insertCell().textContent=row[11]+' – '+row[12];
+    const winner=rowWinner(row);
+    line.insertCell().append(scoreValue(row[11],winner===0),' – ',scoreValue(row[12],winner===1));
   }
   preview.append(table);
   if(shown.length<importRows.length)preview.append(node('p',tx('Showing the first {0} of {1} matches.',shown.length,importRows.length),'muted'));

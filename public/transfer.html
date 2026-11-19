@@ -8,8 +8,9 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
   <title>Keep Score · Match journal</title>
   <link rel="icon" href="/favicon.svg">
-  <link rel="stylesheet" href="/transfer.css?v=5">
-  <script type="module" src="/transfer.mjs?v=5"></script>
+  <link rel="stylesheet" href="/score-outcome.css?v=1">
+  <link rel="stylesheet" href="/transfer.css?v=6">
+  <script type="module" src="/transfer.mjs?v=6"></script>
 </head>
 <body>
 <main>
@@ -164,6 +165,7 @@
           </fieldset>
           <fieldset><legend data-i="Score">Score</legend>
             <p class="muted" id="entry-score-help"></p>
+            <span id="entry-won" data-i="Won" hidden>Won</span>
             <div id="entry-scores" class="entry-scores"></div>
             <label><span data-i="Match finish">Match finish</span><select id="entry-retired"><option value="" data-i="Played to completion">Played to completion</option><option value="me" data-i="You retired">You retired</option><option value="opponent" data-i="Opponent retired">Opponent retired</option></select></label>
           </fieldset>

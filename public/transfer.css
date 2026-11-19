@@ -106,7 +106,7 @@ details[open] > .result-summary::after, .player-record[open] summary::after, .di
 .match-teams { display: grid; grid-area: teams; gap: 3px; min-width: 0; }
 .competitor { display: flex; justify-content: space-between; align-items: baseline; gap: 9px; padding-inline-start: 9px; border-left: 2px solid #70bcff; }
 .competitor.other { border-color: #ff8099; }
-.competitor span { font-size: 15px; line-height: 1.33; font-weight: 580; overflow-wrap: anywhere; }
+.competitor > span { font-size: 15px; line-height: 1.33; font-weight: 580; overflow-wrap: anywhere; }
 .competitor b { font-size: 22px; line-height: 1.12; font-weight: 750; }
 .result-detail { border-top: 1px solid var(--line); padding: 15px; }
 .result-detail > p { margin-bottom: 10px; font-size: 13px; }
@@ -250,9 +250,18 @@ footer { margin-top: clamp(24px,4vw,44px); border-top: 1px solid var(--line); pa
 .entry-scores { display: grid; grid-template-columns: minmax(4.3em,1fr) repeat(2,minmax(0,1fr)); align-items: center; gap: 7px 9px; margin: 9px 0 14px; }
 .score-row-label, .score-col-head { font-size: 14px; overflow-wrap: anywhere; }
 .score-col-head { color: var(--muted); font-weight: 600; }
+.entry-score { position: relative; min-width: 0; }
+.entry-score .score-win-mark { display: none; }
+.entry-score.is-winner .score-win-mark {
+  display: block; position: absolute; inset-inline-start: .34rem; inset-block-start: .13rem;
+  line-height: 1; color: var(--score-win-ink); pointer-events: none;
+}
 .entry-scores input { margin: 0; text-align: center; font-variant-numeric: tabular-nums; }
 .entry-scores input[data-side="0"] { border-color: #587ca3; }
 .entry-scores input[data-side="1"] { border-color: #916974; }
+.entry-score.is-winner input {
+  color: var(--score-win-ink); background: var(--score-win-surface); border-color: var(--score-win-edge); font-weight: 750;
+}
 .entry-error { color: var(--red); margin-top: 10px; }
 .entry-actions { display: flex; justify-content: end; flex-wrap: wrap; gap: 8px; padding-top: 14px; margin-top: 14px; border-top: 1px solid var(--line); }
 .entry-queued { color: var(--lime); font-size: 13px; font-weight: 650; }

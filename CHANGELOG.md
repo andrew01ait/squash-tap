@@ -1,5 +1,22 @@
 # Releases
 
+## v0.21.1 · 2026-11-19 · direct APK code 31
+
+- Android can discover the watch’s NFC link service as soon as the app is installed. Opening the share page supplies the complete link before the watch asks Android to route a tap.
+- The watch shows when a reader connects and when it has read the complete link or invitation. If an attempt times out, the watch distinguishes an interrupted read from one that never reached Keep Score.
+
+## v0.21.0 · 2026-11-18 · direct APK code 30
+
+- Pair compatible watches by tapping them together to follow the same match. The host can invite watches while scoring or while a referee scores.
+- Hand an audience, referee or journal page to an NFC-capable phone directly from the watch. QR and manual watch codes are also available.
+- The browser marks each completed game or set with a green check. Result entry updates while typing. Downloadable PNG cards show the teams, final score and winners of each completed game or set, including a partial-period label after retirement.
+
+## v0.20.2 · 2026-11-18 · direct APK code 29
+
+- Players is directly accessible on the sports screen and in every sport menu. Select an opponent or doubles team in Current match.
+- Current match groups the score, match setup, sharing and end-of-match actions. Finished matches offer the result, summary, available sharing and next match.
+- Watch menus share page headings, row spacing, text fields and selection marks. Results uses full-width actions. QR pages provide a native Back button and support the system Back gesture.
+
 ## v0.20.1 · 2026-11-18 · direct APK code 28
 
 - Watch language has one home in Settings. A shared scoreboard opens a match menu for set scores, saving, sharing and app settings.

@@ -1,9 +1,38 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {defaultRules,resultFromEntry,entryChanges,bestOptions} from '../public/result-entry.mjs';
+import {defaultRules,resultFromEntry,entryChanges,bestOptions,entryWinners} from '../public/result-entry.mjs';
 import {writeCsv,parseCsv,statistics} from '../public/interchange.mjs';
 import {SPORTS,scorePairs} from '../public/sports.mjs';
 const config={id:'new-match',date:'2026-11-10',today:'2026-11-18',best:3,players:[],rules:defaultRules('squash'),scores:[[11,6],[11,8]]};
+test('winner marks follow edits, leave gaps and partial games neutral and stop at the match decision',()=>{
+  const scores=[['5','11'],['6','11'],['11','8'],['11','4'],['5','11']];
+  assert.deepEqual(entryWinners(config.rules,5,scores),[1,1,0,0,1]);
+  for(const partial of [['','11'],['11',''],['10','10'],['10','11'],['15','3'],['2.5','11']]){
+    assert.deepEqual(entryWinners(config.rules,5,[scores[0],partial,...scores.slice(2)]),[1,-1,-1,-1,-1]);
+  }
+  assert.deepEqual(entryWinners(config.rules,5,[...scores.slice(0,2),['8','11'],...scores.slice(3)]),[1,1,1,-1,-1]);
+  assert.deepEqual(entryWinners(config.rules,3,[['11','0'],['10','12'],['14','12']]),[0,1,0]);
+});
+test('draft winners respect both badminton caps, target changes, tennis sets and match tie-breaks',()=>{
+  for(const sport of SPORTS) {
+    const rules=defaultRules(sport);
+    assert.deepEqual(entryWinners(rules,3,[[rules.target,0]]),[0,-1,-1]);
+  }
+  for(const [target,cap] of [[15,21],[21,30]]){
+    const rules={...defaultRules('badminton'),target};
+    assert.deepEqual(entryWinners(rules,3,[[cap-1,cap]]),[1,-1,-1]);
+    assert.deepEqual(entryWinners(rules,3,[[cap,cap+1]]),[-1,-1,-1]);
+  }
+  const pickle={...defaultRules('pickleball'),target:15};
+  assert.deepEqual(entryWinners(pickle,1,[[11,3]]),[-1]);
+  for(const sport of ['tennis','padel']){
+    const rules={...defaultRules(sport),finalTie:true};
+    assert.deepEqual(entryWinners(rules,3,[[6,5]]),[-1,-1,-1]);
+    assert.deepEqual(entryWinners(rules,3,[[7,6],[5,7],[10,9]]),[0,1,-1]);
+    assert.deepEqual(entryWinners(rules,3,[[7,6],[5,7],[10,12]]),[0,1,1]);
+    assert.deepEqual(entryWinners({...rules,finalTie:false},3,[[7,6],[5,7],[10,12]]),[0,1,-1]);
+  }
+});
 test('a completed browser result for every sport round-trips with its scoring rules, roles and date',()=>{
   for(const sport of SPORTS) {
     const rules=defaultRules(sport),score=[rules.target,3],players=rules.doubles?[{id:'o',name:'Rival'},{id:'p',name:'Partner'},{id:'r',name:'Other'}]:[];

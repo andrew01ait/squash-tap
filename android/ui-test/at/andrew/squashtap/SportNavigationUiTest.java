@@ -92,7 +92,7 @@ public class SportNavigationUiTest {
         String before=book().encode();
         List<String> order=new ArrayList<>();
         for(View v:views())if(v instanceof Button)order.add(((Button)v).getText().toString());
-        assertEquals(Arrays.asList("Badminton","Padel","Pickleball","Squash","Table tennis","Tennis","Live sharing & referee","Players","Settings","Close app"),order);
+        assertEquals(Arrays.asList("Badminton","Padel","Pickleball","Squash","Table tennis","Tennis","Players","Live sharing & referee","Settings","Close app"),order);
         click("Live sharing & referee");
         for(String item:new String[]{"Audience live link","Referee on phone","Share with watches","Join with watch code"})assertNotNull(button(item));
         click("Join with watch code");assertNotNull(button("Join match"));swipe();

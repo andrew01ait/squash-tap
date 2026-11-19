@@ -68,9 +68,7 @@ public final class ScoreView extends View {
     public void session(boolean active,boolean paused){sessionActive=active;this.paused=paused;invalidate();}
     public void ambient(boolean value,boolean lowBit){ambient=value;this.lowBit=lowBit;pressed=TouchTargets.OUTSIDE;invalidate();}
     private String periodUnit(boolean plural) {
-        if (match.format().nested()) return tr(plural ? "Sets" : "Set");
-        return plural ? ui.pick("Games", "Sätze", "Manches", "Juegos")
-            : ui.pick("Game", "Satz", "Manche", "Juego");
+        return ui.periodUnit(match.format(),plural);
     }
     private String periodNumber() {
         return periodUnit(false) + " " + match.gameCount() + "/" + match.bestOf();

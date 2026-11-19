@@ -2,9 +2,17 @@ import test,{beforeEach,afterEach} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync,readdirSync} from 'node:fs';
 import {createRequire} from 'node:module';
-import {validateLive} from '../public/live-data.mjs';
+import {livePeriodComplete,validateLive} from '../public/live-data.mjs';
 const require=createRequire(import.meta.url),wranglerRequire=createRequire(require.resolve('wrangler/package.json')),{Miniflare}=wranglerRequire('miniflare');
 let mf,db;const id='11223344556677889900aabbccddeeff',owner='o'.repeat(43),viewer='v'.repeat(43),cipher='1.'+'i'.repeat(16)+'.'+'c'.repeat(80);
+test('live winner display honours explicit completion and counted games on older watches',()=>{
+  const d={sets:[1,1],setScores:[{a:11,b:5},{a:9,b:11},{a:8,b:3}]};
+  assert.deepEqual(d.setScores.map((_,i)=>livePeriodComplete(d,i)),[true,true,false]);
+  d.setScores[0].complete=false;
+  assert.equal(livePeriodComplete(d,0),false);
+  d.setScores[2].complete=true;
+  assert.equal(livePeriodComplete(d,2),true);
+});
 beforeEach(async()=>{mf=new Miniflare({modules:true,scriptPath:'web-test/live-entry.mjs',compatibilityDate:'2026-05-15',d1Databases:['DB']});db=await mf.getD1Database('DB');for(const f of readdirSync('drizzle').filter(f=>f.endsWith('.sql')).sort())for(const sql of readFileSync('drizzle/'+f,'utf8').split('--> statement-breakpoint'))if(sql.trim())await db.prepare(sql).run();});
 afterEach(async()=>mf.dispose());
 const api=(path='',method='GET',token,body,extra={})=>mf.dispatchFetch('https://test.local/api/live'+path,{method,headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{}),...extra},...(body?{body:JSON.stringify(body)}:{})});

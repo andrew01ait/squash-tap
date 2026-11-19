@@ -1,4 +1,5 @@
-import {downloadResultCard,shareResultCard} from './result-card.mjs?v=2';
+import {downloadResultCard,shareResultCard} from './result-card.mjs?v=3';
+import {scoreValue} from './match-sheet.mjs?v=2';
 import {rowSport,rowMode,rowRules,scorePairs,finalScore,details,SPORTS,sportMarkup} from './sports.mjs?v=0.16.3';
 import {rowWinner,statistics} from './interchange.mjs?v=0.16.0';
 import {byPlayer,matchInsights,matchesPerson,newest} from './transfer-state.mjs?v=2';
@@ -30,9 +31,11 @@ export function pointSummary(rows,totals) {
   const note=totals.unknownPointMatches?tx('Unknown points omitted in {0} matches.',totals.unknownPointMatches):'';
   return {value,note};
 }
-function playerLine(name,score,side) {
+function playerLine(name,score,side,won) {
   const line=node('span',undefined,'competitor '+side);
-  line.append(node('span',name),node('b',score));return line;
+  const total=node('b');
+  total.append(scoreValue(score,won));
+  line.append(node('span',name),total);return line;
 }
 function tennisPoints(a,b) { return a>=3&&b>=3?(a>b?'AD':'40'):['0','15','30','40'][Math.min(a,3)]; }
 export function resultCard(row,opponent,myName=tx('Me')) {
@@ -47,7 +50,7 @@ export function resultCard(row,opponent,myName=tx('Me')) {
   date.dateTime=row[7]||row[2];
   meta.append(node('span',sportText(rules.sport)+' · '+modeText(rowMode(row)),'match-sport'),date);
   const teams=node('span',undefined,'match-teams');
-  teams.append(playerLine(mine,row[11],'mine'),playerLine(other,row[12],'other'));
+  teams.append(playerLine(mine,row[11],'mine',won),playerLine(other,row[12],'other',!won));
   summary.append(meta,teams,node('span',outcomeText(row),'outcome'));
   card.append(summary);
   const detail=node('div',undefined,'result-detail');
@@ -63,8 +66,7 @@ export function resultCard(row,opponent,myName=tx('Me')) {
     const period=node('th',tie?tx('Match tie-break'):String(i+1));period.scope='row';line.append(period);
     for(const [value,opposing] of [[a,b],[b,a]]){
       const cell=line.insertCell();
-      if(complete&&value>opposing) cell.append(node('strong',String(value)));
-      else cell.textContent=value;
+      cell.append(scoreValue(value,complete&&value>opposing));
     }
     const more=[];
     if(gameDetails[i][2]>=0) more.push('TB '+gameDetails[i][2]+' – '+gameDetails[i][3]);

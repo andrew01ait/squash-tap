@@ -143,7 +143,7 @@ function render(){
     const current=index===count-1&&game.winner<0&&m.winner<0;
     return {
       label:game.tie?t('Match tie-break','Match-Tiebreak','Super jeu décisif','Supertiebreak'):unit+' '+(index+1),
-      score:game.score,current,
+      score:game.score,current,winner:game.winner,
       note:current?t('Current','Aktuell','En cours','Actual'):m.retired>=0&&game.winner<0?t('Unfinished','Unvollständig','Inachevé','Sin terminar'):''
     };
   }));

@@ -191,12 +191,14 @@ final class MatchRooms {
         if(s==null||blocked||joiningCode!=null){hub();return;}
         LinearLayout page=a.roomPanel("Shared match","room-menu");
         if(finalScore())a.button(page,text("Save to my results","In meine Ergebnisse speichern","Enregistrer dans mes résultats","Guardar en mis resultados"),this::pickSeat);
+        a.section(page,"Score");
         connection=a.paragraph(page,status());
         summary=a.paragraph(page,"");
         refreshText();
         if(match!=null)a.navigationButton(page,text("Set scores","Satzstände","Scores des manches","Marcadores parciales"),a::showSharedMatchDetails);
+        a.section(page,"Sharing");
         a.navigationButton(page,title(),()->open(Entry.SHARED));
-        a.section(page,"Keep Score");
+        a.section(page,"App");
         a.roomSettings(page);
         a.backButton(page,"Back to score",a::closePanel);
     }
@@ -221,6 +223,8 @@ final class MatchRooms {
             a.navigationButton(page,text("Share with watches","Mit Uhren teilen","Partager avec des montres","Compartir con relojes"),
                 ()->a.chooseSharingMatch(entry,false,text("Create & invite watches","Erstellen & Uhren einladen","Créer et inviter des montres","Crear e invitar a otros relojes"),()->start(false)));
             a.section(page,"Join another match");
+            if(a.nfc.canRead())a.navigationButton(page,a.tr("Join via NFC"),
+                ()->a.nfc.receive(this::join,this::hub,backToSharing()));
             a.navigationButton(page,joinTitle(),this::joinPage);
             a.sharingBack(page,entry);
             return;
@@ -230,12 +234,17 @@ final class MatchRooms {
             if(s.managed && s.ready)a.navigationButton(page,devicesTitle(),this::devices);
             else if(!s.managed)a.paragraph(page,text("Individual devices are available in new shares from v0.20.","Einzelne Geräte siehst du in neuen Freigaben ab v0.20.","Les appareils individuels apparaissent dans les nouveaux partages depuis la v0.20.","Los dispositivos aparecen en las nuevas sesiones desde la v0.20."));
         }
-        if(isHost() && s.ready && !finalScore() && !terminalError)
+        if(isHost() && s.ready && !finalScore() && !terminalError) {
             a.navigationButton(page,text("Referee QR","Schiedsrichter-QR","QR de l’arbitre","QR del árbitro"),this::qr);
+            if(a.nfc.canSend())a.navigationButton(page,a.tr("Referee page via NFC"),
+                ()->{if(isHost() && s.ready && !finalScore() && !terminalError)a.nfc.shareLink(s.refereeLink,this::hub,backToSharing());});
+        }
         if("score".equals(s.role) && !finalScore() && !terminalError)
             a.navigationButton(page,text("Hand over to referee","An Schiedsrichter übergeben","Confier à l’arbitre","Pasar al árbitro"),()->start(true));
         if(!"follow".equals(s.role) && !terminalError) {
             if(s.watchJoinReady) {
+                if(a.nfc.canSend())a.navigationButton(page,a.tr("Pair a watch via NFC"),
+                    ()->{if(s!=null && s.watchJoinReady && !terminalError)a.nfc.shareInvitation(s.joinCode,this::hub,backToSharing());});
                 TextView code=a.paragraph(page,s.joinCode.substring(0,5)+" "+s.joinCode.substring(5)); code.setTextSize(22);
                 a.paragraph(page,text("Use this same code on every player watch","Denselben Code auf jeder Spieleruhr eingeben","Utilisez ce même code sur chaque montre","Usa este mismo código en todos los relojes")+"\n"+title()+" → "+joinTitle());
             }
@@ -251,6 +260,15 @@ final class MatchRooms {
         if(readOnly()&&entry!=Entry.SHARED)a.backButton(page,"Back to score",a::closePanel);
         else a.sharingBack(page,entry);
     }
+    void watchInvitesFromLive(LinearLayout page) {
+        if (blocked || terminalError || joiningCode != null || finalScore() || s != null && "follow".equals(s.role)) return;
+        a.navigationButton(page, a.tr("Invite a watch"), () -> {
+            if (s == null) start(false);
+            else if (!s.watchJoin) toggleJoin();
+            else hub();
+        });
+    }
+
     private void start(boolean referee) {
         if(readOnly() || finalScore() || s!=null&&!referee){hub();return;}
         try {
@@ -266,16 +284,16 @@ final class MatchRooms {
         try { apply(client.setWatchJoin(!s.watchJoin)); hub();schedule(0); }
         catch(Exception failure){a.roomMessage(problem(failure,false),this::hub);}
     }
-    private void qr() {askQr=false;if(s!=null && isHost() && s.ready && !finalScore())a.showQr(s.refereeLink,text("Scan to referee","Zum Zählen scannen","Scanner pour arbitrer","Escanear para arbitrar"),this::hub,text("Back","Zurück","Retour","Volver"));}
+    private void qr() {askQr=false;if(s!=null && isHost() && s.ready && !finalScore())a.showQr(s.refereeLink,text("Scan to referee","Zum Zählen scannen","Scanner pour arbitrer","Escanear para arbitrar"),this::hub,backToSharing());}
     void joinPage(){joinPage("");}
     private void joinPage(String code) {
         if(s!=null || blocked || joiningCode!=null){hub();return;}
         LinearLayout p=a.roomPanel(joinTitle(),"room-code");
         a.paragraph(p,text("Enter the code shown on the host watch.","Gib den Code von der Gastgeberuhr ein.","Saisissez le code affiché sur la montre hôte.","Introduce el código del reloj anfitrión."));
-        EditText field=new EditText(a); field.setSingleLine(); field.setTextColor(android.graphics.Color.WHITE); field.setGravity(android.view.Gravity.CENTER);
-        field.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS|InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+        EditText field=a.menuInput(p,"",joinTitle(),InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS|InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+        field.setGravity(android.view.Gravity.CENTER);
         field.setFilters(new InputFilter[]{new InputFilter.AllCaps(),new InputFilter.LengthFilter(14)});
-        field.setContentDescription(joinTitle());field.setText(code);field.setSelection(field.length());p.addView(field);
+        field.setText(code);field.setSelection(field.length());
         a.button(p,text("Join match","Partie beitreten","Rejoindre le match","Unirse al partido"),()->join(field.getText().toString()));
         a.backButton(p,backToSharing(),this::hub);
     }

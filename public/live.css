@@ -65,7 +65,7 @@ body[data-palette="sunlight"] .score-row.red { --row-bg: #ffec66; --row-ink: #03
 #last-score { font-size: 1.7rem; font-weight: 700; margin-top: .55rem; }
 #last-winner { font-size: .9rem; overflow-wrap: anywhere; }
 #last-games { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .65rem; }
-#last-games span { font-size: .82rem; font-weight: 590; padding: .25rem .5rem; border-radius: .35rem; background: #223348; }
+#last-games > span { font-size: .82rem; font-weight: 590; padding: .25rem .5rem; border-radius: .35rem; background: #223348; }
 .match-tools > p { margin-top: .65rem; }
 #rules { overflow-wrap: anywhere; font-size: .96rem; }
 .display-options { margin-top: 1rem; padding-top: .9rem; border-top: 1px solid var(--line); }

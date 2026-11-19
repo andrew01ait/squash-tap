@@ -6,8 +6,8 @@ import argparse, os, subprocess, sys, zipfile
 ROOT=Path(__file__).resolve().parents[1]
 PKG='at.andrew.squashtap'
 SITE='https://squash-tap-andrew.endruuu.chatgpt.site'
-RELEASES=((28,'0.20.1'),)
-RELEASE_NOTES='Watch menus group match, sharing and settings actions. Language is in Settings on every watch. Scorecards adapt to the display shape and keep points clear of the serving badge.'
+RELEASES=((31,'0.21.1'),)
+RELEASE_NOTES='Improved NFC page sharing. The watch shows when a device connects and when it has read the complete link.'
 
 def run(args, env=None):
     result=subprocess.run([str(x) for x in args],cwd=ROOT,env=env,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)

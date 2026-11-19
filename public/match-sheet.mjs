@@ -1,3 +1,24 @@
+import {t} from './locale.mjs';
+
+export function winMark() {
+  const mark = document.createElement('span');
+  mark.className = 'score-win-mark';
+  mark.setAttribute('aria-hidden', 'true');
+  mark.textContent = '✓';
+  return mark;
+}
+
+export function scoreValue(value, won) {
+  if (!won) return document.createTextNode(String(value));
+  const score = document.createElement('strong');
+  score.className = 'won-score';
+  const description = document.createElement('span');
+  description.className = 'score-win-description';
+  description.textContent = ' ' + t('Won', 'Gewonnen', 'Victoire', 'Victoria');
+  score.append(winMark(), String(value), description);
+  return score;
+}
+
 /** Present both teams' actual scores for each played game or set. */
 export function renderScorecard(table, periodHeading, names, periods) {
   const headers = table.tHead.rows[0].cells;
@@ -15,9 +36,9 @@ export function renderScorecard(table, periodHeading, names, periods) {
       title.append(note);
     }
     row.append(title);
-    for (const value of period.score) {
+    for (const [side, value] of period.score.entries()) {
       const cell = document.createElement('td');
-      cell.textContent = String(value);
+      cell.append(scoreValue(value, side === period.winner));
       row.append(cell);
     }
     return row;

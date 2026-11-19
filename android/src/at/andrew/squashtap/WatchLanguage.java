@@ -111,6 +111,11 @@ final class WatchLanguage {
         return translated;
     }
 
+    String periodUnit(MatchFormat format,boolean plural){
+        if(format.nested())return text(plural?"Sets":"Set");
+        return plural?pick("Games","Sätze","Manches","Juegos"):pick("Game","Satz","Manche","Juego");
+    }
+
     String date(java.time.LocalDate value) {
         return value.format(java.time.format.DateTimeFormatter.ofPattern(
             code.equals("fr")||code.equals("es")?"dd/MM/yyyy":"dd.MM.yyyy",locale));

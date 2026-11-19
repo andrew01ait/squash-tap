@@ -45,8 +45,8 @@ public class MenuRevisionUiTest {
         return titles;
     }
     @Test public void mixedMenusUseTaskHeadingsAndSingleChoiceScreensStayCompact(){
-        root();assertEquals(Arrays.asList("Match","Match history","Sport","Keep Score"),sections());
-        click("Current match");assertEquals(Arrays.asList("Score & sharing","Manage match"),sections());
+        root();assertEquals(Arrays.asList("Match","Match history","Sport","App"),sections());
+        click("Current match");assertEquals(Arrays.asList("Score","Match setup","Sharing","End match"),sections());
         click("Live sharing & referee");assertEquals(Arrays.asList("Share your match","Join another match"),sections());
         click("Join with watch code");assertTrue(sections().isEmpty());back();back();back();
         click("Settings");assertEquals(Arrays.asList("Language & display","Feedback","Data","Watch shortcuts","App"),sections());
@@ -56,6 +56,96 @@ public class MenuRevisionUiTest {
         click("Options");assertEquals(Arrays.asList("CSV","Delete results"),sections());back();
         click("Filters");assertEquals(Arrays.asList("Match","Date range"),sections());
     }
+    @Test public void directPlayerSelectionReturnsToCurrentMatchAndKeepsTheLiveScore(){
+        String score=book().encode();
+        match();
+        click("Opponent: Alice");
+        assertTrue(button("✓ Alice").isSelected());
+        assertNull(button("Bob").getCompoundDrawablesRelative()[2]);
+        back();
+        assertTrue(hasButton("Pause match"));
+        click("Opponent: Alice");
+        click("Bob");
+        assertTrue(hasButton("Opponent: Bob"));
+        assertEquals("Bob",OpponentDirectory.decode(preferences.getString("opponent_book","")).nameFor("current"));
+        assertEquals(score,book().encode());
+        assertEquals("current",preferences.getString(MatchDisplayPolicy.ACTIVE_MATCH,""));
+        click("Save retirement result");click("I quit");back();back();
+        assertTrue(hasButton("Pause match"));
+        assertEquals(score,book().encode());
+    }
+    @Test public void launcherMatchShortcutReturnsToTheLauncherAfterAPicker(){
+        activity.showSports();click("Current match · Squash");
+        click("Opponent: Alice");back();click("Back to sports");
+        assertTrue(hasButton("Tennis"));assertTrue(hasButton("Players"));
+        click("Current match · Squash");back();assertTrue(hasButton("Close app"));
+    }
+    @Test public void doublesPlayersAreReachableDirectlyAndKeepTheirTeamRoles(){
+        close();
+        MatchBook b=new MatchBook(new MatchState("doubles",3,MatchFormat.defaults("padel")));
+        OpponentDirectory d=OpponentDirectory.decode(preferences.getString("opponent_book",""));
+        d.assignTeam("doubles",d.opponentId("current"),"","");
+        preferences.edit().putString("match_book",b.encode()).putString("opponent_book",d.encode())
+            .putString(MatchDisplayPolicy.ACTIVE_MATCH,"doubles").commit();
+        launch();match();click("Players");
+        assertEquals(Arrays.asList("Our team","Opposing team"),sections());
+        click("Partner: No name");click("Bob");back();
+        assertTrue(hasButton("Pause match"));
+        assertTrue(has("Bob"));assertTrue(has("Alice"));
+        OpponentDirectory result=OpponentDirectory.decode(preferences.getString("opponent_book",""));
+        assertEquals("Bob",result.roleName("doubles",1));
+        assertEquals("Alice",result.roleName("doubles",0));
+        assertEquals(b.encode(),book().encode());
+    }
+    @Test public void resultActionsUseTheSameFullWidthRowsAsOtherMenus(){
+        results();layout();
+        Button footer=button("Back to Menu");
+        for(String label:new String[]{"Filters","Options","Add past match"}){
+            Button row=button(label);
+            assertEquals(footer.getWidth(),row.getWidth());
+            assertNotNull(row.getCompoundDrawablesRelative()[2]);
+            assertEquals(button("Filters").getTextSize(),row.getTextSize(),0.01f);
+            assertTrue(row.getHeight()>=48*activity.getResources().getDisplayMetrics().density);
+        }
+    }
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(qualifiers="w192dp-h192dp-round-xhdpi") public void smallRoundGermanQrIsReadableAndHasARealBackButton()throws Exception{
+        RuntimeEnvironment.setFontScale(1.3f);
+        String payload="https://example.test/watch#id=synthetic-menu-test&token=abcdefghijklmnopqrstuvwxyz0123456789&key=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-example&view=results";
+        preferences.edit().putString(WatchLanguage.PREFERENCE,"de").commit();
+        close();launch();matchInGerman();
+        activity.showQr(payload,"Scan with phone",activity::showMatchControls,"Back to Current match");
+        assertTrue(sections().isEmpty());
+        assertFalse(hasButton("Spielstand"));
+        Button backButton=button("Zurück zur Partie");
+        int diameter=activity.getResources().getDisplayMetrics().widthPixels;
+        View root=dialog().getWindow().getDecorView();
+        int spec=View.MeasureSpec.makeMeasureSpec(diameter,View.MeasureSpec.EXACTLY);
+        root.measure(spec,spec);root.layout(0,0,diameter,diameter);
+        assertTrue(backButton.getHeight()>=48*activity.getResources().getDisplayMetrics().density);
+        android.graphics.Bitmap frame=android.graphics.Bitmap.createBitmap(diameter,diameter,android.graphics.Bitmap.Config.ARGB_8888);
+        root.draw(new android.graphics.Canvas(frame));
+        int[] pixels=new int[diameter*diameter];
+        frame.getPixels(pixels,0,diameter,0,0,diameter,diameter);
+        // Physical round displays mask everything outside their circular viewport.
+        float radius=diameter/2f;
+        for(int y=0;y<diameter;y++)for(int x=0;x<diameter;x++)
+            if(Math.hypot(x-radius,y-radius)>radius)pixels[y*diameter+x]=Color.BLACK;
+        frame.setPixels(pixels,0,diameter,0,0,diameter,diameter);
+        java.io.File output=new java.io.File("build/qa/qr-round-192-de-large.png");
+        output.getParentFile().mkdirs();
+        try(java.io.OutputStream out=new java.io.FileOutputStream(output)){
+            assertTrue(frame.compress(android.graphics.Bitmap.CompressFormat.PNG,100,out));
+        }
+        com.google.zxing.RGBLuminanceSource source=new com.google.zxing.RGBLuminanceSource(diameter,diameter,pixels);
+        assertEquals(payload,new com.google.zxing.qrcode.QRCodeReader().decode(new com.google.zxing.BinaryBitmap(new com.google.zxing.common.HybridBinarizer(source))).getText());
+        backButton.performClick();
+        assertTrue(hasButton("Partie pausieren"));
+    }
+    private void matchInGerman(){
+        root();click("Aktuelle Partie");
+        assertEquals(Arrays.asList("Spielstand","Partie einrichten","Teilen","Partie beenden"),sections());
+    }
     @Test public void aHistoricalResultHasNoNextMatchSectionAndKeepsItsReturn(){
         results();openFirstResult();assertEquals(Arrays.asList("Manage result"),sections());
         assertFalse(hasButton("Quick rematch"));back();assertTrue(hasButton("Filters"));
@@ -63,8 +153,8 @@ public class MenuRevisionUiTest {
     private ScrollView scroll(){for(View v:all())if(v instanceof ScrollView)return (ScrollView)v;throw new AssertionError("Missing scroll");}
     private void layout(){View v=dialog().getWindow().getDecorView();int side=(int)(233*activity.getResources().getDisplayMetrics().density);v.measure(View.MeasureSpec.makeMeasureSpec(side,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(side,View.MeasureSpec.EXACTLY));v.layout(0,0,side,side);shadowOf(Looper.getMainLooper()).idle();}
 
-    @Test public void rootGroupsSportHistoryAndSharedAppDestinations(){root();List<String> labels=new ArrayList<>();for(View v:all())if(v instanceof Button)labels.add(((Button)v).getText().toString());assertEquals(Arrays.asList("Current match","Live sharing & referee","Results (17)","Statistics","Favourite formats","Scoring rules","Change sport","Players","Settings","Back to score"),labels);assertFalse(hasButton("Manage on phone"));int c=button("Players").getBackgroundTintList().getDefaultColor();assertTrue(Color.red(c)>Color.green(c)&&Color.blue(c)>Color.green(c));}
-    @Test public void currentMatchPutsTheSessionActionBeforeSecondaryControls(){match();List<String> labels=new ArrayList<>();for(View v:all())if(v instanceof Button&&!((Button)v).getText().toString().equals("Scoreboard"))labels.add(((Button)v).getText().toString());assertEquals(Arrays.asList("Pause match","Live sharing & referee","Enter set score","Match details","Match options","Cancel match","Back to Menu"),labels);assertFalse(hasButton("Save retirement result"));click("Pause match");assertFalse(awake());match();assertTrue(hasButton("Resume match"));assertFalse(hasButton("Pause match"));}
+    @Test public void rootGroupsSportHistoryAndSharedAppDestinations(){root();List<String> labels=new ArrayList<>();for(View v:all())if(v instanceof Button)labels.add(((Button)v).getText().toString());assertEquals(Arrays.asList("Current match","Players","Live sharing & referee","Results (17)","Statistics","Favourite formats","Scoring rules","Change sport","Settings","Back to score"),labels);assertFalse(hasButton("Manage on phone"));int c=button("Players").getBackgroundTintList().getDefaultColor();assertTrue(Color.red(c)>Color.green(c)&&Color.blue(c)>Color.green(c));}
+    @Test public void currentMatchPutsTheSessionActionBeforeSecondaryControls(){match();List<String> labels=new ArrayList<>();for(View v:all())if(v instanceof Button&&!((Button)v).getText().toString().equals("Scoreboard"))labels.add(((Button)v).getText().toString());assertEquals(Arrays.asList("Pause match","Enter set score","Match details","Opponent: Alice","Match options","Live sharing & referee","Save retirement result","Cancel match","Back to Menu"),labels);click("Pause match");assertFalse(awake());match();assertTrue(hasButton("Resume match"));assertFalse(hasButton("Pause match"));}
     @Test public void finishedCurrentMatchHidesSetupAndScoringActions(){close();MatchBook b=book();b.retire(1);preferences.edit().putString("match_book",b.encode()).remove(MatchDisplayPolicy.ACTIVE_MATCH).commit();launch();match();assertTrue(hasButton("View result"));assertTrue(hasButton("New match"));assertFalse(hasButton("Enter set score"));assertFalse(hasButton("Match options"));assertFalse(hasButton("Start match"));assertFalse(hasButton("Resume match"));}
     @Test public void choosingANewFormatStagesItUntilCreateIsExplicit(){String before=book().encode();match();click("Match options");click("New match");click("Match length: Best of 3");click("Best of 5 · first to 3");assertTrue(hasButton("Match length: Best of 5"));assertEquals(before,book().encode());click("Create match");assertTrue(has("Replace this match?"));assertEquals(before,book().encode());click("Replace & create match");assertEquals(5,book().current().bestOf());assertFalse(book().current().hasPoints());assertFalse(preferences.contains(MatchDisplayPolicy.ACTIVE_MATCH));}
     @Test public void cancelledNewMatchReturnsToItsCallerAndKeepsTheStagedChoice(){String before=book().encode();match();click("Match options");click("New match");click("Match length: Best of 3");click("Best of 5 · first to 3");click("Create match");back();assertTrue(hasButton("Match length: Best of 5"));back();assertTrue(hasButton("Save retirement result"));assertEquals(before,book().encode());assertEquals("current",preferences.getString(MatchDisplayPolicy.ACTIVE_MATCH,""));}
@@ -79,7 +169,7 @@ public class MenuRevisionUiTest {
     @Test public void importPhoneActionTargetsImportAndReturnsToResultOptions(){readyTransfer();results();click("Options");click("Import CSV");String link=ReflectionHelpers.callInstanceMethod(activity,"phoneLink");assertTrue(link.endsWith("&view=import"));back();assertTrue(hasButton("Delete all results"));assertTrue(hasButton("Export CSV"));}
     @Test public void namesPhoneActionPreservesItsOpponentPickerCaller(){readyTransfer();match();click("Match options");click("Opponent: Alice");click("Edit names on phone");String link=ReflectionHelpers.callInstanceMethod(activity,"phoneLink");assertTrue(link.endsWith("&view=opponents"));back();assertTrue(hasButton("No name"));assertTrue(hasButton("Bob"));back();assertTrue(hasButton("Match length: Best of 3"));}
     @Test public void aLatePhoneLinkCannotReopenPanelsAfterReturningToScoreboard(){results();click("Options");click("View results on phone");Dialog waiting=dialog();assertTrue(has("Preparing phone link"));click("Scoreboard");assertFalse(waiting.isShowing());TransferClient.Session created=new TransferClient.Session();created.expiresAt=System.currentTimeMillis()+600000;ReflectionHelpers.callInstanceMethod(activity,"transferCreated",ReflectionHelpers.ClassParameter.from(TransferClient.Session.class,created),ReflectionHelpers.ClassParameter.from(boolean.class,false),ReflectionHelpers.ClassParameter.from(boolean.class,false),ReflectionHelpers.ClassParameter.from(String.class,""),ReflectionHelpers.ClassParameter.from(Dialog.class,waiting));assertFalse(ShadowDialog.getLatestDialog().isShowing());assertEquals(created,ReflectionHelpers.getField(activity,"transfer"));assertTrue(awake());}
-    @Test public void navigationRowsAreLighterAndKeepLargeTargetsAndExplicitBack(){root();Button nav=button("Results (17)");assertNull(nav.getBackgroundTintList());assertNotNull(nav.getCompoundDrawables()[2]);assertTrue(nav.getMinimumHeight()>=48);assertTrue(Color.blue(nav.getCurrentTextColor())>Color.red(nav.getCurrentTextColor()));nav.setPressed(true);assertNull(nav.getBackgroundTintList());nav.setPressed(false);nav.setEnabled(false);assertTrue(Color.blue(nav.getCurrentTextColor())>Color.red(nav.getCurrentTextColor()));assertNull(button("Back to score").getBackgroundTintList());results();layout();for(String label:new String[]{"Filters","Options","Add past match"}){Button tool=button(label);float density=activity.getResources().getDisplayMetrics().density;assertTrue(tool.getWidth()>=48*density);assertTrue(tool.getHeight()>=48*density);}}
+    @Test public void navigationRowsAreLighterAndKeepLargeTargetsAndExplicitBack(){root();Button nav=button("Results (17)");assertNull(nav.getBackgroundTintList());assertNotNull(nav.getCompoundDrawablesRelative()[2]);assertTrue(nav.getMinimumHeight()>=48);assertTrue(Color.blue(nav.getCurrentTextColor())>Color.red(nav.getCurrentTextColor()));nav.setPressed(true);assertNull(nav.getBackgroundTintList());nav.setPressed(false);nav.setEnabled(false);assertTrue(Color.blue(nav.getCurrentTextColor())>Color.red(nav.getCurrentTextColor()));assertNull(button("Back to score").getBackgroundTintList());results();layout();for(String label:new String[]{"Filters","Options","Add past match"}){Button tool=button(label);float density=activity.getResources().getDisplayMetrics().density;assertTrue(tool.getWidth()>=48*density);assertTrue(tool.getHeight()>=48*density);}}
     @Test public void scoreboardShortcutPreservesPauseAndStatisticsKeepsItsReturnRoute(){match();click("Pause match");match();click("Scoreboard");assertFalse(awake());assertFalse(preferences.contains(MatchDisplayPolicy.ACTIVE_MATCH));root();click("Statistics");click("Results (17)");assertTrue(hasButton("Back to Statistics"));back();assertTrue(has("Win rate:"));assertTrue(hasButton("Back to Menu"));}
     @Test public void resetAllFiltersRestoresTheCurrentSportFirstPageAndTopWithoutChangingMatchData(){
         close();MatchBook b=book();OpponentDirectory d=OpponentDirectory.decode(preferences.getString("opponent_book",""));String alice=d.opponentId("history-0");
