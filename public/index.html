@@ -112,6 +112,62 @@
 @media(max-width:680px){.match-gallery{grid-template-columns:1fr;gap:1rem;margin-top:1.2rem}.match-stage{display:grid;grid-template-columns:minmax(6rem,36%) 1fr;align-items:center;gap:clamp(.8rem,3vw,1.25rem)}.stage-screen{padding:.5rem;min-height:0;aspect-ratio:1}.stage-screen img{width:92%;max-width:11rem}.match-stage figcaption{padding:0}.match-stage h3{font-size:1.08rem}.match-stage p{font-size:1rem}.match-story .section-heading{margin-bottom:.6rem}}
 @media(max-width:325px){.match-stage{grid-template-columns:1fr}.stage-screen{max-height:10rem;aspect-ratio:auto}.stage-screen img{width:8rem}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+.sport-screens { min-width: 0; }
+.sport-screen {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: clamp(1.4rem, 3.2vw, 2.3rem) .8rem 1rem;
+  border: 1px solid #304155;
+  border-radius: 1.65rem;
+  background: radial-gradient(ellipse at 55% 40%, color-mix(in srgb, var(--sport) 19%, #182430), transparent 67%), #101b2a;
+}
+.sport-screen::before {
+  position: absolute;
+  z-index: -1;
+  content: "";
+  inset: 12% -9% -22%;
+  border: 2px solid #ffffff1d;
+  border-radius: 1px;
+  background: linear-gradient(90deg, transparent calc(50% - 1px), #ffffff1d 50%, transparent calc(50% + 1px)), linear-gradient(transparent calc(50% - 1px), #ffffff1d 50%, transparent calc(50% + 1px));
+  transform: perspective(26rem) rotateX(36deg) rotate(-14deg);
+}
+.sport-screen .watch-frame { width: min(100%, clamp(13rem, 24vw, 19rem)); }
+.sport-screen figcaption {
+  display: inline-block;
+  max-width: 100%;
+  margin-top: 1.15rem;
+  padding: .5rem .9rem;
+  border-radius: .65rem;
+  color: #d4dfec;
+  background: #101b2aeb;
+  font-size: .9375rem;
+  line-height: 1.45;
+}
+.sport-preview label { font-size: .875rem; line-height: 1.2; overflow-wrap: anywhere; }
+.preview-hint { font-size: .875rem; }
+.journal-showcase {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, .9fr);
+  align-items: center;
+  gap: clamp(1.5rem, 5vw, 4rem);
+  margin-top: 1.75rem;
+  padding: clamp(1.15rem, 4vw, 3rem);
+  border: 1px solid #35475d;
+  border-radius: 1.35rem;
+  background: linear-gradient(120deg, #111c2c, #13283a);
+}
+.journal-copy h3 { font-size: clamp(1.6rem, 3.2vw, 2.6rem); line-height: 1.1; max-width: 18ch; }
+.journal-copy p { color: var(--muted); max-width: 43ch; margin: .9rem 0; }
+.journal-copy .menu-guide-link { font-weight: 650; }
+.journal-showcase figure { margin: 0; text-align: center; }
+.journal-showcase figure a { display: inline-block; width: min(100%, 22rem); border-radius: .75rem; cursor: zoom-in; }
+.journal-showcase figure img { width: 100%; height: auto; border-radius: .75rem; border: 1px solid #485566; box-shadow: 0 .8rem 1.6rem #040b1480; }
+.journal-showcase figcaption { color: var(--muted); margin-top: .4rem; font-size: .9rem; }
+@media (max-width: 700px) {
+  .sport-screen .watch-frame { width: min(100%, 16.5rem); }
+  .journal-showcase { grid-template-columns: minmax(0, 1fr); }
+}
 </style>
 </head>
 <body>
@@ -156,11 +212,24 @@
 <figure class="match-stage stage-play"><div class="stage-screen"><img src="watch-squash.png" width="466" height="466" loading="lazy" decoding="async" alt="Squash at 10–9 with the server and game ball indicated"></div><figcaption><h3>Score each rally</h3><p>Tap the winner’s side. Check who serves next, undo a tap or hear the score through the watch.</p></figcaption></figure>
 <figure class="match-stage stage-result"><div class="stage-screen"><img src="watch-results-history.png" width="384" height="384" loading="lazy" decoding="async" alt="Saved result with the final tally, players and date above the history filters"></div><figcaption><h3>Revisit the result</h3><p>Open the latest result first, review the set scores or start a rematch with the same players.</p></figcaption></figure>
 </div><a class="menu-guide-link" href="/watch-menus">Explore the watch menus</a>
+<article class="journal-showcase" id="match-journal">
+ <div class="journal-copy">
+  <h3>Match journal on your phone or tablet</h3>
+  <p>Review the score from each game, then save a scorecard to share with your opponent.</p>
+  <p>On your watch, open Results → Options → View results on phone. Scan the QR code to view or edit the match.</p>
+  <a class="menu-guide-link" href="scorecard-example.png" download="Keep-Score-example.png">Download the example scorecard</a>
+ </div>
+ <figure>
+  <a href="scorecard-example.png" aria-label="Open the example scorecard at full size">
+   <img src="scorecard-example.png" width="1080" height="961" alt="Exported squash scorecard showing Alex’s 2–1 win over Sam and all three game scores." loading="lazy" decoding="async">
+  </a>
+  <figcaption>Example match · Squash singles</figcaption>
+ </figure>
+</article>
 <div class="feature-row">
 <article class="feature"><h3>Results for every sport</h3><p>Browse scores, recorded times and duration. Filter by player, date or Singles/Doubles mode. Reset all filters returns to the first page for your sport. See sport-specific wins, losses and totals.</p></article>
 <article class="feature"><h3>Capture it later</h3><p>Enter a completed set or add a separate past match with score wheels and presets. No tiny keyboard needed for scores.</p></article>
-<article class="feature" id="match-journal"><h3>Match journal on your phone or tablet</h3><p>Open Results → Options → View results on phone. Use the QR or NFC to add or edit a result. A green check marks each game or set winner. Open a match to download its scorecard as a PNG.</p></article>
-</div><div class="feature-row"><article class="feature"><h3>Your next match, faster</h3><p>Quick rematch reuses the players and rules. Save favourite formats, set your own name and open the match from a watch tile or face complication.</p></article><article class="feature"><h3>Back up everything</h3><p>Download a complete backup through your phone browser: every sport, players, settings, favourites and your current match with Undo. Restores are reviewed on the watch.</p></article><article class="feature"><h3>Spoken scores and vibrations</h3><p>Hear each score in English, German, French or Spanish when the matching voice is available on your watch. Voice and vibration have separate switches.</p></article></div><details class="palette-picker"><summary>Compare the three scoreboard colour schemes</summary><div class="palette-gallery" aria-label="Scoreboard colour schemes"><figure><img src="watch-palette-classic.png" alt="Classic blue and red scoreboard" width="466" height="466" loading="lazy"><figcaption>Classic</figcaption></figure><figure><img src="watch-palette-neon-lime.png" alt="Neon Lime scoreboard with lime and pink cards and dark numbers" width="466" height="466" loading="lazy"><figcaption>Neon Lime</figcaption></figure><figure><img src="watch-palette-sunlight.png" alt="Sunlight scoreboard with black numbers on white and yellow cards" width="466" height="466" loading="lazy"><figcaption>Sunlight</figcaption></figure></div></details></section>
+<article class="feature"><h3>Your next match, faster</h3><p>Quick rematch reuses the players and rules. Save favourite formats, set your own name and open the match from a watch tile or face complication.</p></article><article class="feature"><h3>Back up everything</h3><p>Download a complete backup through your phone browser: every sport, players, settings, favourites and your current match with Undo. Restores are reviewed on the watch.</p></article><article class="feature"><h3>Spoken scores and vibrations</h3><p>Hear each score in English, German, French or Spanish when the matching voice is available on your watch. Voice and vibration have separate switches.</p></article></div><details class="palette-picker"><summary>Compare the three scoreboard colour schemes</summary><div class="palette-gallery" aria-label="Scoreboard colour schemes"><figure><img src="watch-palette-classic.png" alt="Classic blue and red scoreboard" width="466" height="466" loading="lazy"><figcaption>Classic</figcaption></figure><figure><img src="watch-palette-neon-lime.png" alt="Neon Lime scoreboard with lime and pink cards and dark numbers" width="466" height="466" loading="lazy"><figcaption>Neon Lime</figcaption></figure><figure><img src="watch-palette-sunlight.png" alt="Sunlight scoreboard with black numbers on white and yellow cards" width="466" height="466" loading="lazy"><figcaption>Sunlight</figcaption></figure></div></details></section>
 <section class="section" id="sports" aria-labelledby="sports-title">
 <div class="section-heading"><div><h2 id="sports-title">Six sports and their scoring rules</h2></div><p>Choose a sport in the watch preview above to see its scoreboard.</p></div>
 <table class="sport-table"><caption class="sr-only">Sports, player modes and scoring formats supported by Keep Score</caption><thead><tr><th scope="col">Sport</th><th scope="col">Players</th><th scope="col">Scoring options</th></tr></thead><tbody>
