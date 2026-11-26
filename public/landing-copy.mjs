@@ -2,7 +2,9 @@
 export const landingCopy = {
   "Support Keep Score": ["Keep Score unterstützen", "Soutenir Keep Score", "Apoyar a Keep Score"],
   "I build and maintain Keep Score on my own. If you enjoy the app, a small contribution helps cover the server costs.": ["Ich entwickle und betreue Keep Score allein. Wenn dir die App gefällt, hilft ein kleiner Beitrag bei den Serverkosten.", "Je développe et maintiens Keep Score moi-même. Si l’application te plaît, une petite contribution m’aide à couvrir les frais de serveur.", "Desarrollo y mantengo Keep Score por mi cuenta. Si te gusta la aplicación, una pequeña aportación me ayuda a cubrir los gastos del servidor."],
-  "See support options": ["Möglichkeiten zur Unterstützung ansehen", "Voir comment contribuer", "Ver cómo colaborar"],
+  "Show QR codes": ["QR-Codes anzeigen", "Afficher les codes QR", "Mostrar los códigos QR"],
+  "Buy Me a Coffee QR code": ["QR-Code für Buy Me a Coffee", "Code QR pour Buy Me a Coffee", "Código QR de Buy Me a Coffee"],
+  "PayPal QR code": ["QR-Code für PayPal", "Code QR pour PayPal", "Código QR de PayPal"],
   "Keep Score for Wear OS | Racket sport scorekeeper": ["Keep Score für Wear OS | Punktezähler für Rückschlagsportarten", "Keep Score pour Wear OS | Compteur de points pour sports de raquette", "Keep Score para Wear OS | Marcador para deportes de raqueta"],
   "Keep score on your watch for squash, tennis, badminton, padel, table tennis and pickleball. Score offline, hear the score, save matches and share a live scoreboard.": ["Zähle Punkte auf der Uhr beim Squash, Tennis, Badminton, Padel, Tischtennis und Pickleball. Spiele offline, lass den Spielstand ansagen und teile ihn live.", "Compte les points sur ta montre au squash, tennis, badminton, padel, tennis de table et pickleball. Joue hors ligne, écoute le score et partage-le en direct.", "Lleva el marcador en tu reloj en squash, tenis, bádminton, pádel, tenis de mesa y pickleball. Juega sin conexión, escucha el tanteo y comparte el marcador en directo."],
   "Racket scoring for Wear OS": ["Punktezähler für Wear OS", "Compteur de points pour Wear OS", "Marcador para Wear OS"],

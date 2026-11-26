@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {existsSync, readFileSync} from 'node:fs';
 import {handleImprint, handleSupport} from '../worker/imprint.mjs';
 import {landingCopy} from '../public/landing-copy.mjs';
 
@@ -84,19 +84,28 @@ test('discovery files list public guides and keep match sessions and identifiers
   }
 });
 
-test('the voluntary project support is a collapsed footer control with four-language copy and a local link', () => {
+test('the collapsed support footer offers both direct links and matching, optional QR images', () => {
   const html = read('public/index.html');
   const footer = html.match(/<footer\b[^>]*>([\s\S]+?)<\/footer>/)[1];
   assert.equal(html.indexOf('class="project-support"'), html.lastIndexOf('class="project-support"'));
-  const section = footer.match(/<details class="project-support">([\s\S]*?)<\/details>/)[1];
-  assert.match(section, /href="\/support" data-support/);
-  assert.ok(read('public/landing.mjs').includes('[data-support]'));
-  for (const text of section.matchAll(/>([^<>]+)<\//g)) {
-    assert.equal(landingCopy[text[1]].length, 3);
+  const section = footer.match(/<details class="project-support">([\s\S]*?)<\/details>\s*<\/details>/)[1];
+  assert.match(section, /<p id="support">/);
+  const [links, codes] = section.split('<details><summary>Show QR codes</summary>');
+  const providers = [
+    ['Buy Me a Coffee', 'https://www.buymeacoffee.com/ichwardort', '/support-coffee.webp'],
+    ['PayPal', 'https://www.paypal.com/qrcodes/p2pqrc/WUJZRNFHFGS9Y', '/support-paypal.webp']
+  ];
+  for (const [name, url, image] of providers) {
+    assert.ok(links.includes('href="' + url + '" rel="external nofollow noreferrer">' + name + '</a>'));
+    assert.ok(codes.includes('src="' + image + '"'));
+    assert.ok(existsSync(new URL('../public' + image, import.meta.url)));
+    assert.equal(landingCopy[name + ' QR code'].length, 3);
   }
+  assert.doesNotMatch(section, /<script\b|<iframe\b|<img[^>]+src="https?:/);
+  assert.equal(landingCopy['Show QR codes'].length, 3);
 });
 
-test('support opens the configured payment page or the local private contact reveal', async () => {
+test('support shortcuts open the landing page choices in the requested language or the configured HTTPS destination', async () => {
   const request = new Request(origin + '/support?lang=de&url=https://untrusted.invalid');
   const provider = 'https://example.invalid/verified-support';
   const response = handleSupport(request, {SUPPORT_URL: provider});
@@ -105,7 +114,7 @@ test('support opens the configured payment page or the local private contact rev
   assert.equal(response.headers.get('referrer-policy'), 'no-referrer');
   for (const value of ['', 'invalid', 'javascript:void(0)', origin + '/support']) {
     const routed = handleSupport(request, {SUPPORT_URL: value});
-    assert.equal(routed.headers.get('location'), origin + '/imprint?lang=de&topic=support#contact');
+    assert.equal(routed.headers.get('location'), origin + '/?lang=de#support');
   }
   const contactPage = await (await open('?lang=de&topic=support')).text();
   assert.match(contactPage, /Du möchtest Keep Score unterstützen/);

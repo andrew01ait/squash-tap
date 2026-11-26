@@ -2,6 +2,10 @@
 
 Current watch release: **v0.23.3 / code 42**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
 
+## Website support options · 2026-11-26
+
+All 112 tests passed with `node --test web-test/*.test.mjs`. The browser showed both links when the footer was expanded, kept the QR images behind a separate disclosure and opened the French support shortcut in French. Each published-size QR image decoded to its matching payment link at widths from 180 to 208 pixels.
+
 ## Direct v0.23.3 · 2026-11-26
 
 The direct release passed 349 core, 288 native watch UI and 110 web/relay tests (747 total). The Play source set passed 304 native UI tests.

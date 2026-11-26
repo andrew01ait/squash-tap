@@ -103,6 +103,12 @@
 .project-support summary:focus-visible,.project-support a:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
 .site-footer .project-support p{font-size:1rem;line-height:1.55;max-width:38ch;margin:.2rem 0}
 .project-support a{display:inline-flex;align-items:center;min-height:2.75rem;font-size:.95rem;text-underline-offset:.2em}
+.support-links{display:flex;flex-wrap:wrap;gap:.6rem;margin:.8rem 0 .2rem}
+.support-links .button{padding:.55rem 1rem;border-radius:.65rem}
+.support-codes{display:flex;flex-wrap:wrap;gap:1rem;margin:.3rem 0 .75rem}
+.support-codes figure{width:13rem;max-width:100%;margin:0}
+.support-codes img{width:100%;border-radius:.5rem}
+.support-codes figcaption{margin-top:.35rem;color:var(--muted);font-size:.9rem}
 @media(max-width:680px){.match-gallery{grid-template-columns:1fr;gap:1rem;margin-top:1.2rem}.match-stage{display:grid;grid-template-columns:minmax(6rem,36%) 1fr;align-items:center;gap:clamp(.8rem,3vw,1.25rem)}.stage-screen{padding:.5rem;min-height:0;aspect-ratio:1}.stage-screen img{width:92%;max-width:11rem}.match-stage figcaption{padding:0}.match-stage h3{font-size:1.08rem}.match-stage p{font-size:1rem}.match-story .section-heading{margin-bottom:.6rem}}
 @media(max-width:325px){.match-stage{grid-template-columns:1fr}.stage-screen{max-height:10rem;aspect-ratio:auto}.stage-screen img{width:8rem}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
@@ -216,7 +222,17 @@
 <img class="privacy-photo" src="watch-phone-share.webp" width="960" height="640" loading="lazy" decoding="async" alt="A player holds out a watch while another scans its QR code with a phone beside the squash court."></div><div><p>Scores and names stay on your watch unless you start an optional phone transfer or live scoreboard. Transfers are encrypted, last ten minutes and use a private QR link. Live sharing uses a separate encrypted audience link for the current match’s score and names, plus a head-to-head summary and latest meeting when the same saved players or teams have played before. Live links last up to eight hours during play; completed results remain available for ten minutes after completion. There is no public list of matches or transfers.</p><p><strong>Keep the QR code and full link private.</strong> Anyone with the complete active link can open that transfer. End transfer closes access early. Downloaded CSV, backup and result-card files stay on your phone until you remove them. Stopping live sharing closes its audience link when the watch can reach the service; an offline link remains available until it expires.</p><p>The referee link grants scoring access. Give spectators the read-only watch code instead. The referee’s browser keeps the match on the phone so scoring survives a disconnection. A shared watch room can be reached for up to 14 days after the confirmed final result, giving watches time to save it.</p></div></section>
 </main><footer class="site-footer"><div class="footer-credit"><p>Keep Score for Wear OS<br><span>Developed by Andrew Lindley</span></p>
 <details class="project-support"><summary>Support Keep Score</summary>
-<p>I build and maintain Keep Score on my own. If you enjoy the app, a small contribution helps cover the server costs.</p>
-<a href="/support" data-support>See support options</a></details></div>
+<p id="support">I build and maintain Keep Score on my own. If you enjoy the app, a small contribution helps cover the server costs.</p>
+<div class="support-links">
+  <a class="button" href="https://www.buymeacoffee.com/ichwardort" rel="external nofollow noreferrer">Buy Me a Coffee</a>
+  <a class="button" href="https://www.paypal.com/qrcodes/p2pqrc/WUJZRNFHFGS9Y" rel="external nofollow noreferrer">PayPal</a>
+</div>
+<details><summary>Show QR codes</summary>
+  <div class="support-codes">
+    <figure><img src="/support-coffee.webp" width="820" height="820" loading="lazy" alt="Buy Me a Coffee QR code"><figcaption>Buy Me a Coffee · ichwardort</figcaption></figure>
+    <figure><img src="/support-paypal.webp" width="716" height="716" loading="lazy" alt="PayPal QR code"><figcaption>PayPal · Andrew Lindley</figcaption></figure>
+  </div>
+</details>
+</details></div>
 <div class="footer-links"><a href="/watch-menus">Watch menu map</a><a href="/imprint" data-imprint>Imprint &amp; contact</a><a href="#privacy">Transfer privacy</a><a href="KeepScore-source.zip" download>Source code</a><a href="https://github.com/andrew01ait/squash-tap">GitHub</a><a href="SHA256SUMS.txt">Checksums</a><a href="THIRD_PARTY_NOTICES.txt">Third-party notices</a></div></footer>
 </div><script type="module" src="/landing.mjs"></script></body></html>

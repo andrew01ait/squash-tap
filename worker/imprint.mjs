@@ -61,7 +61,7 @@ export function handleSupport(request, env) {
   if (request.method !== 'GET' && request.method !== 'HEAD') {
     return new Response(null, {status: 405, headers: {...headers, Allow: 'GET, HEAD'}});
   }
-  let destination = new URL('/imprint?lang=' + lang + '&topic=support#contact', url);
+  let destination = new URL('/?lang=' + lang + '#support', url);
   if (env.SUPPORT_URL) {
     try {
       const provider = new URL(env.SUPPORT_URL);
@@ -69,7 +69,7 @@ export function handleSupport(request, env) {
         destination = provider;
       }
     } catch {
-      // The contact form also works while no valid payment link is configured.
+      // The landing page offers both payment providers.
     }
   }
   return new Response(null, {status: 302, headers: {...headers, Location: destination.href}});

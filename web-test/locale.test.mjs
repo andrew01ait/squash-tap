@@ -82,6 +82,12 @@ test('picker re-renders the active page, persists only the preference, and retur
     window.dispatchEvent(new Event('languagechange'));
     assert.deepEqual(changes, ['fr','es','en']);
     assert.equal(document.documentElement.lang,'en');
+    const linked = mountLanguage(new Element(), () => {}, 'de');
+    assert.equal(document.documentElement.lang, 'de');
+    assert.equal(linked.value, 'de');
+    assert.equal(saved.size, 0);
+    linked.value = 'auto';
+    linked.dispatchEvent(new Event('change'));
   } finally {
     for (const [key, descriptor] of original) {
       if (descriptor) Object.defineProperty(globalThis,key,descriptor);

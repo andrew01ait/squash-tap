@@ -2,7 +2,7 @@
 
 ## Website · 2026-11-26
 
-- The footer has a voluntary support link for visitors who would like to help with server costs.
+- The optional support section in the footer offers Buy Me a Coffee and PayPal. Each has a direct link and a QR code for visitors who prefer to scan with a phone.
 - The imprint lists Andrew Lindley’s city, Vienna, Austria, in all four website languages. The watch’s existing contact QR opens the updated page.
 - The public source archive and GitHub mirror include an automated test summary. Personal device-test records are kept internally.
 

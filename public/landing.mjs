@@ -6,7 +6,7 @@ const applyCopy = bindPageCopy(document, landingCopy);
 function render() {
   applyCopy();
   const lang = language();
-  for (const link of document.querySelectorAll('[data-imprint], [data-support]')) link.search = '?lang=' + lang;
+  for (const link of document.querySelectorAll('[data-imprint]')) link.search = '?lang=' + lang;
   for (const link of document.querySelectorAll('a[href^="/watch-menus"]')) link.href = '/watch-menus?lang=' + (lang === 'de' ? 'de' : 'en');
   const accent = text => {
     const element = document.createElement('em');
@@ -21,5 +21,5 @@ function render() {
     accent(t('playing.', 'spielen.', 'jeu.', 'jugando.'))
   );
 }
-mountLanguage(document.querySelector('[data-language-control]'), render);
+mountLanguage(document.querySelector('[data-language-control]'), render, new URLSearchParams(location.search).get('lang'));
 render();

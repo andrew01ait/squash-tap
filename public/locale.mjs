@@ -37,8 +37,9 @@ export function t(en, de, fr, es, ...params) {
 }
 
 /** Passing a callback keeps the current page, pending actions and private session in memory. */
-export function mountLanguage(element, onChange) {
+export function mountLanguage(element, onChange, linkLanguage) {
   if (!element) return;
+  if (supported(linkLanguage)) preference = linkLanguage;
   const select = document.createElement('select');
   const label = document.createElement('label');
   const caption = document.createElement('span');
