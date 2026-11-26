@@ -44,10 +44,13 @@ Warm-up and interval countdowns, injury/blood recovery categories, awarded/conce
 
 - [World Squash singles rules, September 2025](https://worldsquashofficiating.com/rules-of-squash/)
 - [ITF Rules of Tennis 2026](https://www.world.tennis/media/7221/2026-rules-of-tennis-english.pdf), Rules 5–7, 14 and Appendix VI
+- Calls for game winners, set standings and tie-break leaders follow the match-announcement section. [ITF Duties and Procedures for Officials 2026](https://www.itftennis.com/media/2509/duties-procedures-for-officials-2026.pdf)
 - [BWF Laws of Badminton, effective 4 January 2027](https://ghanabadminton.org/wp-content/uploads/Section-4.1-Laws-of-Badminton-04-January-2027-V6.0.pdf), official BWF text hosted by the Ghana federation
+- The technical officials’ instructions cover service changes and the order of the game-point and match-point calls. [BWF ITTO, sections 5.4–5.6](https://badminton.dk/wp-content/uploads/2025/11/Section-4.1.1-Instructions-to-Technical-Officials-ITTO-17-November-2025-V8.0.pdf)
 - [ÖBV current rules](https://www.badminton.at/spielregeln.php) and [Austrian 2027 transition](https://www.badminton.at/news/3_15_ab_2027)
 - [FIP Rules of Padel 2026](https://www.padelfip.com/wp-content/uploads/2025/12/FIP_Rules-of-Padel-1.pdf), Rule 1 and service rules
-- [ITTF Statutes 2026](https://db.ittf.com/sites/default/files/public/2026-02/2026_Statutes_v1_consolidated_clean.pdf), Chapter 2, Laws 2.11–2.13
+- The FIP calls identify Golden Point, Star Point and the pair leading a tie-break. [FIP Promises Tour Rulebook 2026](https://www.padelfip.com/wp-content/uploads/2025/12/EN-FIP-Promises-Tour-Rulebook-19_03_2026.pdf)
+- [ITTF Statutes 2026](https://db.ittf.com/sites/default/files/public/2026-02/2026_Statutes_v1_consolidated_clean.pdf), Laws 2.11–2.13 and score indication in 3.4.1
 
 - [USA Pickleball official rulebook and 2026 edition](https://usapickleball.org/rules/)
 - [USAP 2025 rules](https://usapickleball.org/docs/2025-USA-Pickleball-Rulebook.pdf), provisional rally scoring and service rotation

@@ -46,7 +46,7 @@ public final class ScoreState {
         if(f.nested())return high==6&&low<=4||high==7&&(low==5||low==6);
         return high==f.cap()&&low==high-1||(low<f.target-1?high==f.target:high==low+2&&high<=f.cap());
     }
-    private boolean tieBreak(){return matchTie||format.nested()&&blue==6&&red==6;}
+    boolean tieBreak(){return matchTie||format.nested()&&blue==6&&red==6;}
     public int winner(){
         if(entered)return finalScore(format,matchTie,blue,red)?(blue>red?BLUE:RED):NONE;
         if(format.nested()&&!matchTie){if((blue>=6&&blue-red>=2)||blue==7)return BLUE;if((red>=6&&red-blue>=2)||red==7)return RED;return NONE;}
@@ -60,10 +60,12 @@ public final class ScoreState {
         int a=side==0?pb:pr,b=side==0?pr:pb;if(a>=3&&b>=3)return a>b?"AD":"40";
         return new String[]{"0","15","30","40"}[Math.min(a,3)];
     }
+    private boolean decidingDeuce(){return format.deuce.equals("no-ad")||format.deuce.equals("star")&&deuces>=3;}
+    boolean decidingPoint(){return format.nested()&&!tieBreak()&&pb>=3&&pr>=3&&pb==pr&&decidingDeuce();}
     public String status(){
         if(format.pickleball()&&!entered)return pickleFirst<0?"SET STARTING SERVER":pickle.call()+" · "+pickle.court()+" SERVE";
         if(matchTie)return "MATCH TIE-BREAK · TO 10";
-        if(format.nested())return tieBreak()?"TIE-BREAK · TO 7":pb>=3&&pr>=3?(format.deuce.equals("no-ad")||format.deuce.equals("star")&&deuces>=3?"DECIDING POINT":format.deuce.equals("star")?"DEUCE "+deuces:"DEUCE / ADVANTAGE"):"GAMES "+blue+"–"+red;
+        if(format.nested())return tieBreak()?"TIE-BREAK · TO 7":pb>=3&&pr>=3?(decidingDeuce()?"DECIDING POINT":format.deuce.equals("star")?"DEUCE "+deuces:"DEUCE / ADVANTAGE"):"GAMES "+blue+"–"+red;
         return "TO "+format.target+" · WIN BY TWO"+(format.sport.equals("badminton")?" · CAP "+format.cap():"");
     }
     public boolean add(int player){
@@ -78,7 +80,7 @@ public final class ScoreState {
             if(Math.max(pb,pr)>=7&&Math.abs(pb-pr)>=2){tb=pb;tr=pr;if(pb>pr)blue++;else red++;}
         }else{
             if(pb==pr&&pb>=3)deuces++;
-            boolean deciding=format.deuce.equals("no-ad")||format.deuce.equals("star")&&deuces>=3;
+            boolean deciding=decidingDeuce();
             if(Math.max(pb,pr)>=4&&(Math.abs(pb-pr)>=2||deciding&&pb!=pr)){
                 if(pb>pr)blue++;else red++;pb=pr=deuces=0;
             }

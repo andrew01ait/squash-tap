@@ -1,12 +1,12 @@
 # Install, update and diagnose
 
-[Official download page](https://squash-tap-andrew.endruuu.chatgpt.site/) · Current watch APK: **v0.21.3 / code 33**.
+[Official download page](https://squash-tap-andrew.endruuu.chatgpt.site/) · Current watch APK: **v0.23.3 / code 42**.
 
 The APK runs on the watch. Wear Installer 2 is a helper on the Android phone; no PC development tools are required. The app is currently distributed by APK through this site, not the watch app store.
 
 Google Play preparation is separate from this public release. The candidate uses the same package/signer and directs updates to the watch's Play Store, without an APK installer. It has not launched on Google Play. See [the preparation gates](PLAY_RELEASE.md); no new installation is required for existing users at this stage.
 
-Choose a sport at launch, then create or resume a match. Sport icons/colours identify your selection. An unfinished match locks other sports, even when paused; finish it or choose Current match → Cancel match → Discard match first. Players and Settings are shared. Existing squash history stays available after an update.
+When idle, the watch opens Home. Tap New match and choose a sport. Reopening a prepared or active match goes directly to its scoreboard. Paused matches open Resume, and saved finishes open the result until marked as done or inactive for three hours. Sport icons/colours identify your selection. An unfinished match locks other sports, even when paused; finish it or choose Current match → Cancel match → Discard match first. Players and Settings are shared. Existing squash history stays available after an update.
 
 ## Initial installation using an Android phone
 
@@ -18,7 +18,7 @@ Choose a sport at launch, then create or resume a match. Sport icons/colours ide
 6. Choose Custom APK, select the download and install. Open Keep Score on the watch, then MENU → Settings to confirm the version.
 7. Turn wireless debugging off when no longer needed. Starting play may request notifications for the quiet ongoing-match shortcut.
 
-[Wear Installer 2 instructions](https://freepoc.org/wear-installer-2-help-page/) provide the helper's full walkthrough. Initial phone-only installation, the v0.1→v0.2 in-app update and retained score were user-reported on OnePlus Watch 2R / Wear OS 5; see [DEVICE_TESTS.json](DEVICE_TESTS.json). New versions still need their own acceptance checks.
+[Wear Installer 2 instructions](https://freepoc.org/wear-installer-2-help-page/) provide the helper's full walkthrough.
 
 ## German OnePlus labels
 
@@ -36,7 +36,7 @@ Choose a sport at launch, then create or resume a match. Sport icons/colours ide
 
 ## Updating an existing installation
 
-Open MENU → Settings → Check for updates, enable the direct-install permission if requested, download the verified update and approve the watch's installation confirmation. Reopen Keep Score afterward and check Settings for its version. If the system installer flow is unavailable, install the latest official APK over the existing app with Wear Installer 2.
+Open MENU → Settings → Check for updates, enable the direct-install permission if requested, download the verified update and approve the watch's installation confirmation. The updater already installed on the watch handles each download. Starting in v0.21.5, tapping **Download & update** opens the percentage bar at the top of the display. Verification and the handoff to the Android installer each show their current status. Reopen Keep Score afterward and check Settings for its version. If the system installer flow is unavailable, install the latest official APK over the existing app with Wear Installer 2.
 
 An in-place update with the same package/signing key replaces the installed application; it does not install a separate v0.2/v0.3 app alongside it. Downloaded APK files may still remain wherever the user saved them. Do not uninstall or clear watch storage to update, because that can remove local scores/history.
 
@@ -55,7 +55,7 @@ MENU → Settings → Diagnostics offers an explicit Send to phone QR. Scan the 
 
 If installation cannot connect, refresh the watch IP/connection port; do not use the phone's hotspot IP or the pairing port. If the updater rejects an APK, keep the installed app and check that the download is the official package/newer version; signature validation must not be bypassed.
 
-If the app returns to the watch face, record the version/time and export diagnostics. An activity pause, installation exit or missing battery exemption is not by itself evidence of a crash. Existing reports confirm foreground retention since v0.3, but do not establish every later firmware, swipe, ambient or battery scenario.
+If the app returns to the watch face, record the version/time and export diagnostics. An activity pause, installation exit or missing battery exemption is not by itself evidence of a crash.
 
 ## New optional features
 
@@ -77,7 +77,7 @@ In v0.16.4, use Results → Filters → Reset all filters, or the direct reset r
 
 ## Using NFC after updating
 
-On the host, open **Live sharing & referee → Share with watches → Pair a watch via NFC**. On the receiving watch choose **Live sharing & referee → Join via NFC**. For browser pages, choose **Share page via NFC** on the watch. Hold the back of the unlocked phone against the watch until it shows **Link read**. If the phone reports an empty tag, move it away before tapping again. You can also return to the QR and scan the same link with the camera. If you want to diagnose an empty tag, keep the NFC page open for the full minute. The watch reports whether a request reached Keep Score or the read was interrupted. See Settings → Diagnostics for the last attempt. Contactless payment settings apply to the wallet. Each watch displays the options its hardware supports. Manual codes and QR links are available as usual.
+On the host, open **Live sharing & referee → Share with watches → Pair a watch via NFC**. On the receiving watch choose **Live sharing & referee → Join via NFC**. For browser pages, choose **Share page via NFC** on the watch. Hold the back of the unlocked phone against the watch until it shows **Link read**. If the phone reports an empty tag, move it away before tapping again. You can also return to the QR and scan the same link with the camera. If you want to diagnose an empty tag, keep the NFC page open for the full minute. The watch reports whether a request reached Keep Score or the read was interrupted. In Settings → Diagnostics, the final NFC event shows the command count, how the attempt ended and its duration. For example, `commands=0` with `end=timeout after=60s` means no command reached Keep Score during that minute. Contactless payment settings apply to the wallet. Each watch displays the options its hardware supports. Manual codes and QR links are available as usual.
 
 ## Updating for referee and watch sharing
 

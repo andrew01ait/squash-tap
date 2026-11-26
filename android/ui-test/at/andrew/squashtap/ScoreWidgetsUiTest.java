@@ -5,6 +5,18 @@ import org.junit.*;import org.junit.runner.RunWith;import org.robolectric.*;impo
 public class ScoreWidgetsUiTest {
  @Before public void setup(){MatchBook b=new MatchBook(new MatchState("widget-match",3));for(int i=0;i<9;i++)b.add(0);for(int i=0;i<10;i++)b.add(1);RuntimeEnvironment.getApplication().getSharedPreferences("squash",0).edit().clear().putString("match_book",b.encode()).putString(MatchDisplayPolicy.ACTIVE_MATCH,b.current().id()).commit();}
  @Test public void tileContainsScoreAndLaunchActionWithoutChangingMatch()throws Exception{KeepScoreTileService s=Robolectric.buildService(KeepScoreTileService.class).create().get();String before=s.getSharedPreferences("squash",0).getString("match_book","");TileBuilders.Tile tile=s.onTileRequest(RequestBuilders.TileRequest.fromProto(RequestProto.TileRequest.newBuilder().build())).get();assertEquals(0,tile.getFreshnessIntervalMillis());String layout=tile.getTileTimeline().getTimelineEntries().get(0).getLayout().toString();assertTrue(layout.contains("9–10"));assertTrue(layout.contains("keep_score_widget"));assertEquals(before,s.getSharedPreferences("squash",0).getString("match_book",""));s.onDestroy();}
+ @Test public void tileUsesTheAppNameAndLauncherLogoAndOpensHomeWhenIdle()throws Exception{
+     KeepScoreTileService service=Robolectric.buildService(KeepScoreTileService.class).create().get();
+     service.getSharedPreferences("squash",0).edit().clear().commit();
+     TileBuilders.Tile tile=service.onTileRequest(RequestBuilders.TileRequest.fromProto(RequestProto.TileRequest.newBuilder().build())).get();
+     String layout=tile.getTileTimeline().getTimelineEntries().get(0).getLayout().toString();
+     assertTrue(layout.contains("Keep Score"));assertTrue(layout.contains("keep-score-logo"));assertTrue(layout.contains("Home"));
+     androidx.wear.protolayout.ResourceBuilders.Resources images=service.onTileResourcesRequest(
+             RequestBuilders.ResourcesRequest.fromProto(RequestProto.ResourcesRequest.newBuilder().build())).get();
+     assertEquals(tile.getResourcesVersion(),images.getVersion());
+     assertEquals(R.drawable.ic_launcher,images.getIdToImageMapping().get("keep-score-logo").getAndroidResourceByResId().getResourceId());
+     service.onDestroy();
+ }
  @Test public void complicationSupportsBothTextFormatsWithASafeTapAction(){ScoreComplicationService s=Robolectric.buildService(ScoreComplicationService.class).create().get();for(ComplicationType type:new ComplicationType[]{ComplicationType.SHORT_TEXT,ComplicationType.LONG_TEXT}){final ComplicationData[] data={null};s.onComplicationRequest(new ComplicationRequest(7,type),d->data[0]=d);assertNotNull(data[0]);assertEquals(type,data[0].getType());assertNotNull(data[0].getTapAction());}s.onDestroy();}
  @Test public void previewUsesSyntheticRatherThanPersonalScores(){ScoreComplicationService s=Robolectric.buildService(ScoreComplicationService.class).create().get();assertNotNull(s.getPreviewData(ComplicationType.SHORT_TEXT));assertNull(s.getPreviewData(ComplicationType.RANGED_VALUE));s.onDestroy();}
 }

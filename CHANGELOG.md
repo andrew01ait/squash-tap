@@ -1,9 +1,60 @@
 # Releases
 
-## Next direct watch update (unreleased)
+## Website · 2026-11-26
+
+- The footer has a voluntary support link for visitors who would like to help with server costs.
+- The imprint lists Andrew Lindley’s city, Vienna, Austria, in all four website languages. The watch’s existing contact QR opens the updated page.
+- The public source archive and GitHub mirror include an automated test summary. Personal device-test records are kept internally.
+
+## v0.23.3 · 2026-11-26 · direct APK code 42
+
+- Settings → About me introduces Andrew Lindley. The contact QR opens the public imprint in the selected watch language without sharing any match data.
+- The website shows match setup, scoring and history with watch screenshots. It includes publisher details, a contact reveal, search metadata, a sitemap and a social preview.
+
+## v0.23.2 · 2026-11-26 · direct APK code 41
+
+- Home displays the Keep Score logo and name above the quick actions. The Wear OS Tile shows the same artwork and opens Home when idle.
+- Every main menu destination has a distinct colour. Shortcuts use the destination colour wherever they appear. Headings and horizontal depth bars carry it into submenus. Results, Statistics and Players use matching accents in the phone journal.
+
+## v0.23.1 · 2026-11-26 · direct APK code 40
+
+- Home tiles open New match, Results, Players, Sports and Settings when idle. A saved finished match can be marked as done and closes after three hours without interaction. A prepared or running match opens its scoreboard. A paused match opens Resume.
+- Last 30 days filters the watch and phone player lists using completed matches in any sport, including doubles partners. It combines with name search and each sort order.
+- Results opens on the newest matching scorecard with the outcome, opponent or teams, and date. Filters and Options follow the first card. Add past match leads Options and is directly available when the sport’s history is empty.
+- Each menu level adds a horizontal bar beside the badge. Tap the heading for the full route. Screen readers announce the exact level.
+
+## v0.23.0 · 2026-11-26 · direct APK code 39
+
+- Type part of a name in any watch player list. Sort A–Z, Z–A or by most recent match activity. Partners and both opponents count in doubles. The phone player directory includes the same three orders.
+- After a saved finish, the final score and a green New match button appear above Quick rematch. The sport selector and sport menu also lead with a new match when idle. A prepared, playing or paused match retains its own primary action.
+- Watch menus show the page title and current depth. Tap the heading for the path from your entry point. Explore the [watch menu map](public/watch-menus.html) in English or German.
+
+## v0.22.1 · 2026-11-22 · direct APK code 38
+
+- Spoken calls in all six sports use first names. Both members of a named doubles team are called by first name. Players with identical first names can be distinguished by their player number.
+- Tennis and padel distinguish the game winner from the side leading the set. Calls mark a level set, the start of the tie-break at 6–6, and the leading player or pair during the tie-break. Padel identifies Golden Point and Star Point according to the chosen rules.
+- Squash calls game ball, match ball and the two-point margin at 10–10. Badminton calls service changes and game and match points for both scoring presets. Table tennis announces the next server’s points first during play and the winner’s points first at the end of a game.
+- Traditional pickleball distinguishes a side out from a handover to the second server. In a one-game match the final call gives the winning score and winner. All six sports support the four watch languages and corrections.
+
+## v0.22.0 · 2026-11-22 · direct APK code 37
+
+- Added optional spoken scores below Vibrations in watch Settings. An installed voice calls the live score, Undo corrections and game or match wins in English, German, French or Spanish.
+- Tennis and padel use their game, advantage and tie-break scores. Traditional doubles pickleball includes the server number. A watch following a referee calls the latest score it receives while its scoreboard is open.
+
+## v0.21.6 · 2026-11-19 · direct APK code 36
+
+- When a referee scores on a phone, **Cancel match** is the first action in the host watch’s **Match menu** and **Live sharing & referee**. Choose **Discard match** to end play for everyone without saving a result, or **Keep playing** to return.
+
+## v0.21.5 · 2026-11-19 · direct APK code 35
+
+- Tapping **Download & update** opens the progress bar at the top of the watch display. It shows the percentage of the APK received, then switches to an animated indicator while Keep Score verifies the package and opens the Android installer.
+- The small diagnostic QR gives the latest NFC sharing entry priority over routine pause, stop and resume events. The QR still fits the same size limit.
+
+## v0.21.4 · 2026-11-19 · direct APK code 34
 
 - Tapping **Download & update** scrolls the watch back to the current download and installation status.
 - The last NFC sharing event records how long the offer was active and whether it timed out, the app paused, or the sharing page closed.
+- The website illustrates how to award a point as referee and how to share a page by scanning the watch.
 
 ## v0.21.3 · 2026-11-19 · direct APK code 33
 
@@ -235,7 +286,6 @@
 - Replaced inherited styling with explicit roles: blue match actions, neutral-grey Settings (including its root entry), red delete actions and confirmations, and outlined Back/Cancel controls, including the QR return control.
 - Clarified diagnostic package-update/state-change exits, added page/window state to reports and pre-pause events, and kept compact traces on complete lines.
 - Added 8 Robolectric tests of real Android navigation, role colours/states, deletion confirmations, result cards and format/persistence wiring. The default release builder runs these alongside the 140 core tests.
-- Recorded user-confirmed v0.4 installation, diagnostic QR export and working foreground retention since v0.3. Raw diagnostic logs are not published. No changes to scoring, match storage or session policy.
 
 ## Public website — 2026-11-03
 
@@ -266,13 +316,6 @@
 - Added bounded lifecycle/session/crash/process-exit diagnostics and QR transfer to a phone-side page with TXT save/share/copy. No automatic upload.
 - Added pinned AndroidX/ZXing dependencies, notices and a source-packaging helper. 127 automated core tests pass; original signer, metadata, alignment and historical APK hashes checked. No emulator/Robolectric run claimed.
 
-## Device verification — 2026-11-03
-
-- User confirmed phone-only installation and working operation on the OnePlus Watch 2R with Wear OS 5.
-- User enabled allow-updates and successfully used the in-app updater to install v0.2.0 over v0.1.0.
-- The existing score was retained. Undo-history retention and full device regression remain unconfirmed.
-- Recorded results in DEVICE_TESTS.json and updated the public verification notes. APKs and version codes are unchanged.
-
 ## Distribution change — 2026-11-03
 
 - Enabled public access to the release page, APKs and update feed at the user's explicit request.
@@ -289,4 +332,4 @@
 - Persistent score/undo history, optional keep-awake mode and visible version/menu.
 - Built-in release checks, verified APK downloads, install-source setup, PackageInstaller handoff, phone fallback help and diagnostics.
 - 64 local tests and verified signed APK packaging.
-- Direct installation/update and score retention were subsequently confirmed by the user on the OnePlus (see device verification above). The download site was made public by explicit user approval.
+- The direct download site became publicly available.

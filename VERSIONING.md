@@ -1,6 +1,8 @@
 # Versions and compatibility
 
-Current official watch release: **v0.21.3**, Android version code **33**; package **`at.andrew.squashtap`**. `public/release.properties` is the machine-readable update feed; `public/builds.json` and `SHA256SUMS.txt` record retained artifacts.
+Current official watch release: **v0.23.3**, Android version code **42**; package **`at.andrew.squashtap`**. `public/release.properties` is the machine-readable update feed; `public/builds.json` and `SHA256SUMS.txt` record retained artifacts.
+
+The optional `spoken_scores` boolean is included in full backups. An older backup without the setting restores the default, Off. Match history, rally encodings and CSV formats keep their existing versions.
 
 ## Independent version numbers
 
@@ -10,6 +12,8 @@ Current official watch release: **v0.21.3**, Android version code **33**; packag
 | Hosted Site saved version/deployment | Website/relay/source-download publication. A docs-only website update does not change the watch version. |
 | Git commit | Exact internal or GitHub source revision. The sanitized public copy has its own history and deliberately different private/deployment metadata. |
 | Data/interchange schema | Persistence and CSV/transfer compatibility; must be reviewed independently of UI release numbers. |
+
+The optional backup setting `player_sort` accepts `az`, `za` and `recent`. An older backup uses the alphabetical default.
 
 ## Current formats
 
@@ -86,3 +90,15 @@ The watch accepts both Android Type 4 NDEF application identifiers. Each reader 
 ## Diagnostic QR · direct v0.21.3 / code 33
 
 The text uses the existing gzip fragment format. A second fragment field carries the current watch and match state. The phone also accepts links with only the original text field. The watch automatically trims the stored diagnostic event log during an update’s first launch and on every subsequent event.
+
+## NFC diagnostics and update progress · direct v0.21.4 / code 34
+
+Each completed NFC sharing attempt records its end reason and elapsed seconds in the existing local diagnostic event. The direct updater brings its current status into view. This release uses the existing diagnostic QR format and match storage.
+
+## Host watch cancellation · direct v0.21.6 / code 36
+
+The host watch uses the existing referee-room revocation and offline retry. Other devices can continue using their existing versions.
+
+## Watch update progress and diagnostic QR · direct v0.21.5 / code 35
+
+The update feed and diagnostic link formats are unchanged. The installed watch app draws the progress indicator, so the first download using the new bar is an update started from v0.21.5 or later. The QR keeps the existing 318-byte limit and gives an NFC sharing event priority over subsequent activity lifecycle entries.

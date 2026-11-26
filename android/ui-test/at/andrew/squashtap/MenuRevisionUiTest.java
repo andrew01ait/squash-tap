@@ -35,6 +35,230 @@ public class MenuRevisionUiTest {
     private void match(){root();click("Current match");}
     private void results(){root();click("Results ("+book().count()+")");}
     private void back(){Dialog d=dialog();d.dispatchKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN,KeyEvent.KEYCODE_BACK));d.dispatchKeyEvent(new KeyEvent(KeyEvent.ACTION_UP,KeyEvent.KEYCODE_BACK));shadowOf(Looper.getMainLooper()).idle();}
+    private EditText playerSearch(){
+        for(View view:all())if(view instanceof EditText && "Search players".contentEquals(((EditText)view).getHint()))return (EditText)view;
+        throw new AssertionError("No player search");
+    }
+    private MenuLocation location(){return ReflectionHelpers.getField(activity,"location");}
+    @Test public void playerSearchFiltersAcrossPagesKeepsFocusAndRestoresAfterDetail(){
+        close();OpponentDirectory d=OpponentDirectory.decode(preferences.getString("opponent_book",""));
+        for(int i=0;i<14;i++)d.add("Player "+i);
+        d.add("Zoë Müller");
+        preferences.edit().putString("opponent_book",d.encode()).commit();launch();root();click("Players");
+        Dialog roster=dialog();EditText input=playerSearch();input.requestFocus();
+        input.setText("muller");assertSame(roster,dialog());assertSame(input,playerSearch());assertTrue(input.hasFocus());
+        assertTrue(hasButton("Zoë Müller"));assertFalse(hasButton("Alice"));assertFalse(hasButton("More names"));
+        click("Zoë Müller");back();assertEquals("muller",playerSearch().getText().toString());
+        playerSearch().setText("missing");assertTrue(has("No matching players"));assertTrue(hasButton("Add player"));
+        playerSearch().setText("");click("Sort: A–Z");click("Z–A");
+        assertTrue(all().indexOf(button("Zoë Müller"))<all().indexOf(button("Player 9")));
+        click("More names");assertFalse(hasButton("Zoë Müller"));click("Previous names");assertTrue(hasButton("Zoë Müller"));
+        back();click("Players");assertEquals("",playerSearch().getText().toString());assertTrue(hasButton("Sort: Z–A"));
+        click("Sort: Z–A");click("Most recent activity");
+        assertTrue(all().indexOf(button("Alice"))<all().indexOf(button("Bob")));
+        back();click("Current match");click("Opponent: Alice");assertTrue(hasButton("Sort: Most recent activity"));
+        playerSearch().setText("bob");click("Bob");assertTrue(hasButton("Opponent: Bob"));
+    }
+
+    @Test public void recentFilterCombinesWithSearchAndSortAndSurvivesOpeningAPlayer(){
+        close();
+        MatchBook b=new MatchBook(new MatchState("current",3));
+        OpponentDirectory d=new OpponentDirectory();
+        String ada=d.add("Ada"),bob=d.add("Bob"),cara=d.add("Cara"),unused=d.add("Unused");
+        LocalDate today=LocalDate.now();
+        String[] people={ada,bob,cara};int[] ages={30,29,0};
+        for(int i=0;i<people.length;i++){
+            String id="past-"+i;
+            b.importResult(new MatchResult(id,today.minusDays(ages[i]).toString(),1,3,new int[][]{{11,5},{11,6}}));
+            d.assign(id,people[i]);
+        }
+        preferences.edit().putString("match_book",b.encode()).putString("opponent_book",d.encode()).commit();
+        launch();root();click("Players");
+        click("Last 30 days");assertTrue(hasButton("Bob"));assertTrue(hasButton("Cara"));
+        assertFalse(hasButton("Ada"));assertFalse(hasButton("Unused"));
+        click("Sort: A–Z");click("Most recent activity");
+        assertTrue(all().indexOf(button("Cara"))<all().indexOf(button("Bob")));
+        playerSearch().setText("bo");click("Bob");back();
+        assertTrue(((CheckBox)button("Last 30 days")).isChecked());assertEquals("bo",playerSearch().getText().toString());
+        playerSearch().setText("");click("Last 30 days");assertTrue(hasButton("Unused"));assertTrue(hasButton("Ada"));
+    }
+
+    private void mainLaunch(){
+        controller=Robolectric.buildActivity(MainActivity.class,new Intent(Intent.ACTION_MAIN)).setup();
+        activity=controller.get();tasks=new QueuedTasks();ReflectionHelpers.setField(activity,"tasks",tasks);
+    }
+    private MatchBook completedAt(long millis){
+        MatchBook b=new MatchBook(new MatchState("final-review",3),Clock.fixed(Instant.ofEpochMilli(millis),ZoneId.of("UTC")));
+        b.add(0);assertTrue(b.retire(1));return b;
+    }
+    private void saveFixture(MatchBook b){
+        preferences.edit().putString("match_book",b.encode()).remove(MatchDisplayPolicy.ACTIVE_MATCH).remove("match_ready_id")
+                .putBoolean("match_paused",false).commit();
+    }
+    @Test public void closingResultOpensHomeAndKeepsTheSavedScoreAndAllHistory(){
+        close();MatchBook b=completedAt(System.currentTimeMillis());saveFixture(b);String saved=b.encode();
+        mainLaunch();assertTrue(hasButton("Quick rematch"));click("Mark match as done");assertTrue(hasButton("Sports"));
+        assertEquals(saved,book().encode());assertFalse(MatchWidgets.read(activity).present);
+        click("Results");openFirstResult();assertFalse(hasButton("Mark match as done"));back();back();
+        click("New match");click("Tennis");assertTrue(hasButton("Create match"));back();back();
+        close();mainLaunch();assertTrue(hasButton("Sports"));assertEquals(saved,book().encode());
+        click("Players");back();click("Settings");back();click("Sports");click("Back to Home");assertTrue(hasButton("New match"));
+    }
+    @Test public void aSavedSharedResultCanBeClosedAndNeverSupplantsAPreparedLocalMatch(){
+        close();MatchBook b=new MatchBook(new MatchState("idle",3));
+        b.importResult(new MatchResult("remote","2026-10-01",1,3,new int[][]{{11,5},{11,6}}));
+        saveFixture(b);mainLaunch();activity.openSavedRoomResult("remote","squash");
+        assertTrue(hasButton("Mark match as done"));assertFalse(hasButton("Quick rematch"));
+        close();mainLaunch();assertTrue(hasButton("Mark match as done"));click("Mark match as done");
+        assertTrue(hasButton("Sports"));assertNotNull(book().result("remote"));
+        click("New match");click("Squash");click("Create match");
+        activity.openSavedRoomResult("remote","squash");assertFalse(hasButton("Mark match as done"));
+        close();mainLaunch();assertEquals("Scoreboard",ReflectionHelpers.getField(activity,"panelPage"));
+    }
+    @Test public void threeHoursAreMeasuredFromTheLastInteractionAcrossRestarts(){
+        close();long now=System.currentTimeMillis();MatchBook b=completedAt(now-FinishedMatchReview.TIMEOUT-10000);
+        saveFixture(b);FinishedMatchReview.touch(preferences,b,now-60000);mainLaunch();assertTrue(hasButton("Mark match as done"));
+        long previous=now-60000;FinishedMatchReview.touch(preferences,b,previous);
+        android.view.MotionEvent touch=android.view.MotionEvent.obtain(5,5,android.view.MotionEvent.ACTION_DOWN,90,75,0);
+        dialog().dispatchTouchEvent(touch);touch.recycle();assertTrue(FinishedMatchReview.lastUsed(preferences,b)>previous);
+        assertFalse(FinishedMatchReview.expired(preferences,b,FinishedMatchReview.lastUsed(preferences,b)+FinishedMatchReview.TIMEOUT-1));
+        assertTrue(FinishedMatchReview.expired(preferences,b,FinishedMatchReview.lastUsed(preferences,b)+FinishedMatchReview.TIMEOUT));
+        close();FinishedMatchReview.touch(preferences,b,now-FinishedMatchReview.TIMEOUT);mainLaunch();
+        assertTrue(hasButton("Sports"));assertNotNull(book().result("final-review"));assertFalse(MatchWidgets.read(activity).present);
+    }
+    @Test public void expiredReviewLeavesAnOpenNewMatchDraftAloneAndActiveMatchesBypassHome(){
+        close();long now=System.currentTimeMillis();MatchBook b=completedAt(now-FinishedMatchReview.TIMEOUT-10000);
+        saveFixture(b);FinishedMatchReview.touch(preferences,b,now);mainLaunch();click("New match");
+        FinishedMatchReview.touch(preferences,b,now-FinishedMatchReview.TIMEOUT);
+        ReflectionHelpers.callInstanceMethod(activity,"checkFinishedReview");assertTrue(hasButton("Create match"));
+        controller.newIntent(new Intent(Intent.ACTION_MAIN));assertTrue(hasButton("Create match"));click("Create match");
+        String next=book().current().id();close();mainLaunch();assertEquals("Scoreboard",ReflectionHelpers.getField(activity,"panelPage"));
+        assertEquals(next,book().current().id());activity.action(TouchTargets.BLUE);close();mainLaunch();
+        assertEquals("Scoreboard",ReflectionHelpers.getField(activity,"panelPage"));match();click("Pause match");close();mainLaunch();
+        assertTrue(hasButton("Resume match"));assertEquals(1,book().current().game().blue());
+    }
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) @Config(qualifiers="w192dp-h192dp-round-xhdpi")
+    public void idleGermanHomeShowsNewMatchAndRoutesStraightToResults() throws Exception{
+        close();saveFixture(new MatchBook(new MatchState("idle",3)));
+        preferences.edit().putString(WatchLanguage.PREFERENCE,"de").commit();mainLaunch();layout();
+        assertTrue(hasButton("Neue Partie"));assertTrue(hasButton("Spieler"));assertTrue(hasButton("Ergebnisse"));
+        View screen=dialog().getWindow().getDecorView();
+        captureRoundScreen(screen,screen.getWidth(),"home-round-192-de");
+        assertBrandedHomeFits(screen);
+        for(String label:new String[]{"Neue Partie","Ergebnisse","Spieler","Sportarten"}){
+            Button tile=button(label);
+            android.text.Layout lines=tile.getLayout();
+            assertTrue(label,lines.getLineCount()<=(label.contains(" ")?2:1));
+            android.graphics.Rect visible=new android.graphics.Rect();assertTrue(label,tile.getGlobalVisibleRect(visible));
+            assertTrue(label,tile.getHeight()>=48*activity.getResources().getDisplayMetrics().density);
+            int[] pos=new int[2];tile.getLocationOnScreen(pos);float radius=screen.getWidth()/2f;
+            float left=pos[0]+tile.getTotalPaddingLeft();
+            float top=pos[1]+tile.getTotalPaddingTop();
+            for(int n=0;n<lines.getLineCount();n++)for(float x:new float[]{lines.getLineLeft(n),lines.getLineRight(n)})
+                for(float y:new float[]{lines.getLineTop(n),lines.getLineBottom(n)})
+                    assertTrue(label+" touches the round edge",Math.hypot(left+x-radius,top+y-radius)<radius);
+        }
+        click("Ergebnisse");assertTrue(hasButton("Frühere Partie eintragen"));click("Zur Startseite");
+        click("Neue Partie");click("Padel");assertTrue(hasButton("Partie anlegen"));
+    }
+
+    private void assertBrandedHomeFits(View screen){
+        View mark=null, name=null;
+        for(View v:all()){
+            if(v instanceof ImageView && ((ImageView)v).getDrawable()!=null)mark=v;
+            if(v instanceof TextView && "Keep Score".contentEquals(((TextView)v).getText()))name=v;
+        }
+        assertNotNull(mark);assertNotNull(name);assertSame(mark.getParent(),name.getParent());
+        float radius=screen.getWidth()/2f;
+        for(View v:new View[]{mark,name}){
+            int[] pos=new int[2];v.getLocationOnScreen(pos);assertTrue(v.isShown());
+            for(float x:new float[]{pos[0],pos[0]+v.getWidth()})for(float y:new float[]{pos[1],pos[1]+v.getHeight()})
+                assertTrue(v.getClass().getSimpleName()+" at "+x+", "+y+" for radius "+radius,Math.hypot(x-radius,y-radius)<radius);
+        }
+        View header=(View)name.getParent().getParent();
+        assertTrue(header.getContentDescription().toString().startsWith("Keep Score. "));
+    }
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) @Config(qualifiers="w192dp-h192dp-round-xhdpi")
+    public void brandAndMenuPathFitWithLargerTextOnSmallRoundWatches() throws Exception{
+        close();RuntimeEnvironment.setFontScale(1.3f);saveFixture(new MatchBook(new MatchState("brand-large",3)));
+        preferences.edit().putString(WatchLanguage.PREFERENCE,"de").commit();mainLaunch();layout();
+        View screen=dialog().getWindow().getDecorView();
+        captureRoundScreen(screen,screen.getWidth(),"home-brand-round-192-de-large");assertBrandedHomeFits(screen);
+        assertTrue(has("Startseite"));click("Ergebnisse");assertEquals(MenuSection.RESULTS,location().section);
+    }
+
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) @Config(qualifiers="w192dp-h192dp-round-xhdpi")
+    public void aboutMeIncludesOfflineCreditAndScannablePublicContactInTheWatchLanguage() throws Exception{
+        close();preferences.edit().putString(WatchLanguage.PREFERENCE,"de").commit();launch();
+        String original=book().encode();
+        root();click("Einstellungen");click("Über mich");
+        assertTrue(has("Andrew Lindley"));assertTrue(has("Ich spiele Squash"));assertTrue(tasks.queued.isEmpty());
+        assertEquals(MenuSection.SETTINGS,location().section);
+        click("Impressum & Kontakt");layout();View screen=dialog().getWindow().getDecorView();
+        assertEquals(BuildConfig.SITE_URL+"/imprint?lang=de",decodeRoundQr(screen,screen.getWidth(),"about-contact-round-192-de"));
+        back();assertTrue(hasButton("Impressum & Kontakt"));back();assertTrue(hasButton("Über mich"));
+        assertEquals(original,book().encode());
+    }
+
+    @Test public void depthTracksTheActualEntryAndBackIncludingPagesWithTheSameTitleAsAPlayer(){
+        close();OpponentDirectory d=OpponentDirectory.decode(preferences.getString("opponent_book",""));d.add("Settings");
+        preferences.edit().putString("opponent_book",d.encode()).commit();launch();activity.showSports();
+        assertEquals(1,location().depth);click("Settings");assertEquals(2,location().depth);back();
+        click("Squash");assertEquals(2,location().depth);click("Settings");assertEquals(3,location().depth);
+        assertEquals("Choose sport › Squash › Settings",location().path(s->s));
+        for(View v:all())if(v.getContentDescription()!=null&&v.getContentDescription().toString().endsWith("Show menu path")){v.performClick();break;}
+        boolean pathVisible=false;for(View v:all())if(v instanceof TextView&&"Choose sport › Squash › Settings".contentEquals(((TextView)v).getText())&&v.getVisibility()==View.VISIBLE)pathVisible=true;
+        assertTrue(pathVisible);click("Language · English");assertEquals(4,location().depth);assertEquals(MenuSection.SETTINGS,location().section);
+        click("Back to Settings");assertEquals(3,location().depth);back();click("Players");click("Settings");
+        assertEquals(4,location().depth);assertEquals(MenuSection.PLAYERS,location().section);assertTrue(hasButton("Rename"));back();assertEquals(3,location().depth);
+    }
+
+    @Test @Config(qualifiers="w192dp-h192dp-round-xhdpi") public void finishedResultOffersVisibleNewMatchFirstAndRetainsTheSavedResultOnCancel(){
+        RuntimeEnvironment.setFontScale(1.3f);
+        close();MatchBook b=book();b.retire(1);preferences.edit().putString("match_book",b.encode()).remove(MatchDisplayPolicy.ACTIVE_MATCH).commit();
+        launch();root();assertTrue(all().indexOf(button("New match"))<all().indexOf(button("Current match")));
+        click("Current match");click("View result");layout();
+        Button primary=button("New match");int colour=primary.getBackgroundTintList().getDefaultColor();assertTrue(Color.green(colour)>Color.blue(colour));
+        assertTrue(all().indexOf(primary)<all().indexOf(button("Quick rematch")));
+        assertTrue(all().indexOf(button("Quick rematch"))<all().indexOf(button("Share result card")));
+        android.graphics.Rect visible=new android.graphics.Rect();assertTrue(primary.getLocalVisibleRect(visible));assertEquals(primary.getHeight(),visible.height());
+        String before=book().encode();click("New match");assertTrue(hasButton("Create match"));back();
+        assertTrue(hasButton("Quick rematch"));assertEquals(before,book().encode());
+        click("New match");click("Create match");assertFalse(book().current().id().equals("current"));assertNotNull(book().result("current"));
+    }
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) @Config(qualifiers="w192dp-h192dp-round-xhdpi")
+    public void winningPointPutsGermanNewMatchLabelInsideTheRoundWatchAtLargeType() throws Exception {
+        RuntimeEnvironment.setFontScale(1.3f);
+        close();
+        MatchBook finalRally = new MatchBook(new MatchState("final", 3));
+        for (int n=0; n<11; n++) finalRally.add(0);
+        assertTrue(finalRally.nextGame());
+        for (int n=0; n<10; n++) finalRally.add(0);
+        preferences.edit().putString("match_book",finalRally.encode()).putString(WatchLanguage.PREFERENCE,"de")
+                .putString(MatchDisplayPolicy.ACTIVE_MATCH,"final").commit();
+        launch();
+        activity.action(TouchTargets.BLUE);
+        layout();
+        assertNotNull(book().result("final"));
+        Button primary = button("Neue Partie");
+        assertTrue(all().indexOf(primary) < all().indexOf(button("Revanche")));
+        View screen = dialog().getWindow().getDecorView();
+        int diameter = screen.getWidth();
+        captureRoundScreen(screen, diameter, "new-match-round-192-de");
+        float radius = diameter / 2f;
+        android.text.Layout label = primary.getLayout();
+        int[] origin = new int[2];
+        primary.getLocationOnScreen(origin);
+        int top = origin[1] + primary.getTotalPaddingTop();
+        for (int line=0; line<label.getLineCount(); line++) {
+            for (float x : new float[]{label.getLineLeft(line),label.getLineRight(line)})
+                for (int y : new int[]{label.getLineTop(line),label.getLineBottom(line)})
+                    assertTrue("New match text clipped by round display",
+                            Math.hypot(origin[0]+primary.getTotalPaddingLeft()+x-radius, top+y-radius) < radius);
+        }
+        click("Neue Partie");
+        assertNotNull(book().result("final"));
+    }
     private boolean awake(){return (activity.getWindow().getAttributes().flags&WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)!=0;}
     private TransferClient.Session readyTransfer(){TransferClient.Session s=new TransferClient.Session();s.expiresAt=System.currentTimeMillis()+600000;ReflectionHelpers.setField(activity,"transfer",s);return s;}
     private void openFirstResult(){for(View v:all())if(v.getContentDescription()!=null&&v.getContentDescription().toString().contains("Open match result")){v.performClick();shadowOf(Looper.getMainLooper()).idle();return;}throw new AssertionError("Missing result card");}
@@ -52,7 +276,7 @@ public class MenuRevisionUiTest {
         click("Settings");assertEquals(Arrays.asList("Language & display","Feedback","Data","Watch shortcuts","App"),sections());
         click("Language · English");assertTrue(sections().isEmpty());back();back();
         click("Players");assertEquals(Arrays.asList("Saved players","Manage names"),sections());back();
-        click("Results (17)");assertEquals(Arrays.asList("Saved matches"),sections());
+        click("Results (17)");assertEquals(Arrays.asList("More matches"),sections());
         click("Options");assertEquals(Arrays.asList("CSV","Delete results"),sections());back();
         click("Filters");assertEquals(Arrays.asList("Match","Date range"),sections());
     }
@@ -97,16 +321,107 @@ public class MenuRevisionUiTest {
         assertEquals("Alice",result.roleName("doubles",0));
         assertEquals(b.encode(),book().encode());
     }
-    @Test public void resultActionsUseTheSameFullWidthRowsAsOtherMenus(){
+    @Test public void historyLeadsWithAMatchAndKeepsBothToolsOneTapAway(){
         results();layout();
-        Button footer=button("Back to Menu");
-        for(String label:new String[]{"Filters","Options","Add past match"}){
-            Button row=button(label);
-            assertEquals(footer.getWidth(),row.getWidth());
-            assertNotNull(row.getCompoundDrawablesRelative()[2]);
-            assertEquals(button("Filters").getTextSize(),row.getTextSize(),0.01f);
-            assertTrue(row.getHeight()>=48*activity.getResources().getDisplayMetrics().density);
+        Button filters=button("Filters"),options=button("Options");
+        List<LinearLayout> cards=historyCards();
+        assertEquals(10,cards.size());
+        assertTrue(all().indexOf(cards.get(0))<all().indexOf(filters));
+        assertTrue(all().indexOf(options)<all().indexOf(cards.get(1)));
+        assertSame(filters.getParent(),options.getParent());
+        assertEquals(filters.getTop(),options.getTop());
+        assertTrue(options.getLeft()>=filters.getRight());
+        assertFalse(hasButton("Add past match"));
+        click("Options");assertTrue(hasButton("Add past match"));back();
+        layout();scroll().scrollTo(0,300);
+        int before=scroll().getScrollY();
+        assertTrue(before>0);
+        openFirstResult();back();layout();assertEquals(before,scroll().getScrollY());
+        back();click("Results (17)");layout();assertEquals(0,scroll().getScrollY());
+    }
+    private List<LinearLayout> historyCards(){
+        List<LinearLayout> cards=new ArrayList<>();
+        String action=activity.tr(". Open match result.");
+        for(View v:all())if(v instanceof LinearLayout && v.getContentDescription()!=null
+                && v.getContentDescription().toString().endsWith(action))cards.add((LinearLayout)v);
+        return cards;
+    }
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) @Config(qualifiers="w192dp-h192dp-round-xhdpi")
+    public void mostRecentScoreAndOpponentFitAtLargeGermanTextBeforeTheTools() throws Exception{
+        RuntimeEnvironment.setFontScale(1.3f);
+        close();preferences.edit().putString(WatchLanguage.PREFERENCE,"de").commit();launch();
+        root();click("Ergebnisse (17)");layout();
+        LinearLayout first=historyCards().get(0);
+        assertEquals("2–0  Gewonnen",((TextView)first.getChildAt(0)).getText().toString());
+        assertTrue(((TextView)first.getChildAt(1)).getText().toString().contains("Bob"));
+        assertTrue(((TextView)first.getChildAt(2)).getText().toString().contains("06.11.2026"));
+        View screen=dialog().getWindow().getDecorView();
+        captureRoundScreen(screen,screen.getWidth(),"results-first-round-192-de");
+        float radius=screen.getWidth()/2f;
+        for(int child=0;child<first.getChildCount();child++){
+            TextView text=(TextView)first.getChildAt(child);
+            android.text.Layout lines=text.getLayout();int[] origin=new int[2];text.getLocationOnScreen(origin);
+            for(int line=0;line<lines.getLineCount();line++)
+                for(float x:new float[]{lines.getLineLeft(line),lines.getLineRight(line)})
+                    for(int y:new int[]{lines.getLineTop(line),lines.getLineBottom(line)})
+                        assertTrue("Clipped "+text.getText(),Math.hypot(origin[0]+text.getTotalPaddingLeft()+x-radius,origin[1]+text.getTotalPaddingTop()+y-radius)<radius);
         }
+        click("Optionen");assertTrue(hasButton("Frühere Partie eintragen"));
+    }
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) @Config(qualifiers="w180dp-h180dp-round-xhdpi")
+    public void historyToolsStackWhenTheTwoLabelsDoNotFitAtLargeType(){
+        RuntimeEnvironment.setFontScale(1.8f);
+        close();preferences.edit().putString(WatchLanguage.PREFERENCE,"de").commit();launch();
+        root();click("Ergebnisse (17)");layout();
+        Button filters=button("Filter"),options=button("Optionen");
+        assertEquals(LinearLayout.VERTICAL,((LinearLayout)filters.getParent()).getOrientation());
+        assertEquals(filters.getWidth(),options.getWidth());
+        assertTrue(options.getTop()>=filters.getBottom());
+        assertTrue(filters.getWidth()>=48*activity.getResources().getDisplayMetrics().density);
+        click("Optionen");assertTrue(hasButton("Frühere Partie eintragen"));
+    }
+    @Test public void horizontalBarsRepresentEveryLevelAndOnlyTheHeaderSpeaksTheNumber(){
+        readyTransfer();activity.showSports();assertDepthBars(1);
+        click("Squash");click("Results (17)");assertDepthBars(3);
+        click("Options");click("Import CSV");assertDepthBars(5);
+        click("Show phone QR");assertDepthBars(6);back();assertDepthBars(5);
+    }
+    private void assertDepthBars(int depth){
+        assertEquals(depth,location().depth);
+        String level="Level "+depth;
+        LinearLayout indicator=null;
+        for(View v:all())if(v instanceof LinearLayout && level.contentEquals(v.getContentDescription()==null?"":v.getContentDescription()))
+            indicator=(LinearLayout)v;
+        assertNotNull(indicator);
+        assertEquals(LinearLayout.VERTICAL,indicator.getOrientation());
+        assertEquals(depth,indicator.getChildCount());
+        for(int n=0;n<depth;n++){
+            View bar=indicator.getChildAt(n);
+            assertFalse(bar instanceof TextView);
+            LinearLayout.LayoutParams p=(LinearLayout.LayoutParams)bar.getLayoutParams();
+            assertTrue(p.width>p.height && p.height>0);
+            if(n>0)assertTrue(p.topMargin>0);
+        }
+        assertEquals(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS,indicator.getImportantForAccessibility());
+        View header=(View)indicator.getParent().getParent();
+        assertTrue(header.getContentDescription().toString().contains(level+"."));
+        for(View v:all(header))if(v instanceof TextView)
+            assertFalse(String.valueOf(depth).contentEquals(((TextView)v).getText()));
+    }
+    @Test public void emptyHistoryOffersEntryAndFilteredEmptyOffersReset(){
+        close();
+        MatchBook blank=new MatchBook(new MatchState("blank",3));
+        MatchState otherSport=new MatchState("tennis-result",3,MatchFormat.defaults("tennis"));
+        otherSport.enterCompletedSet(6,1);otherSport.enterCompletedSet(6,2);
+        blank.importResult(MatchResult.from(otherSport,"2026-11-06",1));
+        preferences.edit().putString("match_book",blank.encode()).remove(MatchDisplayPolicy.ACTIVE_MATCH).commit();
+        launch();root();click("Results (0)");
+        assertTrue(has("No saved matches yet"));click("Add past match");back();
+        assertTrue(hasButton("Filters"));assertTrue(hasButton("Add past match"));
+        click("Filters");click("Today");
+        assertTrue(has("No matches fit"));assertFalse(hasButton("Add past match"));
+        assertTrue(button("Filters").isSelected());click("Reset all filters");
+        assertTrue(hasButton("Add past match"));assertFalse(button("Filters").isSelected());
     }
     @Test @GraphicsMode(GraphicsMode.Mode.NATIVE)
     @Config(qualifiers="w192dp-h192dp-round-xhdpi") public void smallRoundGermanQrIsReadableAndHasARealBackButton()throws Exception{
@@ -127,7 +442,7 @@ public class MenuRevisionUiTest {
         backButton.performClick();
         assertTrue(hasButton("Partie pausieren"));
     }
-    private String decodeRoundQr(View root, int diameter, String name) throws Exception {
+    private int[] captureRoundScreen(View root, int diameter, String name) throws Exception {
         android.graphics.Bitmap frame=android.graphics.Bitmap.createBitmap(diameter,diameter,android.graphics.Bitmap.Config.ARGB_8888);
         root.draw(new android.graphics.Canvas(frame));
         int[] pixels=new int[diameter*diameter];
@@ -142,6 +457,10 @@ public class MenuRevisionUiTest {
         try(java.io.OutputStream out=new java.io.FileOutputStream(output)){
             assertTrue(frame.compress(android.graphics.Bitmap.CompressFormat.PNG,100,out));
         }
+        return pixels;
+    }
+    private String decodeRoundQr(View root, int diameter, String name) throws Exception {
+        int[] pixels = captureRoundScreen(root, diameter, name);
         com.google.zxing.RGBLuminanceSource source=new com.google.zxing.RGBLuminanceSource(diameter,diameter,pixels);
         return new com.google.zxing.qrcode.QRCodeReader().decode(new com.google.zxing.BinaryBitmap(new com.google.zxing.common.HybridBinarizer(source))).getText();
     }
@@ -157,6 +476,8 @@ public class MenuRevisionUiTest {
         for (int i=0; i<120; i++) crash.append("\n at synthetic.frame").append(i);
         preferences.edit().putString("lifecycle_trace",legacy.toString()).putString("last_crash",crash.toString()).commit();
         AppDiagnostics.record(activity, "NFC share: commands=0 mapping=0 stage=waiting end=pause after=2s");
+        AppDiagnostics.record(activity, "Activity stop; finishing=false changingConfig=false");
+        AppDiagnostics.record(activity, "Activity resume; ambient=false paused=false");
         String trace = preferences.getString("lifecycle_trace","");
         assertEquals(12, trace.split("\n").length);
         assertFalse(trace.contains("legacy event 0\n"));
@@ -196,8 +517,24 @@ public class MenuRevisionUiTest {
         root();click("Aktuelle Partie");
         assertEquals(Arrays.asList("Spielstand","Partie einrichten","Teilen","Partie beenden"),sections());
     }
+    @Implements(value=UpdateClient.class, isInAndroidSdk=false)
+    public static class TestUpdateClient {
+        UpdatePolicy release;
+        java.util.function.Consumer<UpdateClient.Progress> transfer;
+        Runnable install;
+
+        @Implementation protected UpdatePolicy check() { return release; }
+        @Implementation protected java.io.File download(UpdatePolicy offer, UpdateClient.Progress progress) {
+            assertSame(release, offer);
+            transfer.accept(progress);
+            return new java.io.File("example-update.apk");
+        }
+        @Implementation protected void install(java.io.File apk) { install.run(); }
+    }
+
     @Test @GraphicsMode(GraphicsMode.Mode.NATIVE)
-    @Config(qualifiers="de-rAT-w192dp-h192dp-round-xhdpi") public void tappingDownloadRevealsUpdateProgressOnASmallWatch() throws Exception {
+    @Config(qualifiers="de-rAT-w192dp-h192dp-round-xhdpi", shadows=TestUpdateClient.class)
+    public void tappingDownloadRevealsUpdateProgressOnASmallWatch() throws Exception {
         org.junit.Assume.assumeFalse(BuildConfig.PLAY_DISTRIBUTION);
         RuntimeEnvironment.setFontScale(1.3f);
         preferences.edit().putString(WatchLanguage.PREFERENCE, "de").commit();
@@ -207,35 +544,86 @@ public class MenuRevisionUiTest {
             + "\nversionCode=" + (BuildConfig.VERSION_CODE + 1) + "\nversionName=9.9.9\nminSdk=30\nsizeBytes=100"
             + "\napkUrl=https://example.test/update.apk\nsha256=" + String.join("", Collections.nCopies(64,"a"))
             + "\nnotes=" + String.join(" ", Collections.nCopies(24, "Neue Funktion für die Uhr."));
-        ReflectionHelpers.setField(activity, "latest", UpdatePolicy.parse(feed, activity.getPackageName(), "example.test"));
+        TestUpdateClient client = org.robolectric.shadow.api.Shadow.extract(ReflectionHelpers.getField(activity, "updater"));
+        client.release = UpdatePolicy.parse(feed, activity.getPackageName(), "example.test");
         root(); click("Einstellungen"); click("Nach Updates suchen");
-        ScrollView updates = scroll();
+        assertTrue(updateBar().isShown());
+        assertTrue(updateBar().isIndeterminate());
+        tasks.queued.remove(0).run();
+        assertEquals(View.GONE, updateBar().getVisibility());
+        ScrollView offer = scroll();
         Button download = button("Laden und aktualisieren");
         layout();
-        updates.scrollTo(0, download.getTop() - updates.getPaddingTop());
-        assertTrue(updates.getScrollY() > updates.getHeight());
+        offer.scrollTo(0, download.getTop() - offer.getPaddingTop());
+        assertTrue(offer.getScrollY() > offer.getHeight());
 
         click("Laden und aktualisieren");
-        assertEquals(0, updates.getScrollY());
-        assertUpdateMessageVisible("Geprüftes Update wird geladen …");
-        for (String status : Arrays.asList("Downloading: 37%", "Verified. Requesting installation…")) {
-            ReflectionHelpers.callInstanceMethod(activity, "setUpdateStatus",
-                ReflectionHelpers.ClassParameter.from(String.class, status));
-            assertUpdateMessageVisible(WatchLanguage.get(activity).status(status));
-        }
+        assertEquals(0, scroll().getScrollY());
+        assertDownloadStage("Geprüftes Update wird geladen …", 0);
+        client.transfer = progress -> {
+            progress.update(37);
+            assertDownloadStage(WatchLanguage.get(activity).status("Downloading: 37%"), 37);
+            try {
+                View view = dialog().getWindow().getDecorView();
+                captureRoundScreen(view, view.getWidth(), "update-progress-round-192-de");
+            } catch (Exception failed) { throw new AssertionError(failed); }
+            controller.pause().resume();
+            assertDownloadStage(WatchLanguage.get(activity).status("Downloading: 37%"), 37);
+            back();
+            progress.update(82);
+            assertTrue(hasButton("Nach Updates suchen"));
+            click("Nach Updates suchen");
+            assertDownloadStage(WatchLanguage.get(activity).status("Downloading: 82%"), 82);
+            progress.update(100);
+            assertDownloadStage(WatchLanguage.get(activity).status("Downloading: 100%"), 100);
+            progress.verifying();
+            assertDownloadStage("Update wird geprüft …", -1);
+        };
+        client.install = () -> assertDownloadStage(WatchLanguage.get(activity).status("Verified. Requesting installation…"), -1);
+        tasks.queued.remove(0).run();
+        assertEquals(View.GONE, updateBar().getVisibility());
+        assertTrue(has(WatchLanguage.get(activity).status("Installation requested. Reopen Keep Score after it finishes.")));
+
+        client.transfer = progress -> { progress.update(12); throw new IllegalStateException("offline"); };
+        click("Laden und aktualisieren");
+        tasks.queued.remove(0).run();
+        assertEquals(View.GONE, updateBar().getVisibility());
+        assertTrue(has("offline"));
+        click("Laden und aktualisieren");
+        assertDownloadStage("Geprüftes Update wird geladen …", 0);
+    }
+
+    private ProgressBar updateBar() {
+        for (View v : all()) if (v instanceof ProgressBar) return (ProgressBar)v;
+        throw new AssertionError("Missing update progress bar");
+    }
+
+    private void assertDownloadStage(String label, int percent) {
+        assertUpdateMessageVisible(label);
+        ProgressBar bar = updateBar();
+        assertTrue(bar.isShown());
+        assertEquals(percent < 0, bar.isIndeterminate());
+        if (percent >= 0) assertEquals(percent, bar.getProgress());
+        android.graphics.Rect bounds = new android.graphics.Rect();
+        assertTrue(bar.getGlobalVisibleRect(bounds));
+        assertEquals(bar.getWidth(), bounds.width());
+        assertEquals(bar.getHeight(), bounds.height());
+        View screen = dialog().getWindow().getDecorView();
+        float radius = screen.getWidth() / 2f;
+        for (int x : new int[]{bounds.left, bounds.right})
+            for (int y : new int[]{bounds.top, bounds.bottom})
+                assertTrue("Bar clipped by round display", Math.hypot(x-radius, y-radius) <= radius);
     }
 
     private void assertUpdateMessageVisible(String message) {
         layout();
         TextView text = ReflectionHelpers.getField(activity, "updateText");
-        int offset = text.getText().toString().indexOf(message);
-        assertTrue("Missing " + message, offset >= 0);
+        assertTrue("Update progress should appear before version details", text.getText().toString().startsWith(message));
         android.text.Layout layout = text.getLayout();
         android.graphics.Rect visible = new android.graphics.Rect();
         assertTrue(text.getLocalVisibleRect(visible));
-        int first = layout.getLineForOffset(offset);
-        int last = layout.getLineForOffset(offset + message.length() - 1);
-        assertTrue(message + " clipped at top", text.getTotalPaddingTop() + layout.getLineTop(first) >= visible.top);
+        int last = layout.getLineForOffset(message.length() - 1);
+        assertTrue(message + " clipped at top", text.getTotalPaddingTop() + layout.getLineTop(0) >= visible.top);
         assertTrue(message + " clipped at bottom", text.getTotalPaddingTop() + layout.getLineBottom(last) <= visible.bottom);
     }
 
@@ -264,12 +652,54 @@ public class MenuRevisionUiTest {
     @Test public void resultDetailsPickerAndDeleteCancelPreserveFiltersPageAndScroll(){results();click("Filters");click("Opponent: All");click("Alice");click("Back to Results");assertTrue(has("12 of 17 saved"));click("Older results");assertTrue(has("Page 2 of 2"));layout();scroll().scrollTo(0,110);int position=scroll().getScrollY();assertTrue(position>0);openFirstResult();click("Opponent: Alice");back();assertTrue(hasButton("Delete this result"));click("Delete this result");back();click("Back to Results");layout();assertTrue(has("12 of 17 saved"));assertTrue(has("Page 2 of 2"));assertEquals(position,scroll().getScrollY());}
     @Test public void deleteAllIsKeptInsideResultOptions(){results();assertFalse(hasButton("Delete all results"));click("Options");Button delete=button("Delete all results");int c=delete.getBackgroundTintList().getDefaultColor();assertTrue(Color.red(c)>Color.blue(c));click("Delete all results");back();assertTrue(hasButton("Export CSV"));assertEquals(17,book().count());}
     @Test public void enteredSetIsAvailableDirectlyInTheCurrentMatchAndCancelChangesNothing(){String before=book().encode();match();click("Enter set score");assertTrue(has("Set 1 score"));click("Me won");assertTrue(hasButton("Review set score"));for(View v:all())if(v instanceof NumberPicker)assertEquals(ViewGroup.FOCUS_BLOCK_DESCENDANTS,((NumberPicker)v).getDescendantFocusability());back();assertTrue(hasButton("Pause match"));assertEquals(before,book().encode());}
-    @Test public void pastMatchEntryBelongsToResultsAndCancelKeepsTheLiveMatch(){String before=book().encode();match();assertFalse(hasButton("Add past match"));results();click("Add past match");assertTrue(hasButton("Save match result"));assertFalse(hasButton("Enter set score"));back();assertTrue(hasButton("Add past match"));assertEquals(before,book().encode());assertEquals("current",preferences.getString(MatchDisplayPolicy.ACTIVE_MATCH,""));}
-    @Test public void resultsPhoneActionSetsItsLandingViewAndReturnsToResults(){readyTransfer();results();click("Options");click("View results on phone");assertTrue(hasButton("Show phone QR"));String link=ReflectionHelpers.callInstanceMethod(activity,"phoneLink");assertTrue(link.endsWith("&view=results"));click("Show phone QR");assertEquals("Phone QR",ReflectionHelpers.getField(activity,"panelPage"));back();assertTrue(hasButton("Receive changes"));back();assertTrue(hasButton("Add past match"));}
+    @Test public void pastMatchEntryBelongsToResultsAndCancelKeepsTheLiveMatch(){String before=book().encode();match();assertFalse(hasButton("Add past match"));results();assertFalse(hasButton("Add past match"));click("Options");click("Add past match");assertTrue(hasButton("Save match result"));assertFalse(hasButton("Enter set score"));back();assertTrue(hasButton("Add past match"));assertEquals(before,book().encode());assertEquals("current",preferences.getString(MatchDisplayPolicy.ACTIVE_MATCH,""));}
+    @Test public void resultsPhoneActionSetsItsLandingViewAndReturnsToResults(){readyTransfer();results();click("Options");click("View results on phone");assertTrue(hasButton("Show phone QR"));String link=ReflectionHelpers.callInstanceMethod(activity,"phoneLink");assertTrue(link.endsWith("&view=results"));click("Show phone QR");assertEquals("Phone QR",ReflectionHelpers.getField(activity,"panelPage"));back();assertTrue(hasButton("Receive changes"));back();assertTrue(hasButton("Filters"));}
     @Test public void importPhoneActionTargetsImportAndReturnsToResultOptions(){readyTransfer();results();click("Options");click("Import CSV");String link=ReflectionHelpers.callInstanceMethod(activity,"phoneLink");assertTrue(link.endsWith("&view=import"));back();assertTrue(hasButton("Delete all results"));assertTrue(hasButton("Export CSV"));}
     @Test public void namesPhoneActionPreservesItsOpponentPickerCaller(){readyTransfer();match();click("Match options");click("Opponent: Alice");click("Edit names on phone");String link=ReflectionHelpers.callInstanceMethod(activity,"phoneLink");assertTrue(link.endsWith("&view=opponents"));back();assertTrue(hasButton("No name"));assertTrue(hasButton("Bob"));back();assertTrue(hasButton("Match length: Best of 3"));}
     @Test public void aLatePhoneLinkCannotReopenPanelsAfterReturningToScoreboard(){results();click("Options");click("View results on phone");Dialog waiting=dialog();assertTrue(has("Preparing phone link"));click("Scoreboard");assertFalse(waiting.isShowing());TransferClient.Session created=new TransferClient.Session();created.expiresAt=System.currentTimeMillis()+600000;ReflectionHelpers.callInstanceMethod(activity,"transferCreated",ReflectionHelpers.ClassParameter.from(TransferClient.Session.class,created),ReflectionHelpers.ClassParameter.from(boolean.class,false),ReflectionHelpers.ClassParameter.from(boolean.class,false),ReflectionHelpers.ClassParameter.from(String.class,""),ReflectionHelpers.ClassParameter.from(Dialog.class,waiting));assertFalse(ShadowDialog.getLatestDialog().isShowing());assertEquals(created,ReflectionHelpers.getField(activity,"transfer"));assertTrue(awake());}
-    @Test public void navigationRowsAreLighterAndKeepLargeTargetsAndExplicitBack(){root();Button nav=button("Results (17)");assertNull(nav.getBackgroundTintList());assertNotNull(nav.getCompoundDrawablesRelative()[2]);assertTrue(nav.getMinimumHeight()>=48);assertTrue(Color.blue(nav.getCurrentTextColor())>Color.red(nav.getCurrentTextColor()));nav.setPressed(true);assertNull(nav.getBackgroundTintList());nav.setPressed(false);nav.setEnabled(false);assertTrue(Color.blue(nav.getCurrentTextColor())>Color.red(nav.getCurrentTextColor()));assertNull(button("Back to score").getBackgroundTintList());results();layout();for(String label:new String[]{"Filters","Options","Add past match"}){Button tool=button(label);float density=activity.getResources().getDisplayMetrics().density;assertTrue(tool.getWidth()>=48*density);assertTrue(tool.getHeight()>=48*density);}}
+    @Test public void destinationsAndSecondaryActionsKeepTheirColourAndTouchTargets(){
+        root();Button results=button("Results (17)");
+        assertEquals(MenuSection.RESULTS.surface,results.getBackgroundTintList().getDefaultColor());
+        assertNotNull(results.getCompoundDrawablesRelative()[2]);assertNull(button("Back to score").getBackgroundTintList());
+        click("Statistics");
+        assertEquals(MenuSection.RESULTS.surface,button("Results (17)").getBackgroundTintList().getDefaultColor());
+        click("Results (17)");assertEquals(MenuSection.RESULTS,location().section);layout();
+        for(String label:new String[]{"Filters","Options"}){
+            Button tool=button(label);float density=activity.getResources().getDisplayMetrics().density;
+            assertTrue(tool.getWidth()>=48*density);assertTrue(tool.getHeight()>=48*density);
+            assertEquals(MenuSection.RESULTS.accent,tool.getTextColors().getDefaultColor());
+        }
+        click("Options");Button export=button("Export CSV");
+        assertNull(export.getBackgroundTintList());assertNotNull(export.getCompoundDrawablesRelative()[2]);
+        assertEquals(MenuSection.RESULTS.accent,export.getTextColors().getDefaultColor());
+        back();back();assertEquals(MenuSection.STATISTICS,location().section);
+    }
+
+    @Test public void allMainDestinationsHaveUniqueReadableColoursAndMatchTheirHomeShortcuts(){
+        close();saveFixture(new MatchBook(new MatchState("idle-colours",3)));mainLaunch();
+        String[] tiles={"New match","Results","Players","Sports","Settings"};
+        MenuSection[] shortcuts={MenuSection.NEW_MATCH,MenuSection.RESULTS,MenuSection.PLAYERS,MenuSection.SPORTS,MenuSection.SETTINGS};
+        for(int i=0;i<tiles.length;i++)assertEquals(tiles[i],shortcuts[i].surface,button(tiles[i]).getBackgroundTintList().getDefaultColor());
+        root();
+        String[] labels={"New match","Current match","Change sport","Results (0)","Players","Statistics",
+                ((MatchRooms)ReflectionHelpers.getField(activity,"rooms")).title(),"Favourite formats","Scoring rules","Settings"};
+        MenuSection[] sections={MenuSection.NEW_MATCH,MenuSection.CURRENT_MATCH,MenuSection.SPORTS,MenuSection.RESULTS,MenuSection.PLAYERS,
+                MenuSection.STATISTICS,MenuSection.SHARING,MenuSection.FAVOURITES,MenuSection.RULES,MenuSection.SETTINGS};
+        int[][] states={{android.R.attr.state_enabled},{android.R.attr.state_enabled,android.R.attr.state_pressed},
+                {-android.R.attr.state_enabled}};
+        for(int[] state:states){
+            Set<Integer> seen=new HashSet<>();
+            for(int i=0;i<labels.length;i++){
+                Button row=button(labels[i]);
+                int fill=row.getBackgroundTintList().getColorForState(state,0);
+                int ink=row.getTextColors().getColorForState(state,0);
+                assertEquals(labels[i],sections[i].fill.getColorForState(state,0),fill);
+                assertTrue(labels[i],seen.add(fill));
+                assertTrue(labels[i],androidx.core.graphics.ColorUtils.calculateContrast(ink,fill)>=4.5);
+            }
+        }
+    }
+
     @Test public void scoreboardShortcutPreservesPauseAndStatisticsKeepsItsReturnRoute(){match();click("Pause match");match();click("Scoreboard");assertFalse(awake());assertFalse(preferences.contains(MatchDisplayPolicy.ACTIVE_MATCH));root();click("Statistics");click("Results (17)");assertTrue(hasButton("Back to Statistics"));back();assertTrue(has("Win rate:"));assertTrue(hasButton("Back to Menu"));}
     @Test public void resetAllFiltersRestoresTheCurrentSportFirstPageAndTopWithoutChangingMatchData(){
         close();MatchBook b=book();OpponentDirectory d=OpponentDirectory.decode(preferences.getString("opponent_book",""));String alice=d.opponentId("history-0");

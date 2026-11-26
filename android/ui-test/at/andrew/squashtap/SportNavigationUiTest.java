@@ -84,7 +84,7 @@ public class SportNavigationUiTest {
         newMatch("Tennis");Button stale=button("Create match");MatchBook inMemory=ReflectionHelpers.getField(activity,"book");inMemory.add(0);ReflectionHelpers.callInstanceMethod(activity,"afterMatchChange");String before=book().encode();stale.performClick();assertTrue(text().contains("Match still running"));assertEquals(before,book().encode());assertEquals("squash",book().current().format().sport);
     }
     @Test public void aCreatedUnplayedMatchAlsoStaysLockedAcrossRelaunch(){
-        newMatch("Tennis");click("Create match");assertFalse(book().current().hasPoints());activity.action(TouchTargets.MENU);click("Change sport");assertFalse(button("Squash").isEnabled());ShadowDialog.getLatestDialog().dismiss();controller.pause().stop().destroy();controller=Robolectric.buildActivity(MainActivity.class,new Intent(Intent.ACTION_MAIN)).setup();activity=controller.get();assertFalse(button("Badminton").isEnabled());assertTrue(button("Tennis").isEnabled());
+        newMatch("Tennis");click("Create match");assertFalse(book().current().hasPoints());activity.action(TouchTargets.MENU);click("Change sport");assertFalse(button("Squash").isEnabled());ShadowDialog.getLatestDialog().dismiss();controller.pause().stop().destroy();controller=Robolectric.buildActivity(MainActivity.class,new Intent(Intent.ACTION_MAIN)).setup();activity=controller.get();assertEquals("Scoreboard",ReflectionHelpers.getField(activity,"panelPage"));activity.action(TouchTargets.MENU);click("Change sport");assertFalse(button("Badminton").isEnabled());assertTrue(button("Tennis").isEnabled());
     }
 
     @Test public void launcherPutsSharingAfterAllSportsAndJoiningNeverNeedsALocalMatch(){
@@ -92,7 +92,7 @@ public class SportNavigationUiTest {
         String before=book().encode();
         List<String> order=new ArrayList<>();
         for(View v:views())if(v instanceof Button)order.add(((Button)v).getText().toString());
-        assertEquals(Arrays.asList("Badminton","Padel","Pickleball","Squash","Table tennis","Tennis","Players","Live sharing & referee","Settings","Close app"),order);
+        assertEquals(Arrays.asList("New Squash match","Badminton","Padel","Pickleball","Squash","Table tennis","Tennis","Players","Live sharing & referee","Settings","Close app"),order);
         click("Live sharing & referee");
         for(String item:new String[]{"Audience live link","Referee on phone","Share with watches","Join with watch code"})assertNotNull(button(item));
         click("Join with watch code");assertNotNull(button("Join match"));swipe();
@@ -212,6 +212,121 @@ public class SportNavigationUiTest {
         java.util.concurrent.ExecutorService io=ReflectionHelpers.getField(rooms,"io");
         io.submit(()->{}).get(5,java.util.concurrent.TimeUnit.SECONDS);shadowOf(Looper.getMainLooper()).idle();
     }
+
+    private RoomClient startRefereeMatch(RoomClientUiTest.Relay relay) {
+        MatchRooms rooms=ReflectionHelpers.getField(activity,"rooms");
+        rooms.pause();
+        RoomClient host=new RoomClient(new RoomClientUiTest.MemoryVault(),relay);
+        ReflectionHelpers.setField(rooms,"client",host);
+        click("Current match");
+        click("Live sharing & referee");
+        click("Referee on phone");
+        assertTrue(rooms.isHost());
+        return host;
+    }
+
+    private Button firstAction() {
+        for(View view:views())if(view instanceof Button)return (Button)view;
+        throw new AssertionError("Missing match action");
+    }
+
+    @Test public void hostCanKeepOrDiscardFromTheFirstMatchMenuActionEvenOffline() throws Exception {
+        RoomClientUiTest.Relay relay=new RoomClientUiTest.Relay();
+        RoomClient host=startRefereeMatch(relay);
+        assertEquals("Cancel match",firstAction().getText().toString());
+        click("Cancel match");
+        swipe();
+        assertNotNull(button("Invite other watches"));
+        click("Invite other watches");
+        RoomClient.Session ready=host.sync();
+        RoomClient follower=new RoomClient(new RoomClientUiTest.MemoryVault(),relay);
+        follower.findJoin(ready.joinCode).accept();
+        click("Back to score");
+        ScoreView score=ReflectionHelpers.getField(activity,"counter");
+        score.performClick();
+        assertEquals("Cancel match",firstAction().getText().toString());
+        String before=book().encode();
+        click("Cancel match");
+        assertTrue(text().contains("without saving a result"));
+        click("Keep playing");
+        assertNotNull(button("Set scores"));
+        click("Cancel match");
+        back();
+        assertNotNull(button("Set scores"));
+        assertEquals(before,book().encode());
+        assertEquals(ready.id,host.current().id);
+
+        relay.offline=true;
+        click("Cancel match");
+        click("Discard match");
+        assertNull(host.current());
+        assertNotEquals("active",book().current().id());
+        assertNull(book().result("active"));
+        assertNotNull(book().result("history"));
+        assertTrue(button("Tennis").isEnabled());
+        MatchRooms rooms=ReflectionHelpers.getField(activity,"rooms");
+        drainRoom(rooms);
+        relay.offline=false;
+        host.retryOutbox();
+        assertFalse(relay.rooms.containsKey(ready.id));
+        assertThrows(RoomClient.ServiceError.class,follower::sync);
+    }
+
+    @Test public void discardConfirmationKeepsARefereeFinalThatArrivedBeforeTheTap() throws Exception {
+        RoomClientUiTest.Relay relay=new RoomClientUiTest.Relay();
+        RoomClient host=startRefereeMatch(relay);
+        RoomClient.Session ready=host.sync();
+        String before=book().encode();
+        click("Back to score");
+        activity.action(TouchTargets.MENU);
+        click("Cancel match");
+        MatchState remote=book().current();
+        remote.retire(1);
+        relay.refereeFinal(ready.id,RoomClientUiTest.snapshot(remote,true),ready.key);
+        host.sync(); // The final is on disk, but the dialog still shows the earlier score.
+        click("Discard match");
+        assertEquals("Save to my results",firstAction().getText().toString());
+        assertNull(find("Cancel match"));
+        assertEquals(before,book().encode());
+        assertTrue(host.current().snapshot().getBoolean("final"));
+        click("Save to my results");
+        assertNotNull(book().result("active"));
+    }
+
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(qualifiers="w192dp-h192dp-round-xhdpi")
+    public void germanHostSeesTheWholeCancelButtonWhenReopeningTheMatchMenu() {
+        RuntimeEnvironment.setFontScale(1.3f);
+        startRefereeMatch(new RoomClientUiTest.Relay());
+        click("Back to score");
+        activity.action(TouchTargets.MENU);
+        click("Settings");click("Language · English");click("Deutsch");back();back();
+        ScrollView menu=ReflectionHelpers.getField(activity,"panelScroll");
+        menu.scrollTo(0,menu.getChildAt(0).getHeight());
+        back();
+        ScoreView score=ReflectionHelpers.getField(activity,"counter");
+        score.performClick();
+        shadowOf(Looper.getMainLooper()).idle();
+        Button cancel=firstAction();
+        assertEquals("Partie abbrechen",cancel.getText().toString());
+        View root=cancel.getRootView();
+        int size=activity.getResources().getDisplayMetrics().widthPixels;
+        int spec=View.MeasureSpec.makeMeasureSpec(size,View.MeasureSpec.EXACTLY);
+        root.measure(spec,spec);root.layout(0,0,size,size);
+        menu=ReflectionHelpers.getField(activity,"panelScroll");
+        assertEquals(0,menu.getScrollY());
+        assertTrue(cancel.getHeight()>=48*activity.getResources().getDisplayMetrics().density);
+        int[] pos=new int[2];cancel.getLocationInWindow(pos);
+        float radius=size/2f;
+        for(int x:new int[]{pos[0],pos[0]+cancel.getWidth()})
+            for(int y:new int[]{pos[1],pos[1]+cancel.getHeight()})
+                assertTrue("Cancel button outside the round screen",Math.hypot(x-radius,y-radius)<=radius);
+        click("Partie abbrechen");
+        assertNotNull(button("Partie verwerfen"));
+        click("Weiterspielen");
+        assertNotNull(button("Satzstände"));
+    }
+
     @Test public void followingWatchKeepsLocalSettingsSeparateThroughTheFinalWhistle() throws Exception {
         MatchRooms rooms=ReflectionHelpers.getField(activity,"rooms");
         rooms.pause();
@@ -225,7 +340,9 @@ public class SportNavigationUiTest {
         ReflectionHelpers.callInstanceMethod(rooms,"apply",ReflectionHelpers.ClassParameter.from(RoomClient.Session.class,joined));
         String local=book().encode();
         activity.action(TouchTargets.MENU);
+        assertNull(find("Cancel match"));
         click("Live sharing & referee");assertNull(find("Language"));assertNull(find("Settings"));
+        assertNull(find("Cancel match"));assertNotNull(button("Leave shared match"));
         assertNull(find("Set scores"));assertNull(find("Connected devices"));back();
         click("Settings");click("Language · English");click("Deutsch");
         remote.retire(1);host.queue(RoomClientUiTest.snapshot(remote,true));host.sync();

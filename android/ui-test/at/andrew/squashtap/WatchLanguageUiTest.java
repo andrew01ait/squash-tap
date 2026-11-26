@@ -97,12 +97,12 @@ public class WatchLanguageUiTest {
 
     @Test public void localeOverridesSurviveRestartAndCanReturnToAutomatic(){
         launch();
-        assertNotNull(find("Sportart wählen",false));
+        assertNotNull(find("Startseite",false));
         click("Einstellungen");click("Sprache");click("Français");
         assertEquals("fr",prefs.getString(WatchLanguage.PREFERENCE,""));
         assertNotNull(find("✓ Français",false));
         click("Retour");assertNotNull(find("Réglages",false));
-        close();launch();assertNotNull(find("Choisir un sport",false));
+        close();launch();assertNotNull(find("Accueil",false));
         click("Réglages");click("Langue");click("Español");
         assertNotNull(find("Idioma",false));
         click("Automático (reloj)");click("Zurück");

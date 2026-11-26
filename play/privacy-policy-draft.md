@@ -2,7 +2,7 @@
 
 **Not ready for publication.** Confirm the publisher/legal entity, actual hosting/provider arrangements and retention/logging details before turning this draft into a public policy and adding in-app access. The landing page's short privacy explanation does not replace this release gate.
 
-Publisher: **to be confirmed by the owner**. Privacy contact: **[endruuu@hotmail.com](mailto:endruuu@hotmail.com)** (confirmed by the owner on 2026-11-12). Effective date: **set when the reviewed policy is published**.
+Keep Score is developed by **Andrew Lindley**. Review the publisher identity in Play Console and set the effective date before publishing this policy. [Privacy contact](https://squash-tap-andrew.endruuu.chatgpt.site/imprint)
 
 ## Local scorekeeping
 
@@ -32,7 +32,7 @@ CSV, backup JSON, diagnostics and result-card images you download or share stay 
 
 ## Inquiries and changes
 
-For privacy questions or requests concerning your data, contact **[endruuu@hotmail.com](mailto:endruuu@hotmail.com)**.
+For privacy questions or requests concerning your data, use the **[publisher contact page](https://squash-tap-andrew.endruuu.chatgpt.site/imprint)**.
 
 Before publication, complete the inquiry/deletion handling process, describe applicable user rights and the actual processor arrangements after review, and state how policy changes will be communicated. Keep the policy consistent with the app and Play Console declarations.
 

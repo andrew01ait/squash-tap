@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
+<meta name="robots" content="noindex,nofollow,nosnippet">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#0a1320">
@@ -9,8 +10,9 @@
   <title>Keep Score · Match journal</title>
   <link rel="icon" href="/favicon.svg">
   <link rel="stylesheet" href="/score-outcome.css?v=1">
-  <link rel="stylesheet" href="/transfer.css?v=6">
-  <script type="module" src="/transfer.mjs?v=6"></script>
+  <link rel="stylesheet" href="/menu-colours.css">
+  <link rel="stylesheet" href="/transfer.css?v=8">
+  <script type="module" src="/transfer.mjs?v=8"></script>
 </head>
 <body>
 <main>
@@ -26,14 +28,14 @@
 
   <div id="workspace" hidden>
     <nav id="journal-nav" data-aria="Navigate" aria-label="Navigate">
-      <button type="button" data-tab="results" aria-controls="results" data-i="Results">Results</button>
-      <button type="button" data-tab="statistics" aria-controls="statistics" data-i="Statistics">Statistics</button>
-      <button type="button" data-tab="opponents" aria-controls="opponents" data-i="Players">Players</button>
-      <details id="journal-tools">
+      <button type="button" data-tab="results" data-menu-colour="results" aria-controls="results" data-i="Results">Results</button>
+      <button type="button" data-tab="statistics" data-menu-colour="statistics" aria-controls="statistics" data-i="Statistics">Statistics</button>
+      <button type="button" data-tab="opponents" data-menu-colour="players" aria-controls="opponents" data-i="Players">Players</button>
+      <details id="journal-tools" data-menu-colour="settings">
         <summary data-i="Files">Files</summary>
         <div class="files-menu">
-          <button type="button" data-tab="import" aria-controls="import" data-i="Import CSV">Import CSV</button>
-          <button type="button" id="backup-tab" data-tab="backup" aria-controls="backup" data-i="Backup" hidden>Backup</button>
+          <button type="button" data-tab="import" data-menu-colour="results" aria-controls="import" data-i="Import CSV">Import CSV</button>
+          <button type="button" id="backup-tab" data-tab="backup" data-menu-colour="settings" aria-controls="backup" data-i="Backup" hidden>Backup</button>
         </div>
       </details>
     </nav>
@@ -44,7 +46,7 @@
       </select></label>
     </div>
 
-    <section id="results" aria-labelledby="history-heading">
+    <section id="results" data-menu-colour="results" aria-labelledby="history-heading">
       <div class="results-layout">
         <details id="result-filters" class="disclosure filter-panel">
           <summary><span data-i="Filters">Filters</span><span id="filters-applied"></span></summary>
@@ -70,7 +72,7 @@
       </div>
     </section>
 
-    <section id="statistics" aria-labelledby="stats-title" hidden>
+    <section id="statistics" data-menu-colour="statistics" aria-labelledby="stats-title" hidden>
       <div class="section-head"><h2 id="stats-title" data-i="Your record">Your record</h2></div>
       <p id="statistics-scope" class="muted"></p>
       <div id="overall-summary" class="metric-grid"></div>
@@ -87,7 +89,7 @@
       </div>
     </section>
 
-    <section id="opponents" aria-label="Players" data-aria="Players" hidden>
+    <section id="opponents" data-menu-colour="players" aria-label="Players" data-aria="Players" hidden>
       <div class="roster-layout">
         <div class="roster-editor">
           <div id="your-name-section" class="profile" hidden>
@@ -111,6 +113,8 @@
           <div class="directory-tools">
             <label for="player-search" class="sr-only" data-i="Search players">Search players</label>
             <input type="search" id="player-search" placeholder="Search players" data-placeholder="Search players" autocomplete="off">
+            <label class="checkbox"><input id="played-recently" type="checkbox"><span data-i="Played in the last 30 days">Played in the last 30 days</span></label>
+            <label><span data-i="Sort players">Sort players</span><select id="player-sort"><option value="az">A–Z</option><option value="za">Z–A</option><option value="recent" data-i="Most recent activity">Most recent activity</option></select></label>
             <label class="checkbox"><input id="show-removed" type="checkbox"><span data-i="Include archived players">Include archived players</span></label>
           </div>
           <div id="opponent-list"></div>
@@ -118,7 +122,7 @@
       </div>
     </section>
 
-    <section id="import" aria-labelledby="import-title" hidden>
+    <section id="import" data-menu-colour="results" aria-labelledby="import-title" hidden>
       <div class="file-layout">
         <div class="file-info"><h2 id="import-title" data-i="Import completed matches">Import completed matches</h2>
           <p data-i="Select an exported Keep Score CSV. Your watch checks for duplicates and asks you to confirm the import.">Select an exported Keep Score CSV. Your watch checks for duplicates and asks you to confirm the import.</p>
@@ -130,7 +134,7 @@
         </div>
       </div>
     </section>
-    <section id="backup" aria-label="Backup" data-aria="Backup" hidden>
+    <section id="backup" data-menu-colour="settings" aria-label="Backup" data-aria="Backup" hidden>
       <div class="file-layout">
         <div class="file-panel"><h2 data-i="Complete watch backup">Complete watch backup</h2>
           <p data-i="Includes every sport, players, favourite formats, settings and your current match with its undo history.">Includes every sport, players, favourite formats, settings and your current match with its undo history.</p>

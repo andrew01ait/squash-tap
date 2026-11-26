@@ -14,6 +14,10 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.RippleDrawable;
 import android.net.Uri;
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.style.RelativeSizeSpan;
+import android.text.style.StyleSpan;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.Settings;
@@ -28,6 +32,7 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.EditText;
 import android.widget.NumberPicker;
+import android.widget.ProgressBar;
 import android.view.WindowManager;
 import android.view.KeyEvent;
 import android.content.pm.PackageManager;
@@ -66,31 +71,16 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     private String updateStatus="Tap Check for updates to contact the release website.";
     private Dialog panel;
     private TextView updateText;
+    private ProgressBar updateBar;
+    private int updatePercent = -1;
     private boolean updatePanel;
     private String panelPage="Scoreboard";
-    private enum RowColours {
-        BLUE(0xff1668cb,0xff2489f5,0xff123f70,Color.WHITE,0xffa5cdf7),
-        RED(0xffb82e4c,0xffef4260,0xff682039,Color.WHITE,0xfff1bac7),
-        PURPLE(0xff4e325f,0xff77508e,0xff30203d,0xfff7eafe,0xffac94ba),
-        GREY(0xff444444,0xff666666,0xff292929,Color.WHITE,0xffb8b8b8),
-        PLAIN(Color.TRANSPARENT,0xff123a52,Color.TRANSPARENT,0xffa6e2ff,0xff5f91ad);
-
-        final ColorStateList fill,ink;
-        RowColours(int normal,int active,int disabled,int label,int disabledLabel){
-            fill=new ColorStateList(new int[][]{{-android.R.attr.state_enabled},{android.R.attr.state_pressed},{android.R.attr.state_focused},{}},
-                new int[]{disabled,active,active,normal});
-            ink=new ColorStateList(new int[][]{{-android.R.attr.state_enabled},{}},new int[]{disabledLabel,label});
-        }
-    }
+    private MenuLocation location;
     private enum ButtonKind {
-        MATCH(RowColours.BLUE), NAVIGATION(RowColours.PLAIN), PERSON(RowColours.PURPLE),
-        SETTINGS(RowColours.GREY), SETTINGS_ACTION(RowColours.GREY), CHOICE(RowColours.PLAIN),
-        DELETE(RowColours.RED), BACK(RowColours.PLAIN), SHORTCUT(RowColours.PLAIN), SCORE_OPPONENT(RowColours.RED);
-
-        final RowColours colours;
-        ButtonKind(RowColours colours){this.colours=colours;}
+        ACTION, DESTINATION, NAVIGATION, PERSON, CHOICE, DELETE, BACK, SHORTCUT, RESULT_TOOL, SCORE_OPPONENT
     }
-    private enum PanelTitle { STANDARD, PLAYER_NAME, QR }
+    private static final ColorStateList DANGER_FILL=MenuSection.filled(0xffa32c46);
+    private enum PanelTitle { STANDARD, PLAYER_NAME, CUSTOM }
     private static final int MENU_SURFACE=0xff080d17, ROW_RADIUS_DP=15, ROW_GAP_DP=5;
     private boolean sharedArea,scoreMenu;
     private boolean panelShortcut;
@@ -110,6 +100,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     private Runnable resultsReturn=this::showMenu;
     private String resultsReturnLabel="Back to Menu";
     private ManualMatchEntry manualMatch;
+    private Runnable pastMatchReturn=()->showResults(resultsPage);
     private LocalDate manualDate;
     private Runnable transferReturn=()->showResults(resultsPage);
     private String transferReturnLabel="Back to Results",transferView="results";
@@ -119,6 +110,9 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     private String panelScrollKey;
     private final java.util.LinkedHashMap<String,Integer> scrollPositions=new java.util.LinkedHashMap<>();
     private boolean resumed,ambient;
+    private ScoreSpeech speech;
+    private final android.os.Handler reviewTimer = new android.os.Handler(android.os.Looper.getMainLooper());
+    private final Runnable reviewDeadline = this::checkFinishedReview;
     private final LifecycleRegistry lifecycle=new LifecycleRegistry(this);
     private AmbientLifecycleObserver ambientObserver;
     private boolean ambientUnavailable;private String widgetSignature="";
@@ -127,6 +121,8 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     @Override public void onCreate(Bundle saved){
         super.onCreate(saved);
         ui=WatchLanguage.get(this);
+        speech = new ScoreSpeech(this, () -> android.widget.Toast.makeText(this,
+                tr("Spoken scores need an installed watch voice for the selected language."), android.widget.Toast.LENGTH_LONG).show());
         nfc=new WatchNfc(this);
         preferences=getSharedPreferences("squash",MODE_PRIVATE);live=LiveScoreClient.get(this);live.listener(this::onLiveStatusChanged);
         String savedBook=preferences.getString("match_book",null);
@@ -150,7 +146,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         selectedSport=preferences.getString("selected_sport",book.current().format().sport);if(!java.util.Arrays.asList(MatchFormat.SPORTS).contains(selectedSport))selectedSport="squash";
         if(sportLocked())selectedSport=book.current().format().sport;
         if(rooms.readOnly()){updateDisplay();if(rooms.finalScore())rooms.menu();return;}
-        if(!handleWidgetIntent(getIntent())&&Intent.ACTION_MAIN.equals(getIntent().getAction()))showSports();
+        if(!handleWidgetIntent(getIntent())&&Intent.ACTION_MAIN.equals(getIntent().getAction()))openStart();
     }
     private boolean handleWidgetIntent(Intent intent){
         String route=intent==null?null:intent.getStringExtra("keep_score_widget");if(route==null)return false;
@@ -159,7 +155,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
             if(rooms.finalScore()||rooms.displayed()==null)rooms.menu();else closePanel();
             return true;
         }
-        if(route.equals("match")&&hasCurrentMatch()){selectSport(book.current().format().sport);if(needsResume())openMatchControls(this::closePanel,"Back to score");else closePanel();}else showSports();return true;
+        if(!"match".equals(route)&&sportLocked())showSports();else openStart();return true;
     }
     private void updateAmbientSession(boolean ongoing){
         if(!ongoing){
@@ -176,9 +172,9 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         try{ambientObserver=AmbientLifecycleObserverKt.AmbientLifecycleObserver(this,new AmbientLifecycleObserver.AmbientLifecycleCallback(){
             @Override public void onEnterAmbient(AmbientLifecycleObserver.AmbientDetails details){
                 if(!sessionOngoing())return;
-                ambient=true;closePanel();counter.ambient(true,details.getDeviceHasLowBitAmbient());updateDisplay();AppDiagnostics.record(MainActivity.this,"Enter ambient");
+                ambient=true;configureSpeech();closePanel();counter.ambient(true,details.getDeviceHasLowBitAmbient());updateDisplay();AppDiagnostics.record(MainActivity.this,"Enter ambient");
             }
-            @Override public void onExitAmbient(){ambient=false;counter.ambient(false,false);updateDisplay();AppDiagnostics.record(MainActivity.this,"Exit ambient");}
+            @Override public void onExitAmbient(){ambient=false;configureSpeech();counter.ambient(false,false);updateDisplay();AppDiagnostics.record(MainActivity.this,"Exit ambient");}
             @Override public void onUpdateAmbient(){if(sessionOngoing())counter.invalidate();}
         });
         lifecycle.addObserver(ambientObserver);
@@ -189,7 +185,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     }
     @Override protected void onStart(){super.onStart();lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_START);}
     @Override protected void onResume(){
-        super.onResume();resumed=true;lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_RESUME);updateDisplay();
+        super.onResume();resumed=true;checkFinishedReview();configureSpeech();lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_RESUME);updateDisplay();
         if(updatePanel)showUpdates();
         if(rooms!=null)rooms.resume();
         if(panelPage.equals("Live scoreboard"))onLiveStatusChanged(live.status());
@@ -201,11 +197,71 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
             preferences.edit().putBoolean("asked_match_notification",true).apply();requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"},71);
         }
     }
-    @Override protected void onPause(){if(nfc!=null)nfc.pause();if(rooms!=null)rooms.pause();AppDiagnostics.record(this,"Activity pause; page="+panelPage+" screenFlag="+((getWindow().getAttributes().flags&WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)!=0)+" ambient="+ambient+" finishing="+isFinishing());persistScore();resumed=false;updateDisplay();lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE);super.onPause();}
+    @Override protected void onPause(){reviewTimer.removeCallbacks(reviewDeadline);speech.close();if(nfc!=null)nfc.pause();if(rooms!=null)rooms.pause();AppDiagnostics.record(this,"Activity pause; page="+panelPage+" screenFlag="+((getWindow().getAttributes().flags&WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)!=0)+" ambient="+ambient+" finishing="+isFinishing());persistScore();resumed=false;updateDisplay();lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE);super.onPause();}
     @Override protected void onStop(){lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_STOP);AppDiagnostics.record(this,"Activity stop; finishing="+isFinishing()+" changingConfig="+isChangingConfigurations());super.onStop();}
-    @Override protected void onDestroy(){if(nfc!=null)nfc.clear();if(rooms!=null)rooms.destroy();lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY);AppDiagnostics.record(this,"Activity destroy; finishing="+isFinishing());if(live!=null)live.listener(null);tasks.shutdownNow();super.onDestroy();}
-    @Override protected void onNewIntent(Intent intent){super.onNewIntent(intent);setIntent(intent);if(!handleWidgetIntent(intent))closePanel();updateDisplay();AppDiagnostics.record(this,"Returned through match shortcut");}
+    @Override protected void onDestroy(){reviewTimer.removeCallbacks(reviewDeadline);speech.close();if(nfc!=null)nfc.clear();if(rooms!=null)rooms.destroy();lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY);AppDiagnostics.record(this,"Activity destroy; finishing="+isFinishing());if(live!=null)live.listener(null);tasks.shutdownNow();super.onDestroy();}
+    @Override protected void onNewIntent(Intent intent){super.onNewIntent(intent);setIntent(intent);if(!handleWidgetIntent(intent)){if(!inNewSetup())openStart();}updateDisplay();AppDiagnostics.record(this,"Returned through match shortcut");}
     @Override public void onRequestPermissionsResult(int code,String[] names,int[] grants){super.onRequestPermissionsResult(code,names,grants);if(code==71){AppDiagnostics.record(this,"Notification permission result "+(grants.length>0?grants[0]:-1));updateDisplay();}}
+    private boolean inNewSetup(){
+        for(MenuLocation step=location;step!=null;step=step.parent)
+            if(step.key.equals("new-match-setup")||step.key.equals("home-new-sport"))return true;
+        return false;
+    }
+
+    private boolean reviewing(){
+        return book!=null && (rooms==null||!rooms.readOnly()) && !sportLocked() && !unsavedFinish() && FinishedMatchReview.available(preferences,book);
+    }
+
+    private void openStart(){
+        if(rooms!=null&&rooms.readOnly()){if(rooms.finalScore())rooms.menu();else closePanel();return;}
+        if(sportLocked()){
+            selectSport(book.current().format().sport);
+            if(needsResume())openMatchControls(this::closePanel,"Back to score");else closePanel();
+        }else if(unsavedFinish())showSavePending();
+        else if(reviewing()&&!FinishedMatchReview.expired(preferences,book,System.currentTimeMillis())){
+            FinishedMatchReview.touch(preferences,book,System.currentTimeMillis());
+            MatchResult result=FinishedMatchReview.result(preferences,book);
+            selectSport(result.format.sport);sharedArea=false;showFinishedResult(result.id);
+        }else{
+            if(reviewing())FinishedMatchReview.close(preferences,book);
+            showHome();
+        }
+    }
+
+    private void checkFinishedReview(){
+        reviewTimer.removeCallbacks(reviewDeadline);
+        if(!resumed||!reviewing())return;
+        long now=System.currentTimeMillis();
+        if(FinishedMatchReview.expired(preferences,book,now)){
+            String reviewedId=FinishedMatchReview.result(preferences,book).id;
+            FinishedMatchReview.close(preferences,book);
+            updateDisplay();
+            if(panel==null||location!=null&&(location.key.equals("result:"+reviewedId)||location.key.equals("current-match")))showHome();
+            return;
+        }
+        long last=FinishedMatchReview.lastUsed(preferences,book);
+        if(last<=0){FinishedMatchReview.touch(preferences,book,now);last=now;}
+        long remaining=FinishedMatchReview.TIMEOUT-Math.max(0,now-last);
+        reviewTimer.postDelayed(reviewDeadline,remaining);
+    }
+
+    private void reviewInteraction(){
+        if(!resumed||!reviewing())return;
+        long now=System.currentTimeMillis();
+        if(FinishedMatchReview.expired(preferences,book,now)){checkFinishedReview();return;}
+        FinishedMatchReview.touch(preferences,book,now);
+        checkFinishedReview();
+    }
+
+    @Override public void onUserInteraction(){super.onUserInteraction();reviewInteraction();}
+
+    private void markMatchDone(String id){
+        if(!reviewing()||!id.equals(FinishedMatchReview.result(preferences,book).id))return;
+        FinishedMatchReview.close(preferences,book);
+        reviewTimer.removeCallbacks(reviewDeadline);
+        showHome();
+    }
+
     private boolean sessionOngoing(){return (rooms==null||!rooms.readOnly()) && MatchDisplayPolicy.ongoing(book.current(),preferences.getString(MatchDisplayPolicy.ACTIVE_MATCH,""),preferences.getBoolean("match_paused",false));}
     private boolean needsResume(){return !book.current().complete()&&!sessionOngoing()&&(book.current().hasPoints()||preferences.getBoolean("match_paused",false));}
     private void setSession(boolean active,boolean paused){
@@ -226,7 +282,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         if(live!=null&&live.session()!=null){try{live.offer(liveSnapshot());}catch(Exception ignored){}}
         String remoteRevision=rooms==null?"":rooms.widgetRevision();
         String signature=remoteRevision.isEmpty()
-            ?book.current().encode()+"|"+ownName()+"|"+ongoing+"|"+paused+"|"+preferences.getString("match_ready_id","")
+            ?book.current().encode()+"|"+FinishedMatchReview.available(preferences,book)+"|"+ownName()+"|"+ongoing+"|"+paused+"|"+preferences.getString("match_ready_id","")
             :remoteRevision;
         if(!signature.equals(widgetSignature)){widgetSignature=signature;MatchWidgets.update(this);}
         if(awake)getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -248,8 +304,9 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
                     if(preferences.getBoolean("match_reminders",false))counter.reminder(MatchReminders.transition(beforePoint,book.current()));
                     if(!sessionOngoing()&&!book.current().complete())setSession(true,false);
                     if(!afterMatchChange())return;
+                    speakLocalScore(beforePoint, false);
                     if(book.current().complete()){
-                        if(book.result(book.current().id())!=null)showResult(book.current().id(),0);
+                        if(book.result(book.current().id())!=null)showFinishedResult(book.current().id());
                         else if(!book.currentDeleted())showSavePending();
                     }
                 }break;
@@ -270,32 +327,39 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         if(rooms!=null && rooms.readOnly()){rooms.menu();return;}
         if(!allowSport(selectedSport))return;
         sharedArea=false;
-        LinearLayout menu=panel("Menu","sport-menu:"+selectedSport);
+        LinearLayout menu=panel("Menu","sport-menu:"+selectedSport,MenuSection.SPORTS);
         boolean here=book.current().format().sport.equals(selectedSport)&&(hasCurrentMatch()||scoreMenu);
         section(menu,"Match");
-        if(here)button(menu,tr("Current match"),()->openMatchControls(this::showMenu,"Back to Menu"));
-        else{button(menu,ui.format("New {0} match","Neue Partie · {0}","Nouveau match · {0}","Nuevo partido · {0}",tr(MatchFormat.name(selectedSport))),()->showNewMatch(this::showMenu));if(hasCurrentMatch()&&!book.current().complete())navigationButton(menu,tr("Resume ")+tr(book.current().format().name()),()->openMatchControls(this::showMenu,"Back to Menu"));}
+        if(!sportLocked() && !unsavedFinish()){
+            newMatchButton(menu,here?tr("New match"):newSportMatchLabel(),()->showNewMatch(this::showMenu));
+            if(here)destinationButton(menu,MenuSection.CURRENT_MATCH,tr("Current match"),()->openMatchControls(this::showMenu,"Back to Menu"));
+        }else{
+            destinationButton(menu,MenuSection.CURRENT_MATCH,tr("Current match"),()->openMatchControls(this::showMenu,"Back to Menu"));
+        }
         personButton(menu,tr("Players"),()->openPlayers(this::showMenu,"Back to Menu"));
         sharingButton(menu,MatchRooms.Entry.SPORT);
         section(menu,"Match history");
-        navigationButton(menu,tr("Results (")+sportResults(-1).size()+")",()->openResults(this::showMenu,"Back to Menu"));
-        navigationButton(menu,tr("Statistics"),this::showStatistics);
+        destinationButton(menu,MenuSection.RESULTS,tr("Results (")+sportResults(-1).size()+")",()->openResults(this::showMenu,"Back to Menu"));
+        destinationButton(menu,MenuSection.STATISTICS,tr("Statistics"),this::showStatistics);
         section(menu,"Sport");
-        navigationButton(menu,tr("Favourite formats"),()->showPresets(false));
-        navigationButton(menu,tr("Scoring rules"),this::showSportRules);
-        navigationButton(menu,tr("Change sport"),this::showSports);
+        destinationButton(menu,MenuSection.FAVOURITES,tr("Favourite formats"),()->showPresets(false));
+        destinationButton(menu,MenuSection.RULES,tr("Scoring rules"),this::showSportRules);
+        destinationButton(menu,MenuSection.SPORTS,tr("Change sport"),this::showSports);
         section(menu,"App");
         settingsButton(menu,tr("Settings"),()->openSettings(this::showMenu,"Back to Menu"));
         if(here&&!sportMenuFromSelector)backButton(menu,"Back to score",this::closePanel);
         else backButton(menu,"Back to sports",this::showSports);
     }
-    private boolean hasCurrentMatch(){return book.current().hasPoints()||book.current().complete()||book.currentStartedAt()>0||sessionOngoing()||needsResume()||book.current().id().equals(preferences.getString("match_ready_id",""));}
+    private boolean hasCurrentMatch(){if(book.current().complete())return unsavedFinish()||reviewing()&&book.current().id().equals(FinishedMatchReview.result(preferences,book).id);return book.current().hasPoints()||book.currentStartedAt()>0||sessionOngoing()||needsResume()||book.current().id().equals(preferences.getString("match_ready_id",""));}
     private boolean sportLocked(){return !book.current().complete()&&hasCurrentMatch();}
+    private boolean unsavedFinish(){return book.current().complete() && !book.currentDeleted() && book.result(book.current().id())==null;}
+    private String newSportMatchLabel(){return ui.format("New {0} match","Neue Partie · {0}","Nouveau match · {0}","Nuevo partido · {0}",tr(MatchFormat.name(selectedSport)));}
+    private Button newMatchButton(LinearLayout menu,String label,Runnable open){return destinationButton(menu,MenuSection.NEW_MATCH,label,open);}
     private boolean allowSport(String sport){if(rooms!=null&&rooms.readOnly()){rooms.menu();return false;}if(sportLocked()&&!sport.equals(book.current().format().sport)){showSportLocked();return false;}return true;}
     private void showSportLocked(){
-        selectedSport=book.current().format().sport;sharedArea=false;LinearLayout content=panel("Match still running");
+        selectedSport=book.current().format().sport;sharedArea=false;LinearLayout content=panel("Match still running",null,MenuSection.CURRENT_MATCH);
         paragraph(content,ui.format("Finish or cancel your {0} match before choosing another sport. Pausing keeps the sport locked.","Beende deine Partie ({0}) oder brich sie ab, um die Sportart zu wechseln. Bei einer Pause bleibt sie gesperrt.","Termine ou annule ton match de {0} pour changer de sport. Une pause conserve le sport actuel.","Termina o cancela tu partido de {0} para cambiar de deporte. Una pausa mantiene el deporte actual.",tr(book.current().format().name())));
-        button(content,tr("Current match"),()->openMatchControls(this::showSports,"Back to sports"));deleteButton(content,tr("Cancel match"),()->showCancelMatch(this::showSportLocked));backButton(content,"Back to sports",this::showSports);
+        destinationButton(content,MenuSection.CURRENT_MATCH,tr("Current match"),()->openMatchControls(this::showSports,"Back to sports"));deleteButton(content,tr("Cancel match"),()->showCancelMatch(this::showSportLocked));backButton(content,"Back to sports",this::showSports);
     }
     private void openMatchControls(Runnable back,String label){
         matchControlsReturn=back;
@@ -312,19 +376,19 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         boolean sharingAvailable=!finished || rooms.hasRoom() || hasAudienceLink();
         boolean ongoing=sessionOngoing();
         String status=finished?"Finished":ongoing?"Playing":needsResume()?"Paused / ready to resume":"Ready to play";
-        LinearLayout menu=panel("Current match","current-match:"+match.id()+":"+status);
+        LinearLayout menu=panel("Current match","current-match:"+match.id()+":"+status,MenuSection.CURRENT_MATCH);
 
         if(!finished){
             String action=ongoing?"Pause match":needsResume()?"Resume match":"Start match";
             button(menu,tr(action),()->{setSession(!ongoing,ongoing);closePanel();updateDisplay();});
-        }else if(saved){
-            button(menu,tr("View result"),()->showResult(match.id(),resultsPage,this::showMatchControls,"Back to Current match"));
-        }else if(!book.currentDeleted()){
-            button(menu,tr("Save match result"),this::saveCurrentResult);
+        }else if(unsavedFinish()){
+            destinationButton(menu,MenuSection.RESULTS,tr("Save match result"),this::saveCurrentResult);
+            destinationButton(menu,MenuSection.NEW_MATCH,tr("New match"),()->showNewMatch(this::showMatchControls));
+        }else{
+            newMatchButton(menu,tr("New match"),()->showNewMatch(this::showMatchControls));
+            if(saved)destinationButton(menu,MenuSection.RESULTS,tr("View result"),()->showResult(match.id(),resultsPage,this::showMatchControls,"Back to Current match"));
+            if(reviewing()&&match.id().equals(FinishedMatchReview.result(preferences,book).id))navigationButton(menu,tr("Mark match as done"),()->markMatchDone(match.id()));
         }
-
-        boolean newMatchFirst=finished && book.currentDeleted() && !saved;
-        if(newMatchFirst)button(menu,tr("New match"),()->showNewMatch(this::showMatchControls));
 
         section(menu,finished?"Match summary":"Score");
         String left=match.format().doubles?teamName(match.id(),0):ownName();
@@ -344,12 +408,8 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         }
         if(saved || sharingAvailable){
             section(menu,"Sharing");
-            if(saved)navigationButton(menu,tr("Share result card"),()->openPhone("results",false,this::showMatchControls,"Back to Current match",match.id()));
+            if(saved)destinationButton(menu,MenuSection.SHARING,tr("Share result card"),()->openPhone("results",false,this::showMatchControls,"Back to Current match",match.id()));
             if(sharingAvailable)sharingButton(menu,MatchRooms.Entry.MATCH);
-        }
-        if(finished && !newMatchFirst){
-            section(menu,"Next match");
-            navigationButton(menu,tr("New match"),()->showNewMatch(this::showMatchControls));
         }
         if(!finished){
             section(menu,"End match");
@@ -361,25 +421,25 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     }
     private void matchPlayerButton(LinearLayout menu,String matchId,boolean doubles,Runnable back){
         if(doubles)personButton(menu,tr("Players"),()->showTeam(matchId,back));
-        else personButton(menu,tr("Opponent: ")+opponentName(matchId),()->showOpponentPicker(matchId,false,0,back));
+        else personButton(menu,tr("Opponent: ")+opponentName(matchId),()->showOpponentPicker(matchId,false,back));
     }
     private void showMatchOptions(){
         MatchState match=book.current();if(match.complete()){showMatchControls();return;}
-        LinearLayout menu=panel("Match options","match-options:"+match.id());
+        LinearLayout menu=panel("Match options","match-options:"+match.id(),MenuSection.CURRENT_MATCH);
         section(menu,"Setup & players");
         matchPlayerButton(menu,match.id(),match.format().doubles,this::showMatchOptions);
         navigationButton(menu,tr("Serving indicator"),this::showServing);
         navigationButton(menu,tr("Match length: Best of ")+match.bestOf(),this::showMatchFormat);
         paragraph(menu,tr("Scoring: ")+ui.rules(match.format())+tr("\nChoose different scoring rules when creating a new match."));
         section(menu,"Finish or replace");
-        navigationButton(menu,tr("New match"),()->showNewMatch(this::showMatchOptions));
+        destinationButton(menu,MenuSection.NEW_MATCH,tr("New match"),()->showNewMatch(this::showMatchOptions));
         navigationButton(menu,tr("Save retirement result"),()->showEndMatch(this::showMatchOptions));
         paragraph(menu,tr("Retirement saves a win/loss. Cancel match discards this match without a result."));
         deleteButton(menu,tr("Cancel match"),()->showCancelMatch(this::showMatchOptions));
         backButton(menu,"Back to Current match",this::showMatchControls);
     }
     private void showSettings(){
-        LinearLayout menu=panel("Settings","settings");paragraph(menu,"Keep Score v"+BuildConfig.VERSION_NAME);
+        LinearLayout menu=panel("Settings","settings",MenuSection.SETTINGS);paragraph(menu,"Keep Score v"+BuildConfig.VERSION_NAME);
         section(menu,"Language & display");
         settingsButton(menu,tr("Language")+" · "+ui.locale.getDisplayLanguage(ui.locale),this::chooseLanguage);
         settingsButton(menu,tr("Colour scheme: ")+tr(ScorePalette.get(preferences.getString("score_palette","classic")).name),this::choosePalette);
@@ -387,14 +447,25 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         settingsButton(menu,tr("Keep screen on: ")+(preferences.getBoolean("match_keep_awake_v3",true)?tr("ON"):tr("OFF")),this::chooseScreenPolicy);
         section(menu,"Feedback");
         settingsButton(menu,tr("Vibrations: ")+vibrationLabels()[vibrationIndex()],this::chooseVibrations);
+        settingsButton(menu,tr("Announce score")+" · "+tr(spokenScores() ? "On" : "Off"),this::chooseSpokenScores);
         settingsButton(menu,tr("Court and interval reminders: ")+(preferences.getBoolean("match_reminders",false)?tr("On"):tr("Off")),this::chooseReminders);
         section(menu,"Data");settingsButton(menu,tr("Backup & restore"),this::showBackup);
         section(menu,"Watch shortcuts");
         settingsButton(menu,tr("Watch tile & face score"),()->{LinearLayout c=panel("Quick access");paragraph(c,tr("Add the Keep Score tile from your watch’s tile picker. On a compatible watch face, add Keep Score · Match score as a complication. Tapping either opens the match without changing its score or pause state."));backButton(c,"Back to Settings",this::showSettings);});
         if(Build.VERSION.SDK_INT>=33&&checkSelfPermission("android.permission.POST_NOTIFICATIONS")!=PackageManager.PERMISSION_GRANTED)
             settingsButton(menu,tr("Enable match shortcut"),()->requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"},71));
-        section(menu,"App");settingsButton(menu,tr("Check for updates"),()->{showUpdates();checkUpdates();});
+        section(menu,"App");
+        settingsButton(menu,tr("About me"),this::showAboutMe);
+        settingsButton(menu,tr("Check for updates"),()->{showUpdates();checkUpdates();});
         settingsButton(menu,tr("Diagnostics"),this::showDiagnostics);backButton(menu,settingsReturnLabel,settingsReturn);
+    }
+    private void showAboutMe(){
+        LinearLayout content=panel("About me","about-me",MenuSection.SETTINGS);
+        panelHeading(content,"Andrew Lindley",true);
+        paragraph(content,tr("I play squash and created Keep Score to keep track of rallies on my watch. You can now score six racket sports with it."));
+        settingsButton(content,tr("Imprint & contact"),()->showQr(BuildConfig.SITE_URL+"/imprint?lang="+ui.code,
+                "Scan with your phone",this::showAboutMe,"Back to About me"));
+        backButton(content,"Back to Settings",this::showSettings);
     }
     void roomSettings(LinearLayout page){settingsButton(page,tr("Settings"),()->openSettings(rooms::menu,"Back to Menu"));}
     private void chooseLanguage(){
@@ -410,6 +481,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
                     return;
                 }
                 ui=WatchLanguage.get(this);
+                configureSpeech();
                 counter.language(ui);
                 widgetSignature="";
                 updateDisplay();
@@ -421,6 +493,32 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     private String[] vibrationLabels(){return new String[]{tr("Off"),tr("Point confirmation"),tr("Points and milestones")};}
     private int vibrationIndex(){String value=preferences.getString("haptic_mode","milestones");return value.equals("off")?0:value.equals("points")?1:2;}
     private void chooseVibrations(){settingChoices(tr("Vibrations"),tr("Distinct patterns identify points, games, sets and match completion."),vibrationLabels(),vibrationIndex(),v->preferences.edit().putString("haptic_mode",new String[]{"off","points","milestones"}[v]).commit());}
+    private boolean spokenScores() {
+        return preferences.getBoolean(ScoreSpeech.PREFERENCE, false);
+    }
+    private void configureSpeech() {
+        if (resumed && !ambient && spokenScores()) speech.start(ui.locale);
+        else speech.close();
+    }
+    private void chooseSpokenScores() {
+        settingChoices(tr("Announce score"), tr("Hear the score after each rally and Undo. The serving side is called first when known. Uses watch media volume and an installed voice."),
+                new String[]{tr("Off"), tr("On")}, spokenScores() ? 1 : 0, value -> {
+                    if (!preferences.edit().putBoolean(ScoreSpeech.PREFERENCE, value == 1).commit()) return false;
+                    configureSpeech();
+                    if (value == 1) speech.say(tr("Spoken scores on."));
+                    return true;
+                });
+    }
+    private void speakLocalScore(MatchState before, boolean correction) {
+        if (!resumed || ambient || !spokenScores()) return;
+        MatchState match = book.current();
+        speech.say(SpokenScore.call(ui, before, match, correction, slot -> slot == 0
+                ? preferences.getString("my_name", "") : opponents.roleName(match.id(), slot - 1)));
+    }
+    void speakRoomScore(MatchState before, MatchState after) {
+        if (resumed && !ambient && roomScoreVisible() && spokenScores())
+            speech.say(SpokenScore.remote(ui, before, after, rooms::recordedName));
+    }
     private void chooseReminders(){settingChoices(tr("Match reminders"),tr("Brief non-blocking reminders. Players remain responsible for court changes and breaks."),new String[]{tr("Off"),tr("On")},preferences.getBoolean("match_reminders",false)?1:0,v->preferences.edit().putBoolean("match_reminders",v==1).commit());}
     private void settingChoices(String title,String help,String[] labels,int selected,java.util.function.IntPredicate save){
         LinearLayout c=panel(title,"settings:"+title);
@@ -428,7 +526,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         paragraph(c,help+tr("\n\nChanges save immediately."));backButton(c,"Back to Settings",this::showSettings);
     }
     private void openSettings(Runnable back,String label){sharedArea=true;settingsReturn=back;settingsReturnLabel=label;showSettings();}
-    private void openPlayers(Runnable back,String label){sharedArea=true;playersReturn=back;playersReturnLabel=label;showOpponents(0);}
+    private void openPlayers(Runnable back,String label){sharedArea=true;playersReturn=back;playersReturnLabel=label;showOpponents();}
     private void chooseScreenPolicy(){settingChoices(tr("Screen during play"),tr("Applies only to the visible scoreboard during active play. Menus and paused matches allow normal sleep."),new String[]{tr("Keep screen on"),tr("Allow screen to sleep")},preferences.getBoolean("match_keep_awake_v3",true)?0:1,v->preferences.edit().putBoolean("match_keep_awake_v3",v==0).commit());}
     private void choosePalette(){
         LinearLayout c=panel("Colour scheme","palette");String selected=preferences.getString("score_palette","classic");
@@ -480,29 +578,36 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
             paragraph(content, tr("Reopening restores the recorded rallies from before the phone correction."));
             button(content, tr("Undo retirement"), ()->{
                 if (!before.equals(book.encode())) { message(tr("Match changed"), tr("Review the match before undoing."), this::showMatchControls); return; }
-                if (book.undo() && afterMatchChange()) closePanel();
+                undoAndAnnounce();
             });
             backButton(content, tr("Cancel"), cancel);
         } else if(book.current().undoEnteredSet()){
             final String before=book.encode();LinearLayout content=panel("Undo entered set?");paragraph(content,tr("This set was entered as a final score. Its point order was not recorded, so Undo removes the whole entered set. Other sets are kept."));
-            button(content,tr("Undo entered set"),()->{if(!before.equals(book.encode())){message(tr("Match changed"),tr("Review the match before undoing."),this::showMatchControls);return;}if(book.undo()&&afterMatchChange())closePanel();});backButton(content,tr("Cancel"),cancel);
-        }else if(book.undo()&&afterMatchChange())closePanel();
+            button(content,tr("Undo entered set"),()->{if(!before.equals(book.encode())){message(tr("Match changed"),tr("Review the match before undoing."),this::showMatchControls);return;}undoAndAnnounce();});backButton(content,tr("Cancel"),cancel);
+        }else undoAndAnnounce();
     }
-    private LinearLayout manualPanel(String title){LinearLayout content=panel(title);panel.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);return content;}
-    private void showAddPastMatch(){choosePastFormat();}
+    private void undoAndAnnounce() {
+        if (book.undo() && afterMatchChange()) {
+            closePanel();
+            speakLocalScore(null, true);
+        }
+    }
+    private LinearLayout manualPanel(String title){return manualPanel(title,null);}
+    private LinearLayout manualPanel(String title,String key){LinearLayout content=panel(title,key);panel.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);return content;}
+    private void showAddPastMatch(Runnable back){pastMatchReturn=back;choosePastFormat();}
     private void chooseSetWinner(String title,String opponent,int oldMe,int oldOther,java.util.function.BiConsumer<Integer,Integer> apply,Runnable back){
         MatchFormat f=manualMatch==null?book.current().format():manualMatch.format;int index=manualMatch==null?(book.current().nextReady()?book.current().gameCount():book.current().gameCount()-1):manualEditingIndex>=0?manualEditingIndex:manualMatch.size();
         boolean tie=manualMatch==null?book.current().matchTie(index):manualMatch.matchTie(index);
         if(!f.legacy()){chooseGenericScore(title,opponent,f,tie,oldMe,oldOther,apply,back);return;}
-        LinearLayout content=manualPanel(title);paragraph(content,tr("Who won this set?"));
+        LinearLayout content=manualPanel(title,"set-winner:"+title);paragraph(content,tr("Who won this set?"));
         if(oldMe+oldOther>0)ManualEntryUi.score(content,tr("Score to enter"),opponent,oldMe,oldOther,null);
         int loser=oldMe+oldOther==0?7:Math.min(oldMe,oldOther);
-        button(content,tr("Me won"),()->showSetScoreWheel(title,opponent,0,loser,apply,back));
+        styledButton(content,tr("Me won"),()->showSetScoreWheel(title,opponent,0,loser,apply,back),ButtonKind.ACTION,MenuSection.CURRENT_MATCH);
         styledButton(content,tr("Opponent won"),()->showSetScoreWheel(title,opponent,1,loser,apply,back),ButtonKind.SCORE_OPPONENT);
         backButton(content,tr("Cancel"),back);
     }
     private void showSetScoreWheel(String title,String opponent,int winner,int initial,java.util.function.BiConsumer<Integer,Integer> apply,Runnable back){
-        LinearLayout content=manualPanel(title);paragraph(content,(winner==0?tr("Me"):tr("Opponent"))+tr(" won · choose the losing score"));
+        LinearLayout content=manualPanel(title,"set-points:"+title);paragraph(content,(winner==0?tr("Me"):tr("Opponent"))+tr(" won · choose the losing score"));
         ManualEntryUi.ScoreCard preview=ManualEntryUi.score(content,tr("Final set score"),opponent,0,0,null);
         NumberPicker wheel=ManualEntryUi.wheel(content,tr("Losing score"),0,(ScoreState.MAX_RALLIES-2)/2,initial);
         LinearLayout controls=ManualEntryUi.row(content);Button minus=button(controls,"−",()->{}),plus=button(controls,"+",()->{});ManualEntryUi.equal(minus,plus);
@@ -525,7 +630,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
             button(content,tr("Save set score"),()->{
                 if(!before.equals(book.encode())){message(tr("Match changed"),tr("Review the match before saving."),this::showMatchControls);return;}
                 if(book.enterCompletedSet(a,b)&&afterMatchChange()){
-                    if(book.current().complete()){if(book.result(book.current().id())!=null)showResult(book.current().id(),0);else if(!book.currentDeleted())showSavePending();else showMatchControls();}
+                    if(book.current().complete()){if(book.result(book.current().id())!=null)showFinishedResult(book.current().id());else if(!book.currentDeleted())showSavePending();else showMatchControls();}
                     else showEnteredSetSaved(number,a,b);
                 }
             });backButton(content,tr("Cancel"),this::showMatchControls);
@@ -552,11 +657,11 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         navigationButton(content,tr("Date: ")+ui.date(draft.date()),()->{manualDate=draft.date();showManualDate();});
         if(draft.format.doubles){
             section(content,"Our team");
-            personButton(content,tr("Partner: ")+playerName(draft.partnerId),()->pickPlayer(tr("Partner"),draft.partnerId,id->{draft.partnerId=id;showManualMatch();},this::showManualMatch,0));
+            personButton(content,tr("Partner: ")+playerName(draft.partnerId),()->pickPlayer(tr("Partner"),draft.partnerId,id->{draft.partnerId=id;showManualMatch();},this::showManualMatch));
         }
         section(content,draft.format.doubles?"Opposing team":"Players · optional");
-        personButton(content,tr("Opponent: ")+(draft.opponentId().isEmpty()?tr("No name"):manualOpponent(draft))+tr(" (optional)"),()->showManualOpponent(0));
-        if(draft.format.doubles)personButton(content,tr("Opponent 2: ")+playerName(draft.otherId),()->pickPlayer(tr("Opponent 2"),draft.otherId,id->{draft.otherId=id;showManualMatch();},this::showManualMatch,0));
+        personButton(content,tr("Opponent: ")+(draft.opponentId().isEmpty()?tr("No name"):manualOpponent(draft))+tr(" (optional)"),this::showManualOpponent);
+        if(draft.format.doubles)personButton(content,tr("Opponent 2: ")+playerName(draft.otherId),()->pickPlayer(tr("Opponent 2"),draft.otherId,id->{draft.otherId=id;showManualMatch();},this::showManualMatch));
         section(content,"Set scores");
         for(int i=0;i<draft.size();i++){final int index=i;ManualEntryUi.score(content,tr("Set ")+(i+1)+tr(" · tap to edit"),manualOpponent(draft),draft.points(i,0),draft.points(i,1),()->editManualSet(draft,index));}
         if(!draft.complete())navigationButton(content,tr("Add set ")+(draft.size()+1),()->editManualSet(draft,draft.size()));
@@ -564,17 +669,17 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         if(draft.size()>0)deleteButton(content,tr("Remove last set"),()->{draft.removeLast();showManualMatch();});
         paragraph(content,tr("Match times are left as Not recorded. You are entering final set scores, not a rally log."));
         Button save=button(content,tr("Save match result"),()->saveManualMatch(draft));save.setEnabled(draft.complete());
-        backButton(content,tr("Cancel"),()->{manualMatch=null;showResults(resultsPage);});
+        backButton(content,tr("Cancel"),()->{manualMatch=null;pastMatchReturn.run();});
     }
     private void editManualSet(ManualMatchEntry draft,int index){
         manualEditingIndex=index;int me=index<draft.size()?draft.points(index,0):0,other=index<draft.size()?draft.points(index,1):0;
         chooseSetWinner(tr("Set ")+(index+1)+tr(" score"),manualOpponent(draft),me,other,(a,b)->{if(manualMatch!=draft)return;try{draft.setScore(index,a,b);showManualMatch();}catch(Exception invalid){message(tr("Check set order"),safe(invalid),this::showManualMatch);}},this::showManualMatch);
     }
-    private void showManualOpponent(int requestedPage){
-        final ManualMatchEntry draft=manualMatch;if(draft==null){showResults(resultsPage);return;}List<OpponentDirectory.Entry> entries=opponents.list(false);int page=Math.max(0,Math.min(requestedPage,Math.max(0,(entries.size()-1)/10)));LinearLayout content=manualPanel(tr("Choose opponent"));
+    private void showManualOpponent(){
+        final ManualMatchEntry draft=manualMatch;if(draft==null){showResults(resultsPage);return;}LinearLayout content=panel(tr("Choose opponent"),"manual-opponent",MenuSection.PLAYERS);
         playerChoice(content,tr("No name"),draft.opponentId().isEmpty(),()->{draft.opponentId("");showManualMatch();});
-        for(int i=page*10;i<Math.min(entries.size(),page*10+10);i++){OpponentDirectory.Entry e=entries.get(i);playerChoice(content,e.name,e.id.equals(draft.opponentId()),()->{draft.opponentId(e.id);showManualMatch();});}
-        if(page>0)navigationButton(content,tr("Previous names"),()->showManualOpponent(page-1));if((page+1)*10<entries.size())navigationButton(content,tr("More names"),()->showManualOpponent(page+1));paragraph(content,tr("Names are optional. Add them from Opponents → Edit names on phone."));backButton(content,tr("Cancel"),this::showManualMatch);
+        playerList(content,false,(rows,e)->playerChoice(rows,e.name,e.id.equals(draft.opponentId()),()->{draft.opponentId(e.id);showManualMatch();}));
+        paragraph(content,tr("Names are optional. Add them from Opponents → Edit names on phone."));backButton(content,tr("Cancel"),this::showManualMatch);
     }
     private void showManualDate(){
         final ManualMatchEntry draft=manualMatch;if(draft==null){showResults(resultsPage);return;}LinearLayout content=manualPanel(tr("Match date"));paragraph(content,ui.date(manualDate));
@@ -629,7 +734,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         button(content,tr("Save retirement"),()->{
             if(!before.equals(book.encode())){message(tr("Match changed"),tr("Review the current match before ending it."),()->showEndMatch(back));return;}
             if(book.retire(player)&&afterMatchChange()){
-                if(book.result(book.current().id())!=null)showResult(book.current().id(),0);else if(!book.currentDeleted())showSavePending();else showMatchControls();
+                if(book.result(book.current().id())!=null)showFinishedResult(book.current().id());else if(!book.currentDeleted())showSavePending();else showMatchControls();
             }
         });backButton(content,tr("Cancel"),()->showEndMatch(back));
     }
@@ -640,13 +745,13 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     private String availablePlayer(String id){OpponentDirectory.Entry e=opponents.get(id);return e==null||e.archived?"":id;}
     private MatchPresets presets(){return MatchPresets.decode(preferences.getString("favourite_formats",""));}
     private void showPresets(boolean setup){
-        LinearLayout c=panel("Favourite formats");java.util.List<MatchPresets.Entry> list=presets().list(selectedSport);if(list.isEmpty())paragraph(c,tr("Save a favourite from New match to reuse its scoring rules and match length."));
+        LinearLayout c=panel("Favourite formats",null,MenuSection.FAVOURITES);java.util.List<MatchPresets.Entry> list=presets().list(selectedSport);if(list.isEmpty())paragraph(c,tr("Save a favourite from New match to reuse its scoring rules and match length."));
         for(MatchPresets.Entry e:list)navigationButton(c,e.name+"\n"+ui.rules(e.format)+tr(" · BO")+e.best,()->{if(!allowSport(e.format.sport))return;if(!setup)showNewMatch(this::showMenu);newMatchFormat=e.format;newMatchBestOf=e.best;newFirstServer=e.format.pickleball()?0:-1;newFirstReceiver=e.format.pickleball()?1:-1;if(!e.format.doubles){newMatchPartner=newMatchOther="";}showNewMatchOptions();});
         if(!list.isEmpty())navigationButton(c,tr("Remove a favourite"),()->removePreset(setup));backButton(c,setup?"Back to setup":"Back to Menu",setup?this::showNewMatchOptions:this::showMenu);
     }
     private void removePreset(boolean setup){LinearLayout c=panel("Remove favourite");for(MatchPresets.Entry e:presets().list(selectedSport))deleteButton(c,e.name,()->{MatchPresets p=presets();p.remove(e.id);if(preferences.edit().putString("favourite_formats",p.encode()).commit())showPresets(setup);else message(tr("Save failed"),tr("Favourite was kept."),()->showPresets(setup));});backButton(c,tr("Cancel"),()->showPresets(setup));}
     private void savePreset(){
-        LinearLayout c=panel("Save favourite");EditText input=menuInput(c,tr("Favourite name"),tr("Favourite name"),android.text.InputType.TYPE_CLASS_TEXT);
+        LinearLayout c=panel("Save favourite",null,MenuSection.FAVOURITES);EditText input=menuInput(c,tr("Favourite name"),tr("Favourite name"),android.text.InputType.TYPE_CLASS_TEXT);
         input.setText(tr(newMatchFormat.name())+" "+tr(newMatchFormat.mode())+" BO"+newMatchBestOf);
         button(c,tr("Save favourite"),()->{try{MatchPresets p=presets();p.add(input.getText().toString(),newMatchFormat,newMatchBestOf);if(!preferences.edit().putString("favourite_formats",p.encode()).commit())throw new IllegalStateException(tr("Favourite was not saved"));showNewMatchOptions();}catch(Exception e){input.setError(safe(e));}});backButton(c,tr("Cancel"),this::showNewMatchOptions);
     }
@@ -668,25 +773,25 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     }
     private void showNewMatchOptions(){
         OpponentDirectory.Entry chosen=opponents.get(newMatchOpponent);if(chosen==null||chosen.archived)newMatchOpponent="";
-        LinearLayout content=panel("New match","new-match-setup");section(content,"Scoring & format");
+        LinearLayout content=panel("New match","new-match-setup",MenuSection.NEW_MATCH);section(content,"Scoring & format");
         formatControls(content,newMatchFormat,f->{newMatchFormat=f;newFirstServer=f.pickleball()?0:-1;newFirstReceiver=f.pickleball()?1:-1;if(!f.doubles){newMatchPartner=newMatchOther="";}showNewMatchOptions();},this::showNewMatchOptions);
         navigationButton(content,tr("Match length: Best of ")+newMatchBestOf,()->chooseLength(newMatchFormat,newMatchBestOf,value->{newMatchBestOf=value;showNewMatchOptions();},this::showNewMatchOptions));
         paragraph(content,ui.rules(newMatchFormat));
         if(newMatchFormat.doubles){
             section(content,"Our team");
-            personButton(content,tr("Partner: ")+playerName(newMatchPartner),()->pickPlayer(tr("Partner"),newMatchPartner,id->{newMatchPartner=id;showNewMatchOptions();},this::showNewMatchOptions,0));
+            personButton(content,tr("Partner: ")+playerName(newMatchPartner),()->pickPlayer(tr("Partner"),newMatchPartner,id->{newMatchPartner=id;showNewMatchOptions();},this::showNewMatchOptions));
         }
         section(content,newMatchFormat.doubles?"Opposing team":"Players · optional");
-        personButton(content,tr("Opponent: ")+(newMatchOpponent.isEmpty()?tr("No name"):chosen.name)+tr(" (optional)"),()->showOpponentPicker(null,false,0));
-        if(newMatchFormat.doubles)personButton(content,tr("Opponent 2: ")+playerName(newMatchOther),()->pickPlayer(tr("Opponent 2"),newMatchOther,id->{newMatchOther=id;showNewMatchOptions();},this::showNewMatchOptions,0));
+        personButton(content,tr("Opponent: ")+(newMatchOpponent.isEmpty()?tr("No name"):chosen.name)+tr(" (optional)"),()->showOpponentPicker(null,false));
+        if(newMatchFormat.doubles)personButton(content,tr("Opponent 2: ")+playerName(newMatchOther),()->pickPlayer(tr("Opponent 2"),newMatchOther,id->{newMatchOther=id;showNewMatchOptions();},this::showNewMatchOptions));
         section(content,newMatchFormat.pickleball()?"Starting servers":"Serving · optional");
         navigationButton(content,tr("First server: ")+slotName(newFirstServer,null),()->chooseServer(newMatchFormat,null,newFirstServer,slot->{if(slot!=newFirstServer){newFirstServer=slot;newFirstReceiver=newMatchFormat.pickleball()?1-slot%2:-1;}showNewMatchOptions();},this::showNewMatchOptions));
         if(newMatchFormat.doubles&&newFirstServer>=0)navigationButton(content,(newMatchFormat.nested()||newMatchFormat.pickleball()?tr("Next opposing server: "):tr("First receiver: "))+slotName(newFirstReceiver,null),()->chooseReceiver(newMatchFormat,null,newFirstServer,newFirstReceiver,slot->{newFirstReceiver=slot;showNewMatchOptions();},this::showNewMatchOptions));
         button(content,newMatchCreateLabel==null?tr("Create match"):newMatchCreateLabel,()->confirmNewMatch(newMatchBestOf));
         paragraph(content,tr("Tap the first point to start play and timing."));
         section(content,"Favourite formats");
-        navigationButton(content,tr("Use favourite format"),()->showPresets(true));
-        navigationButton(content,tr("Save as favourite"),this::savePreset);
+        destinationButton(content,MenuSection.FAVOURITES,tr("Use favourite format"),()->showPresets(true));
+        destinationButton(content,MenuSection.FAVOURITES,tr("Save as favourite"),this::savePreset);
         backButton(content,tr("Cancel"),newMatchReturn);
     }
     private void confirmNewMatch(int bestOf){
@@ -726,14 +831,14 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         return text.toString();
     }
     private void showCurrentMatch(){
-        MatchState match=book.current();LinearLayout content=panel("Match details");
+        MatchState match=book.current();LinearLayout content=panel("Match details",null,MenuSection.CURRENT_MATCH);
         showSetScores(content,match,match.format().doubles?teamName(match.id(),0):ownName(),match.format().doubles?teamName(match.id(),1):opponentName(match.id()));
         paragraph(content,ui.rules(match.format()));
         paragraph(content,tr("Started")+"\n"+ui.scoreTerms(book.currentStartedText()));
         if(match.retired())paragraph(content,match.retiredPlayer()==0?tr("Me retired · Opponent won"):tr("Opponent retired · You won"));
         if(match.nextReady())button(content,tr("Next set"),()->{book.nextGame();if(afterMatchChange())closePanel();});
-        MatchResult result=book.result(match.id());if(result!=null)navigationButton(content,tr("View result"),()->showResult(result.id,resultsPage,this::showCurrentMatch,"Back to Match details"));
-        if(match.complete()&&result==null&&!book.currentDeleted())button(content,tr("Save match result"),this::saveCurrentResult);
+        MatchResult result=book.result(match.id());if(result!=null)destinationButton(content,MenuSection.RESULTS,tr("View result"),()->showResult(result.id,resultsPage,this::showCurrentMatch,"Back to Match details"));
+        if(match.complete()&&result==null&&!book.currentDeleted())destinationButton(content,MenuSection.RESULTS,tr("Save match result"),this::saveCurrentResult);
         if(match.complete()&&book.currentDeleted())paragraph(content,tr("This result was deleted."));
         backButton(content,"Back to Current match",this::showMatchControls);
     }
@@ -773,35 +878,66 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     private void saveCurrentResult(){
         MatchState match=book.current();
         if(!match.complete()||book.currentDeleted()){showMatchControls();return;}
-        if(book.saveCompleted(LocalDate.now())){if(afterMatchChange())showResult(match.id(),0);}
+        if(book.saveCompleted(LocalDate.now())){if(afterMatchChange())showFinishedResult(match.id());}
         else showSavePending();
     }
     private void showSavePending(){
-        LinearLayout content=panel("Result not saved yet");paragraph(content,tr("Result storage is full. Your completed match is kept on the scoreboard. Delete old results, then open Current match and Save match result."));
-        navigationButton(content,tr("Results"),()->openResults(this::showMenu,"Back to Menu"));backButton(content,"Back to Current match",this::showMatchControls);
+        LinearLayout content=panel("Result not saved yet",null,MenuSection.RESULTS);paragraph(content,tr("Result storage is full. Your completed match is kept on the scoreboard. Delete old results, then open Current match and Save match result."));
+        destinationButton(content,MenuSection.RESULTS,tr("Results"),()->openResults(this::showMenu,"Back to Menu"));backButton(content,"Back to Current match",this::showMatchControls);
     }
-    private void openResults(Runnable back,String label){resultsReturn=back;resultsReturnLabel=label;showResults(0);}
+    private void openResults(Runnable back,String label){
+        resultsReturn=back;
+        resultsReturnLabel=label;
+        showResultsFromTop(0);
+    }
+    private void showResultsFromTop(int page){
+        showResults(page);
+        final ScrollView scroll=panelScroll;
+        scroll.post(()->scroll.scrollTo(0,0));
+    }
     private void showResults(int requestedPage){
-        List<MatchResult> items=filteredResults();int page=Math.max(0,Math.min(requestedPage,Math.max(0,(items.size()-1)/10)));
-        resultsPage=page;LinearLayout content=panel("Results","results:"+selectedSport+":"+filterMode+":"+page+":"+filterOpponent+":"+filterFrom+":"+filterTo);
-        navigationButton(content,tr("Filters"),this::showResultFilters).setContentDescription(tr("Filter results"));
-        navigationButton(content,tr("Options"),this::showResultOptions).setContentDescription(tr("Result options"));
-        navigationButton(content,tr("Add past match"),this::showAddPastMatch);
-        if(resultFiltersActive())navigationButton(content,tr("Reset all filters"),this::resetResultFilters);
-        if(items.isEmpty())paragraph(content,book.count()==0?tr("No saved matches yet. Finished matches are saved here automatically."):tr("No matches fit these filters."));
-        else{
-            section(content,"Saved matches");
-            paragraph(content,items.size()+tr(" of ")+book.count()+tr(" saved\nPage ")+(page+1)+tr(" of ")+Math.max(1,(items.size()+9)/10));
-            for(int i=page*10;i<Math.min(items.size(),page*10+10);i++){
-                MatchResult result=items.get(i);resultCard(content,result,()->showResult(result.id,page));
-            }
-            if(page>0)navigationButton(content,tr("Newer results"),()->showResults(page-1));
-            if((page+1)*10<items.size())navigationButton(content,tr("Older results"),()->showResults(page+1));
+        List<MatchResult> items=filteredResults();
+        int pages=Math.max(1,(items.size()+9)/10);
+        int page=Math.max(0,Math.min(requestedPage,pages-1));
+        resultsPage=page;
+        LinearLayout content=panel("Results","results:"+selectedSport+":"+filterMode+":"+page+":"+filterOpponent+":"+filterFrom+":"+filterTo,MenuSection.RESULTS);
+        boolean filtered=resultFiltersActive();
+        int start=page*10, end=Math.min(start+10,items.size());
+        if(items.isEmpty()){
+            paragraph(content,tr(filtered?"No matches fit these filters.":"No saved matches yet. Finished matches are saved here automatically."));
+            if(filtered)navigationButton(content,tr("Reset all filters"),this::resetResultFilters);
+            else navigationButton(content,tr("Add past match"),()->showAddPastMatch(()->showResults(resultsPage)));
+        }else{
+            historyCard(content,items.get(start),page);
+        }
+        resultTools(content,filtered);
+        if(!items.isEmpty()){
+            if(filtered)navigationButton(content,tr("Reset all filters"),this::resetResultFilters);
+            if(start+1<end)section(content,"More matches");
+            for(int i=start+1;i<end;i++)historyCard(content,items.get(i),page);
+            paragraph(content,items.size()+tr(" of ")+book.count()+tr(" saved\nPage ")+(page+1)+tr(" of ")+pages);
+            if(page>0)navigationButton(content,tr("Newer results"),()->showResultsFromTop(page-1));
+            if(page+1<pages)navigationButton(content,tr("Older results"),()->showResultsFromTop(page+1));
         }
         backButton(content,resultsReturnLabel,resultsReturn);
     }
+    private void resultTools(LinearLayout content,boolean filtered){
+        LinearLayout row=ManualEntryUi.row(content);
+        Button filters=styledButton(row,tr("Filters"),this::showResultFilters,ButtonKind.RESULT_TOOL);
+        Button options=styledButton(row,tr("Options"),this::showResultOptions,ButtonKind.RESULT_TOOL);
+        filters.setContentDescription(tr("Filter results"));
+        filters.setSelected(filtered);
+        if(filtered)filters.setStateDescription(tr("Filters active"));
+        options.setContentDescription(tr("Result options"));
+        int available=getResources().getDisplayMetrics().widthPixels-panelScroll.getPaddingLeft()-panelScroll.getPaddingRight();
+        float labelWidth=Math.max(filters.getPaint().measureText(filters.getText().toString()),options.getPaint().measureText(options.getText().toString()));
+        int required=Math.max(dp(48),(int)Math.ceil(labelWidth)+filters.getPaddingLeft()+filters.getPaddingRight());
+        if((available-dp(6))/2>=required)ManualEntryUi.equal(filters,options);
+        else row.setOrientation(LinearLayout.VERTICAL);
+    }
     private void showResultOptions(){
-        LinearLayout content=panel("Result options");
+        LinearLayout content=panel("Result options",null,MenuSection.RESULTS);
+        navigationButton(content,tr("Add past match"),()->showAddPastMatch(this::showResultOptions));
         navigationButton(content,tr("View results on phone"),()->openPhone("results",false,()->showResults(resultsPage),"Back to Results"));
         section(content,"CSV");
         navigationButton(content,tr("Export CSV"),this::showCsvExport);
@@ -821,23 +957,29 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     }
     private void showStatistics(){
         MatchStatistics totals=MatchStatistics.from(sportResults(filterMode));
-        LinearLayout content=panel("Statistics");
+        LinearLayout content=panel("Statistics",null,MenuSection.STATISTICS);
         paragraph(content,modeLabel()+tr(". Date/player filters do not apply."));if(!selectedSport.equals("squash")&&!selectedSport.equals("padel"))navigationButton(content,tr("Mode: ")+modeLabel(),()->chooseResultMode(this::showStatistics));
         if(totals.matchesPlayed()==0)paragraph(content,tr("No saved matches yet. Finish a match or import results to see your balance."));
         statisticsCard(content,tr("Matches"),tr("Played: ")+totals.matchesPlayed()+tr("\nWon: ")+totals.matchesWon+tr(" · Lost: ")+totals.matchesLost+tr("\nBalance: ")+signed(totals.matchBalance())+tr("\nWin rate: ")+(totals.matchesPlayed()==0?"—":Math.round(totals.matchWinRate())+"%"));
         statisticsCard(content,MatchFormat.defaults(selectedSport).nested()?tr("Sets"):tr("Games"),tr("Played: ")+totals.setsPlayed()+tr("\nWon: ")+totals.setsWon+tr(" · Lost: ")+totals.setsLost+tr("\nBalance: ")+signed(totals.setBalance()));
         statisticsCard(content,tr("Points"),tr("Played: ")+totals.pointsPlayed()+tr("\nFor: ")+totals.pointsFor+tr(" · Against: ")+totals.pointsAgainst+tr("\nBalance: ")+signed(totals.pointBalance()));
         if(MatchFormat.defaults(selectedSport).nested())statisticsCard(content,tr("Games"),totals.gamesFor+tr(" won · ")+totals.gamesAgainst+tr(" lost"));if(totals.unknownPointMatches>0)paragraph(content,tr("Point totals exclude unknown points in ")+totals.unknownPointMatches+tr(" manually entered matches."));
-        navigationButton(content,tr("Results (")+sportResults(filterMode).size()+")",()->openResults(this::showStatistics,"Back to Statistics"));
+        destinationButton(content,MenuSection.RESULTS,tr("Results (")+sportResults(filterMode).size()+")",()->openResults(this::showStatistics,"Back to Statistics"));
         backButton(content,"Back to Menu",this::showMenu);
     }
     private static String signed(long value){return value>0?"+"+value:Long.toString(value);}
     private void statisticsCard(LinearLayout content,String title,String text){
         LinearLayout card=new LinearLayout(this);card.setOrientation(LinearLayout.VERTICAL);card.setPadding(dp(10),dp(8),dp(10),dp(8));
-        GradientDrawable shape=new GradientDrawable();shape.setCornerRadius(dp(16));shape.setColor(0xff10283f);shape.setStroke(dp(1),0xff315b7d);card.setBackground(shape);
-        TextView heading=paragraph(card,title);heading.setTextSize(16);heading.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);heading.setTextColor(0xffa6d7ff);heading.setAccessibilityHeading(true);
+        GradientDrawable shape=new GradientDrawable();shape.setCornerRadius(dp(16));shape.setColor(MenuSection.STATISTICS.subtle);shape.setStroke(dp(1),MenuSection.STATISTICS.border);card.setBackground(shape);
+        TextView heading=paragraph(card,title);heading.setTextSize(16);heading.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);heading.setTextColor(MenuSection.STATISTICS.accent);heading.setAccessibilityHeading(true);
         TextView values=paragraph(card,text);values.setTextSize(14);values.setTextColor(0xffedf4ff);
         LinearLayout.LayoutParams position=new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT);position.bottomMargin=dp(10);content.addView(card,position);
+    }
+    private void showFinishedResult(String id){
+        checkFinishedReview();
+        if(!reviewing()){openStart();return;}
+        scrollPositions.remove("result:"+id);
+        showResult(id,0);
     }
     private void showResult(String id,int page){
         showResult(id,page,()->showResults(page),"Back to Results");
@@ -845,16 +987,22 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     private void showResult(String id,int page,Runnable back,String backLabel){
         MatchResult result=book.result(id);if(result==null){showResults(page);return;}
         Runnable again=()->showResult(id,page,back,backLabel);
-        LinearLayout content=panel(result.heading());
-        paragraph(content,tr(result.format.name())+" · "+ui.rules(result.format));
-        resultCard(content,result,null);paragraph(content,tr("Set scores: ")+ownName()+"–"+opponentName(result.id));
-        navigationButton(content,tr("Share result card"),()->openPhone("results",false,again,"Back to Result",id));
-        boolean current=id.equals(book.current().id());
-        if(current){
-            section(content,"Next match");
-            button(content,tr("Quick rematch"),this::quickRematch);
-            navigationButton(content,tr("New match"),()->showNewMatch(again));
+        boolean locallyControlled=rooms==null || !rooms.readOnly();
+        boolean canStart=locallyControlled && !sportLocked() && !unsavedFinish();
+        String resultTitle=tr("Match result");
+        if(!canStart && result.startedAt>0)resultTitle+=" · "+result.heading();
+        LinearLayout content=panel(resultTitle,"result:"+id,MenuSection.RESULTS);
+        boolean openReview=locallyControlled && reviewing() && id.equals(FinishedMatchReview.result(preferences,book).id);
+        boolean current=openReview && id.equals(book.current().id());
+        if(canStart){
+            paragraph(content,resultOutcome(result)+" · "+result.gamesWon(0)+"–"+result.gamesWon(1)).setPadding(0,0,0,dp(3));
+            newMatchButton(content,tr("New match"),()->{if(selectSport(result.format.sport))showNewMatch(again);});
+            if(current)destinationButton(content,MenuSection.NEW_MATCH,tr("Quick rematch"),this::quickRematch);
+            if(openReview)navigationButton(content,tr("Mark match as done"),()->markMatchDone(id));
         }
+        paragraph(content,tr(result.format.name())+" · "+ui.rules(result.format));
+        resultDetailCard(content,result);paragraph(content,tr("Set scores: ")+ownName()+"–"+opponentName(result.id));
+        destinationButton(content,MenuSection.SHARING,tr("Share result card"),()->openPhone("results",false,again,"Back to Result",id));
         section(content,"Manage result");
         matchPlayerButton(content,id,result.format.doubles,again);
         if(current)button(content,result.retired()?tr("Undo retirement"):book.current().undoEnteredSet()?tr("Undo entered set"):tr("Undo last point"),()->undoPoint(again));
@@ -877,11 +1025,60 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         });backButton(content,tr("Cancel"),this::showResultOptions);
     }
     private void showDeleteFailure(int page){counter.match(book.current());LinearLayout content=panel("Delete was not saved");paragraph(content,tr("The watch could not save the deletion. Your results have been kept. Free storage and retry."));backButton(content,"Back to results",()->showResults(page));}
+    private void showHome(){
+        if(sportLocked()||unsavedFinish()||rooms!=null&&rooms.readOnly()){openStart();return;}
+        sharedArea=true;scoreMenu=false;
+        scrollPositions.remove("home");
+        LinearLayout content=panel("Home","home",PanelTitle.CUSTOM,MenuSection.HOME);
+        locationHeader(content,null,null);
+        LinearLayout first=ManualEntryUi.row(content);
+        Button start=newMatchButton(first,tr("New match"),this::chooseHomeSport);
+        Button results=destinationButton(first,MenuSection.RESULTS,tr("Results"),()->{sharedArea=false;openResults(this::showHome,"Back to Home");});
+        results.setContentDescription(tr("Results")+" · "+tr(MatchFormat.name(selectedSport)));
+        fitHomeTiles(first,start,results);
+        LinearLayout second=ManualEntryUi.row(content);
+        Button players=personButton(second,tr("Players"),()->openPlayers(this::showHome,"Back to Home"));
+        Button sports=destinationButton(second,MenuSection.SPORTS,tr("Sports"),this::showSports);
+        fitHomeTiles(second,players,sports);
+        settingsButton(content,tr("Settings"),()->openSettings(this::showHome,"Back to Home"));
+        bindBack(this::finish);
+    }
+
+    private void fitHomeTiles(LinearLayout row,Button left,Button right){
+        int available=getResources().getDisplayMetrics().widthPixels-panelScroll.getPaddingLeft()-panelScroll.getPaddingRight();
+        // Allow two lines where a translated title wraps at a space, and keep each word intact.
+        float longest=0;
+        for(Button tile:new Button[]{left,right}){
+            tile.setGravity(Gravity.CENTER);
+            tile.setCompoundDrawablesRelative(null,null,null,null);
+            tile.setCompoundDrawablePadding(0);
+            tile.setPadding(dp(3),dp(4),dp(3),dp(4));
+            for(String word:tile.getText().toString().split(" "))longest=Math.max(longest,tile.getPaint().measureText(word));
+        }
+        if((available-dp(6))/2>=Math.max(dp(48),Math.ceil(longest)+dp(6)))ManualEntryUi.equal(left,right);
+        else row.setOrientation(LinearLayout.VERTICAL);
+    }
+
+    private void chooseHomeSport(){
+        if(sportLocked()){openStart();return;}
+        sharedArea=true;
+        LinearLayout content=panel("New match","home-new-sport",MenuSection.NEW_MATCH);
+        for(String sport:ui.sortedSports()){
+            Button choice=navigationButton(content,tr(MatchFormat.name(sport)),()->{
+                if(selectSport(sport)){sharedArea=false;showNewMatch(this::chooseHomeSport);}
+            });
+            sportButton(choice,sport);
+        }
+        backButton(content,"Back to Home",this::showHome);
+    }
+
     void showSports(){
         if(rooms!=null && rooms.readOnly()){rooms.menu();return;}
         sharedArea=true;scoreMenu=false;
-        LinearLayout content=panel("Choose sport","sports");
-        if(hasCurrentMatch()&&!book.current().complete())button(content,(needsResume()?tr("Resume "):tr("Current match")+" · ")+tr(book.current().format().name()),()->openMatchControls(this::showSports,"Back to sports"));
+        LinearLayout content=panel("Choose sport","sports",MenuSection.SPORTS);
+        if(hasCurrentMatch()&&!book.current().complete())destinationButton(content,MenuSection.CURRENT_MATCH,(needsResume()?tr("Resume "):tr("Current match")+" · ")+tr(book.current().format().name()),()->openMatchControls(this::showSports,"Back to sports"));
+        else if(unsavedFinish())destinationButton(content,MenuSection.RESULTS,tr("Save match result"),this::saveCurrentResult);
+        else newMatchButton(content,newSportMatchLabel(),()->{sharedArea=false;showNewMatch(this::showSports);});
         if(sportLocked())paragraph(content,ui.format("Finish or cancel your {0} match to change sport. Paused matches stay locked.","Beende deine Partie ({0}) oder brich sie ab, um die Sportart zu wechseln. Bei einer Pause bleibt sie gesperrt.","Termine ou annule ton match de {0} pour changer de sport. Une pause conserve le sport actuel.","Termina o cancela tu partido de {0} para cambiar de deporte. Una pausa mantiene el deporte actual.",tr(book.current().format().name())));
         for(String sport:ui.sortedSports()){Button choice=navigationButton(content,tr(MatchFormat.name(sport)),()->{if(selectSport(sport)){sportMenuFromSelector=true;showMenu();}});sportButton(choice,sport);boolean enabled=!sportLocked()||sport.equals(book.current().format().sport);choice.setEnabled(enabled);choice.setAlpha(enabled?1f:.4f);choice.setContentDescription(tr(MatchFormat.name(sport))+(enabled?tr(", choose sport"):tr(", locked until the current match is finished or cancelled")));}
         personButton(content,tr("Players"),()->openPlayers(this::showSports,"Back to sports"));
@@ -889,11 +1086,12 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         sharingButton(content,MatchRooms.Entry.SPORTS);
         section(content,"App");
         settingsButton(content,tr("Settings"),()->openSettings(this::showSports,"Back to sports"));
-        backButton(content,tr("Close app"),this::finish);
+        if(location.parent!=null&&location.parent.key.equals("home"))backButton(content,"Back to Home",this::showHome);
+        else backButton(content,tr("Close app"),this::finish);
     }
     private boolean selectSport(String sport){if(!allowSport(sport))return false;if(!selectedSport.equals(sport)){filterOpponent=null;filterFrom=filterTo=null;filterMode=-1;resultsPage=0;}selectedSport=sport;preferences.edit().putString("selected_sport",sport).apply();return true;}
     private void showSportRules(){
-        LinearLayout content=panel(tr(MatchFormat.name(selectedSport))+tr(" rules"));
+        LinearLayout content=panel(tr(MatchFormat.name(selectedSport))+tr(" rules"),null,MenuSection.RULES);
         String rules;
         switch(selectedSport){
             case "squash":rules=tr("One point per rally. Games to 11, win by two, without a point cap. A match is normally best of 5 games; best of 3 is also permitted.\n\nThe rally winner serves next. A let replays the rally without a score change. A stroke or service fault awards a point to the appropriate player: tap that player's score.\n\nThe indicator shows who serves, not the service box. At hand-out the server chooses a box; while retaining service the boxes alternate. A let retains the same box.\n\nGame Ball / Match Ball is highlighted. Pause is available for interruptions; its duration is included in elapsed match time.\n\nThis is a scorekeeper. Injury allowances, conduct game/match awards and other referee decisions are not automated. Awarded/conceded games cannot be represented by inventing an 11-point score.\n\nWorld Squash singles rules, effective September 2025.");break;
@@ -966,22 +1164,21 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         backButton(content,tr("Cancel"),back);
     }
     private void showServing(){
-        MatchState match=book.current();int index=match.gameCount()-1;LinearLayout content=panel("Serving indicator","serving:"+match.id());
+        MatchState match=book.current();int index=match.gameCount()-1;LinearLayout content=panel("Serving indicator","serving:"+match.id(),MenuSection.CURRENT_MATCH);
         paragraph(content,tr("Next serve: ")+slotName(match.server(),match.id())+(match.format().pickleball()?tr("\nServe call: ")+match.game().pickleCall():"")+tr("\nInitial choices apply to ")+tr(match.format().unit()).toLowerCase()+" "+(index+1)+".");
         if(match.format().pickleball()&&match.game().rallies()>0){paragraph(content,tr("Starting servers are fixed once rallies are recorded. Undo to zero to change them."));backButton(content,"Back to Match options",this::showMatchOptions);return;}
         navigationButton(content,tr("First server: ")+slotName(match.firstServer(index),match.id()),()->chooseServer(match.format(),match.id(),match.firstServer(index),slot->{if(slot==match.firstServer(index)){showServing();return;}match.serving(slot,match.format().pickleball()?1-slot%2:-1);if(persistScore()){counter.refresh();showServing();}},this::showServing));
         if(match.format().doubles&&match.firstServer(index)>=0)navigationButton(content,(match.format().nested()||match.format().pickleball()?tr("Next opposing server: "):tr("First receiver: "))+slotName(match.firstReceiver(index),match.id()),()->chooseReceiver(match.format(),match.id(),match.firstServer(index),match.firstReceiver(index),slot->{match.serving(match.firstServer(index),slot);if(persistScore()){counter.refresh();showServing();}},this::showServing));
         backButton(content,"Back to Match options",this::showMatchOptions);
     }
-    private void pickPlayer(String title,String selected,java.util.function.Consumer<String> choose,Runnable back,int requestedPage){
-        List<OpponentDirectory.Entry> entries=opponents.list(false);int page=Math.max(0,Math.min(requestedPage,Math.max(0,(entries.size()-1)/10)));LinearLayout content=panel(title);
-        playerChoice(content,tr("No name"),selected.isEmpty(),()->choose.accept(""));for(int i=page*10;i<Math.min(entries.size(),page*10+10);i++){OpponentDirectory.Entry entry=entries.get(i);markChoice(playerButton(content,entry,()->choose.accept(entry.id)),entry.id.equals(selected));}
-        if(page>0)navigationButton(content,tr("Previous names"),()->pickPlayer(title,selected,choose,back,page-1));if((page+1)*10<entries.size())navigationButton(content,tr("More names"),()->pickPlayer(title,selected,choose,back,page+1));
-        if(!entries.isEmpty())section(content,"Manage names");
+    private void pickPlayer(String title,String selected,java.util.function.Consumer<String> choose,Runnable back){
+        LinearLayout content=panel(title,"role-player:"+title,MenuSection.PLAYERS);
+        playerChoice(content,tr("No name"),selected.isEmpty(),()->choose.accept(""));
+        if(playerList(content,false,(rows,entry)->markChoice(playerButton(rows,entry,()->choose.accept(entry.id)),entry.id.equals(selected))))section(content,"Manage names");
         button(content,tr("Add player"),()->showNameEditor(null,null,back,choose));backButton(content,tr("Cancel"),back);
     }
     private void showTeam(String id,Runnable back){
-        LinearLayout content=panel("Players");
+        LinearLayout content=panel("Players",null,MenuSection.PLAYERS);
         Runnable again=()->showTeam(id,back);
         section(content,"Our team");
         paragraph(content,ownName());
@@ -1005,7 +1202,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
                 opponents=OpponentDirectory.decode(before);
                 message(tr("Player not saved"),safe(error),again);
             }
-        },again,0));
+        },again));
     }
     private String sportsText(String id){java.util.Set<String> sports=opponents.sportsFor(id,book.newestFirst());java.util.List<String> names=new java.util.ArrayList<>();for(String sport:ui.sortedSports())if(sports.contains(sport))names.add(tr(MatchFormat.name(sport)));return names.isEmpty()?tr("No saved results yet"):tr("Results: ")+android.text.TextUtils.join(", ",names);}
     private Button playerButton(LinearLayout content,OpponentDirectory.Entry entry,Runnable action){
@@ -1017,17 +1214,17 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         if(selectedSport.equals("squash")){manualMatch=new ManualMatchEntry(LocalDate.now());showManualMatch();return;}
         MatchFormat f;try{f=MatchFormat.decode(preferences.getString("last_format_"+selectedSport,MatchFormat.defaults(selectedSport).encode()));}catch(Exception error){f=MatchFormat.defaults(selectedSport);}showPastFormat(f);
     }
-    private void showPastFormat(MatchFormat f){LinearLayout content=panel("Past match rules");paragraph(content,tr(f.name())+" · "+ui.rules(f));formatControls(content,f,this::showPastFormat,()->showPastFormat(f));button(content,tr("Continue"),()->{manualMatch=new ManualMatchEntry(LocalDate.now(),f);showManualMatch();});backButton(content,tr("Cancel"),()->showResults(resultsPage));}
+    private void showPastFormat(MatchFormat f){LinearLayout content=panel("Past match rules",null,MenuSection.RESULTS);paragraph(content,tr(f.name())+" · "+ui.rules(f));formatControls(content,f,this::showPastFormat,()->showPastFormat(f));button(content,tr("Continue"),()->{manualMatch=new ManualMatchEntry(LocalDate.now(),f);showManualMatch();});backButton(content,tr("Cancel"),pastMatchReturn);}
     private void chooseGenericScore(String title,String opponent,MatchFormat f,boolean tie,int me,int other,java.util.function.BiConsumer<Integer,Integer> apply,Runnable back){
-        LinearLayout content=manualPanel(title);paragraph(content,tr(f.name())+" · "+(tie?tr("Match tie-break to 10"):ui.rules(f))+tr("\nChoose the winner, then the losing score."));
-        button(content,tr("Me / our team won"),()->genericScoreWheel(title,opponent,f,tie,0,Math.min(me,other),apply,back));styledButton(content,tr("Opponent / other team won"),()->genericScoreWheel(title,opponent,f,tie,1,Math.min(me,other),apply,back),ButtonKind.SCORE_OPPONENT);backButton(content,tr("Cancel"),back);
+        LinearLayout content=manualPanel(title,"set-winner:"+title);paragraph(content,tr(f.name())+" · "+(tie?tr("Match tie-break to 10"):ui.rules(f))+tr("\nChoose the winner, then the losing score."));
+        styledButton(content,tr("Me / our team won"),()->genericScoreWheel(title,opponent,f,tie,0,Math.min(me,other),apply,back),ButtonKind.ACTION,MenuSection.CURRENT_MATCH);styledButton(content,tr("Opponent / other team won"),()->genericScoreWheel(title,opponent,f,tie,1,Math.min(me,other),apply,back),ButtonKind.SCORE_OPPONENT);backButton(content,tr("Cancel"),back);
     }
     private void genericScoreWheel(String title,String opponent,MatchFormat f,boolean tie,int winner,int initial,java.util.function.BiConsumer<Integer,Integer> apply,Runnable back){
-        LinearLayout content=manualPanel(title);int max=f.nested()&&!tie?6:Math.min(4999,tie?4999:f.cap()-1);NumberPicker wheel=ManualEntryUi.wheel(content,tr("Losing score"),0,max,Math.min(max,initial));TextView preview=paragraph(content,"");Runnable refresh=()->{int low=wheel.getValue(),high=ManualMatchEntry.winningScore(f,tie,low);preview.setText((winner==0?tr("Me / our team "):tr("Opponent / other team "))+high+"–"+low);};wheel.setOnValueChangedListener((picker,a,b)->refresh.run());refresh.run();
+        LinearLayout content=manualPanel(title,"set-points:"+title);int max=f.nested()&&!tie?6:Math.min(4999,tie?4999:f.cap()-1);NumberPicker wheel=ManualEntryUi.wheel(content,tr("Losing score"),0,max,Math.min(max,initial));TextView preview=paragraph(content,"");Runnable refresh=()->{int low=wheel.getValue(),high=ManualMatchEntry.winningScore(f,tie,low);preview.setText((winner==0?tr("Me / our team "):tr("Opponent / other team "))+high+"–"+low);};wheel.setOnValueChangedListener((picker,a,b)->refresh.run());refresh.run();
         button(content,tr("Use score"),()->{int low=wheel.getValue(),high=ManualMatchEntry.winningScore(f,tie,low);apply.accept(winner==0?high:low,winner==0?low:high);});backButton(content,tr("Cancel"),back);
     }
-    private String updateDescription(){
-        String text=tr("Installed: v")+BuildConfig.VERSION_NAME+"\n\n"+ui.status(updateStatus);
+    private String updateDetails(){
+        String text=tr("Installed: v")+BuildConfig.VERSION_NAME;
         if(latest!=null&&latest.newerThan(BuildConfig.VERSION_CODE))text+="\n\nv"+latest.versionName+"\n"+latest.notes;
         String install=preferences.getString("install_status","");
         if(!install.isEmpty())text+="\n\n"+ui.status(install);
@@ -1038,27 +1235,34 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     private List<MatchResult> sportResults(int mode){List<MatchResult> out=new java.util.ArrayList<>();for(MatchResult result:book.newestFirst())if(result.format.sport.equals(selectedSport)&&(mode<0||result.format.doubles==(mode==1)))out.add(result);return out;}
     private String modeLabel(){return filterMode<0?tr("All modes"):filterMode==0?tr("Singles"):tr("Doubles");}
     private void message(String title,String text,Runnable back){LinearLayout content=panel(title);paragraph(content,text);backButton(content,tr("Back"),back);}
-    private void showOpponents(int requestedPage){
-        List<OpponentDirectory.Entry> entries=opponents.list(false);int page=Math.max(0,Math.min(requestedPage,Math.max(0,(entries.size()-1)/10)));
-        LinearLayout content=panel("Players","opponents:"+page);
-        personButton(content,tr("Your name: ")+ownName(),()->editOwnName(()->showOpponents(page)));
-        if(entries.isEmpty())paragraph(content,tr("No names saved. Names are optional; you can keep playing without one."));
-        else section(content,"Saved players");
-        for(int i=page*10;i<Math.min(entries.size(),page*10+10);i++){OpponentDirectory.Entry entry=entries.get(i);playerButton(content,entry,()->showOpponent(entry.id,page));}
-        if(page>0)navigationButton(content,tr("Previous names"),()->showOpponents(page-1));if((page+1)*10<entries.size())navigationButton(content,tr("More names"),()->showOpponents(page+1));
-        if(!entries.isEmpty()){
+    private void showOpponents(){
+        LinearLayout content=panel("Players","opponents",MenuSection.PLAYERS);
+        Runnable again=this::showOpponents;
+        personButton(content,tr("Your name: ")+ownName(),()->editOwnName(again));
+        if(!opponents.hasPlayers(false))paragraph(content,tr("No names saved. Names are optional; you can keep playing without one."));
+        else {
+            section(content,"Saved players");
+            playerList(content,false,(rows,entry)->playerButton(rows,entry,()->showOpponent(entry.id)));
             TextView legend=paragraph(content,tr("Icons show sports in saved results."));legend.setTextSize(11);
         }
         section(content,"Manage names");
-        button(content,tr("Add player"),()->showNameEditor(null,null,()->showOpponents(page)));
-        navigationButton(content,tr("Edit names on phone"),()->openPhone("opponents",false,()->showOpponents(page),"Back to Players"));
+        button(content,tr("Add player"),()->showNameEditor(null,null,again));
+        navigationButton(content,tr("Edit names on phone"),()->openPhone("opponents",false,again,"Back to Players"));
         backButton(content,playersReturnLabel,playersReturn);
     }
-    private void showOpponent(String id,int page){
-        OpponentDirectory.Entry entry=opponents.get(id);if(entry==null){showOpponents(page);return;}LinearLayout content=panel(entry.name,null,PanelTitle.PLAYER_NAME);paragraph(content,sportsText(entry.id));
-        navigationButton(content,tr("Rename"),()->showNameEditor(id,null,()->showOpponent(id,page)));
-        deleteButton(content,tr("Remove from player list"),()->{LinearLayout confirm=panel("Remove opponent?");paragraph(confirm,tr("Remove ")+entry.name+tr(" from future selection? Past match results keep this name and remain filterable."));deleteButton(confirm,tr("Remove name"),()->{String before=opponents.encode();opponents.archive(id);if(persistScore())showOpponents(page);else{opponents=OpponentDirectory.decode(before);message(tr("Save failed"),tr("The name was not removed."),()->showOpponent(id,page));}});backButton(confirm,tr("Cancel"),()->showOpponent(id,page));});
-        backButton(content,"Back to Players",()->showOpponents(page));
+    private boolean playerList(LinearLayout content,boolean archived,PlayerListPanel.Row row){
+        if(!opponents.hasPlayers(archived))return false;
+        new PlayerListPanel(this,content,ui,preferences,location,(order,recent)->opponents.playerList(archived,order,ui.locale,book,
+                sessionOngoing()||book.current().hasPoints()||book.currentStartedAt()>0,recent?LocalDate.now():null),row);
+        panel.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN
+                | WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+        return true;
+    }
+    private void showOpponent(String id){
+        OpponentDirectory.Entry entry=opponents.get(id);if(entry==null){showOpponents();return;}LinearLayout content=panel(entry.name,"player:"+id,PanelTitle.PLAYER_NAME,MenuSection.PLAYERS);paragraph(content,sportsText(entry.id));
+        navigationButton(content,tr("Rename"),()->showNameEditor(id,null,()->showOpponent(id)));
+        deleteButton(content,tr("Remove from player list"),()->{LinearLayout confirm=panel("Remove opponent?");paragraph(confirm,tr("Remove ")+entry.name+tr(" from future selection? Past match results keep this name and remain filterable."));deleteButton(confirm,tr("Remove name"),()->{String before=opponents.encode();opponents.archive(id);if(persistScore())showOpponents();else{opponents=OpponentDirectory.decode(before);message(tr("Save failed"),tr("The name was not removed."),()->showOpponent(id));}});backButton(confirm,tr("Cancel"),()->showOpponent(id));});
+        backButton(content,"Back to Players",this::showOpponents);
     }
     private void showNameEditor(String id,String matchId,Runnable back){
         showNameEditor(id,matchId,back,null);
@@ -1074,7 +1278,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         return name.isEmpty()?(translate?tr("Opponent"):"Opponent"):name;
     }
     private void editOwnName(Runnable back){
-        LinearLayout content=panel("Your name");paragraph(content,tr("Shown on your score card and shared scoreboards. Leave blank to use Me."));
+        LinearLayout content=panel("Your name",null,MenuSection.PLAYERS);paragraph(content,tr("Shown on your score card and shared scoreboards. Leave blank to use Me."));
         nameInput=menuInput(content,tr("Your name"),tr("Your name"),android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS);
         nameInput.setText(preferences.getString("my_name",""));
         final EditText input=nameInput;
@@ -1082,7 +1286,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         backButton(content,tr("Cancel"),back);
     }
     private void showNameEditor(String id,String matchId,Runnable back,java.util.function.Consumer<String> afterSave){
-        OpponentDirectory.Entry entry=id==null?null:opponents.get(id);LinearLayout content=panel(entry==null?tr("Add player"):tr("Rename player"));
+        OpponentDirectory.Entry entry=id==null?null:opponents.get(id);LinearLayout content=panel(entry==null?tr("Add player"):tr("Rename player"),null,MenuSection.PLAYERS);
         nameInput=menuInput(content,tr("Player name"),tr("Player name"),android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS);
         if(entry!=null)nameInput.setText(entry.name);
         final EditText input=nameInput;
@@ -1091,31 +1295,30 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         paragraph(content,tr("You can also type names from Opponents → Edit names on phone."));backButton(content,tr("Cancel"),back);
     }
     @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(request==81&&result==RESULT_OK&&data!=null&&nameInput!=null){java.util.ArrayList<String> names=data.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS);if(names!=null&&!names.isEmpty())nameInput.setText(names.get(0));}}
-    private void showOpponentPicker(String matchId,boolean filtering,int requestedPage){
-        showOpponentPicker(matchId,filtering,requestedPage,filtering?this::showResultFilters:matchId==null?this::showNewMatchOptions:this::showMatchOptions);
+    private void showOpponentPicker(String matchId,boolean filtering){
+        showOpponentPicker(matchId,filtering,filtering?this::showResultFilters:matchId==null?this::showNewMatchOptions:this::showMatchOptions);
     }
-    private void showOpponentPicker(String matchId,boolean filtering,int requestedPage,Runnable back){
+    private void showOpponentPicker(String matchId,boolean filtering,Runnable back){
         boolean starting=!filtering&&matchId==null;
-        List<OpponentDirectory.Entry> entries=opponents.list(filtering);int page=Math.max(0,Math.min(requestedPage,Math.max(0,(entries.size()-1)/10)));
-        LinearLayout content=panel(filtering?tr("Filter by opponent"):tr("Choose opponent"));
+        LinearLayout content=panel(filtering?tr("Filter by opponent"):tr("Choose opponent"),filtering?"filter-opponent":starting?"new-opponent":"match-opponent:"+matchId,MenuSection.PLAYERS);
         String selected=filtering?filterOpponent:starting?newMatchOpponent:opponents.opponentId(matchId);
         if(filtering)playerChoice(content,tr("All opponents"),selected==null,()->{filterOpponent=null;resultsPage=0;showResultFilters();});
         playerChoice(content,filtering?tr("Unnamed"):tr("No name"),"".equals(selected),()->{if(filtering){filterOpponent="";resultsPage=0;showResultFilters();}else if(starting){newMatchOpponent="";showNewMatchOptions();}else assignOpponent(matchId,"",back);});
-        for(int i=page*10;i<Math.min(entries.size(),page*10+10);i++){OpponentDirectory.Entry e=entries.get(i);playerChoice(content,e.name+(e.archived?tr(" (removed)"):""),e.id.equals(selected),()->{if(filtering){filterOpponent=e.id;resultsPage=0;showResultFilters();}else if(starting){newMatchOpponent=e.id;showNewMatchOptions();}else assignOpponent(matchId,e.id,back);});}
-        if(page>0)navigationButton(content,tr("Previous names"),()->showOpponentPicker(matchId,filtering,page-1,back));if((page+1)*10<entries.size())navigationButton(content,tr("More names"),()->showOpponentPicker(matchId,filtering,page+1,back));
-        if(!filtering&&!entries.isEmpty())section(content,"Manage names");
+        boolean hasNames=playerList(content,filtering,(rows,e)->playerChoice(rows,e.name+(e.archived?tr(" (removed)"):""),e.id.equals(selected),()->{
+            if(filtering){filterOpponent=e.id;resultsPage=0;showResultFilters();}else if(starting){newMatchOpponent=e.id;showNewMatchOptions();}else assignOpponent(matchId,e.id,back);}));
+        if(!filtering&&hasNames)section(content,"Manage names");
         if(starting)button(content,tr("Add player"),()->showNameEditor(null,null,this::showNewMatchOptions,id->newMatchOpponent=id));
-        else if(!filtering){button(content,tr("Add player"),()->showNameEditor(null,matchId,back));navigationButton(content,tr("Edit names on phone"),()->openPhone("opponents",false,()->showOpponentPicker(matchId,false,page,back),"Back to Choose opponent"));}
+        else if(!filtering){button(content,tr("Add player"),()->showNameEditor(null,matchId,back));navigationButton(content,tr("Edit names on phone"),()->openPhone("opponents",false,()->showOpponentPicker(matchId,false,back),"Back to Choose opponent"));}
         backButton(content,tr("Cancel"),back);
     }
     private void assignOpponent(String matchId,String id,Runnable back){String before=opponents.encode();try{opponents.assign(matchId,id);if(!persistScore())throw new IllegalStateException(tr("The watch did not confirm saving"));updateDisplay();back.run();}catch(Exception error){opponents=OpponentDirectory.decode(before);message(tr("Name not saved"),safe(error),back);}}
     private void showResultFilters(){
-        LinearLayout content=panel("Result filters");
+        LinearLayout content=panel("Result filters",null,MenuSection.RESULTS);
         navigationButton(content,tr("Reset all filters"),this::resetResultFilters);
         section(content,"Match");
         if(!selectedSport.equals("squash")&&!selectedSport.equals("padel"))navigationButton(content,tr("Mode: ")+modeLabel(),()->chooseResultMode(this::showResultFilters));
         OpponentDirectory.Entry e=filterOpponent==null?null:opponents.get(filterOpponent);
-        personButton(content,tr("Opponent: ")+(filterOpponent==null?tr("All"):filterOpponent.isEmpty()?tr("Unnamed"):e==null?tr("Unknown"):e.name),()->showOpponentPicker(null,true,0));
+        personButton(content,tr("Opponent: ")+(filterOpponent==null?tr("All"):filterOpponent.isEmpty()?tr("Unnamed"):e==null?tr("Unknown"):e.name),()->showOpponentPicker(null,true));
         section(content,"Date range");
         paragraph(content,tr("Dates: ")+(filterFrom==null?tr("any"):ui.filterDate(filterFrom))+tr(" to ")+(filterTo==null?tr("any"):ui.filterDate(filterTo)));
         button(content,tr("Today"),()->{filterFrom=LocalDate.now();filterTo=filterFrom;showResults(0);});
@@ -1126,8 +1329,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     }
     private boolean resultFiltersActive(){return filterOpponent!=null||filterFrom!=null||filterTo!=null||filterMode>=0;}
     private void resetResultFilters(){
-        filterOpponent=null;filterFrom=filterTo=null;filterMode=-1;showResults(0);
-        final ScrollView scroll=panelScroll;if(scroll!=null)scroll.post(()->scroll.scrollTo(0,0));
+        filterOpponent=null;filterFrom=filterTo=null;filterMode=-1;showResultsFromTop(0);
     }
     private void showDateRange(){
         LinearLayout content=panel("Date range");paragraph(content,tr("Use YYYY-MM-DD. Leave either date empty for no limit."));
@@ -1161,7 +1363,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     String roomMatchId(){return book.current().id();}
     boolean hasAudienceLink(){return live.session()!=null&&live.session().matchId.equals(roomMatchId());}
     private void sharingButton(LinearLayout page,MatchRooms.Entry entry){
-        navigationButton(page,rooms.title(),()->{scrollPositions.remove("room-hub");rooms.open(entry);});
+        destinationButton(page,MenuSection.SHARING,rooms.title(),()->{scrollPositions.remove("room-hub");rooms.open(entry);});
     }
     void sharingBack(LinearLayout page,MatchRooms.Entry entry){
         switch(entry){
@@ -1198,11 +1400,18 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     boolean roomPageVisible(View page){return panel!=null && panel.isShowing() && page.getRootView()==panel.getWindow().getDecorView();}
     boolean roomHubVisible(){return panel!=null && "room-hub".equals(panelScrollKey);}
     boolean roomMenuVisible(){return panel!=null && "room-menu".equals(panelScrollKey);}
+    boolean roomCancelVisible(){return panel!=null && "room-cancel".equals(panelScrollKey);}
     boolean roomScoreVisible(){return panel==null;}
     void refreshRoomScore(){updateDisplay();}
     String roomSport(String sport){return tr(MatchFormat.name(sport));}
     void restoreLocalScore(){counter.match(book.current());counter.remote(null,false);updateDisplay();}
-    LinearLayout roomPanel(String title,String key){sharedArea=true;LinearLayout content=panel(title,key);panelShortcut=false;return content;}
+    LinearLayout roomPanel(String title,String key){
+        if("room-menu".equals(key) && (panel==null || roomCancelVisible()))scrollPositions.remove(key);
+        sharedArea=true;
+        MenuSection section=("room-menu".equals(key)||"room-details".equals(key))?MenuSection.CURRENT_MATCH:
+                "room-seat".equals(key)?MenuSection.RESULTS:"sharing-sport".equals(key)?MenuSection.SPORTS:MenuSection.SHARING;
+        LinearLayout content=panel(title,key,section);panelShortcut=false;return content;
+    }
     void roomMessage(String msg,Runnable back){
         LinearLayout p=roomPanel(rooms.title(),"room-message");paragraph(p,msg);
         backButton(p,rooms.text("Back","Zurück","Retour","Volver"),back);
@@ -1231,6 +1440,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     }
     void openSavedRoomResult(String id,String sport){
         restoreLocalScore();selectedSport=sport;sharedArea=false;
+        if(!sportLocked()&&!unsavedFinish()){FinishedMatchReview.openShared(preferences,book,id,System.currentTimeMillis());checkFinishedReview();}
         showResult(id,0,this::showSports,rooms.text("Back to sports","Zur Sportauswahl","Retour aux sports","Volver a deportes"));
     }
 
@@ -1245,7 +1455,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     private void showAudienceQr(LiveScoreClient.Session s){if(s!=live.session()||!s.ready||!s.matchId.equals(book.current().id()))return;showQr(s.link(),tr("Scan to follow live"),this::showLive,"Back to Live scoreboard");}
     void showLive(){
         if(rooms.readOnly()&&!rooms.isHost()){rooms.hub();return;}
-        LinearLayout c=panel("Live scoreboard","live");liveText=paragraph(c,tr(live.status()));LiveScoreClient.Session s=live.session();livePanelState=liveState(s);
+        LinearLayout c=panel("Live scoreboard","live",MenuSection.SHARING);liveText=paragraph(c,tr(live.status()));LiveScoreClient.Session s=live.session();livePanelState=liveState(s);
         if(s!=null){if(s.ready){button(c,tr("Show audience QR"),()->showAudienceQr(s));
             if(nfc.canSend())navigationButton(c,tr("Share page via NFC"),()->nfc.shareLink(s.link(),this::showLive,"Back to Live scoreboard"));
             paragraph(c,tr("Anyone with this link can view this match’s score, names and previous-meeting summary. Live links last up to eight hours; final results remain for ten minutes after completion. Audience members cannot change the score."));}else paragraph(c,tr("Creating your audience link… The QR will open when it is ready."));deleteButton(c,tr("Stop sharing"),()->{live.stop(true);showLive();});}
@@ -1264,9 +1474,9 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         deleteButton(c,tr("Replace data & restore"),()->{
             try{if(session.expired()||!before.equals(book.encode())||!namesBefore.equals(opponents.encode())||!settingsSnapshot.equals(backupSettings()))throw new IllegalArgumentException(tr("Watch data changed or the link expired. Receive a fresh preview."));
                 SharedPreferences.Editor edit=preferences.edit();for(String k:preferences.getAll().keySet())if(BackupArchive.settingKey(k))edit.remove(k);
-                for(java.util.Map.Entry<String,String> e:restored.settings.entrySet()){String k=e.getKey(),v=e.getValue();if(k.equals("last_best_of")||k.startsWith("last_best_"))edit.putInt(k,Integer.parseInt(v));else if(k.equals("match_keep_awake_v3")||k.equals("match_reminders")||k.equals("match_paused"))edit.putBoolean(k,Boolean.parseBoolean(v));else edit.putString(k,v);}
+                for(java.util.Map.Entry<String,String> e:restored.settings.entrySet()){String k=e.getKey(),v=e.getValue();if(k.equals("last_best_of")||k.startsWith("last_best_"))edit.putInt(k,Integer.parseInt(v));else if(k.equals("match_keep_awake_v3")||k.equals("match_reminders")||k.equals(ScoreSpeech.PREFERENCE)||k.equals("match_paused"))edit.putBoolean(k,Boolean.parseBoolean(v));else edit.putString(k,v);}
                 edit.putString("match_book",restored.book.encode()).putString("opponent_book",restored.directory.encode()).putString("backup_before_restore",settingsBefore).remove(MatchDisplayPolicy.ACTIVE_MATCH).putBoolean("match_paused",!restored.book.current().complete()&&(restored.book.current().hasPoints()||restored.settings.containsKey("match_ready_id")));
-                if(!edit.commit())throw new IllegalStateException(tr("Restore was not saved. Your previous data is kept."));if(live!=null)live.stop(true);book=restored.book;opponents=restored.directory;selectedSport=sportLocked()?book.current().format().sport:restored.settings.getOrDefault("selected_sport",book.current().format().sport);manualMatch=null;transfer=null;counter.match(book.current());updateDisplay();tasks.execute(()->{try{TransferClient.end(session);}catch(Exception ignored){}});message(tr("Backup restored"),book.count()+tr(" results and ")+opponents.list(true).size()+tr(" players restored. Resume your match when ready."),this::showBackup);
+                if(!edit.commit())throw new IllegalStateException(tr("Restore was not saved. Your previous data is kept."));if(live!=null)live.stop(true);configureSpeech();book=restored.book;opponents=restored.directory;selectedSport=sportLocked()?book.current().format().sport:restored.settings.getOrDefault("selected_sport",book.current().format().sport);manualMatch=null;transfer=null;counter.match(book.current());updateDisplay();tasks.execute(()->{try{TransferClient.end(session);}catch(Exception ignored){}});message(tr("Backup restored"),book.count()+tr(" results and ")+opponents.list(true).size()+tr(" players restored. Resume your match when ready."),this::showBackup);
             }catch(Exception e){message(tr("Backup not restored"),safe(e),this::showBackup);}
         });backButton(c,tr("Cancel"),this::showTransfer);
     }
@@ -1283,15 +1493,21 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
             else showTransfer();return;
         }
         final String saved=book.encode(),names=opponents.encode(),myName=preferences.getString("my_name","");final boolean backupMode=transferView.equals("backup");final String backupCopy=backupOverride;final java.util.Map<String,String> backupSettings=backupSettings();final List<MatchResult> selected=backupMode?java.util.Collections.emptyList():filtered?new java.util.ArrayList<>(filteredResults()):ResultFilter.select(book,opponents,null,null,null);
-        transferBusy=true;LinearLayout content=panel("Preparing phone link");paragraph(content,tr("Creating an encrypted ten-minute link. Both devices need internet."));backButton(content,transferReturnLabel,transferReturn);
+        transferBusy=true;LinearLayout content=panel("Preparing phone link","phone-transfer:"+transferView+(transferResultId.isEmpty()?"":":card"),phoneSection());paragraph(content,tr("Creating an encrypted ten-minute link. Both devices need internet."));backButton(content,transferReturnLabel,transferReturn);
         final Dialog waiting=panel;
         tasks.execute(()->{try{TransferClient.Session created=TransferClient.create(MatchBook.decode(saved),OpponentDirectory.decode(names),selected,selectedSport,myName,backupMode?(backupCopy.isEmpty()?BackupArchive.create(MatchBook.decode(saved),OpponentDirectory.decode(names),backupSettings):backupCopy):null);onUi(()->transferCreated(created,filtered,backupMode,backupCopy,waiting));}catch(Exception error){onUi(()->{transferBusy=false;if(panel==waiting)message(tr("Transfer unavailable"),safe(error),transferReturn);});}});
     }
     private void transferCreated(TransferClient.Session created,boolean filtered,boolean backupMode,String backupCopy,Dialog waiting){transferBusy=false;transfer=created;transferBackupOverride=backupCopy;transferSnapshotFiltered=filtered;transferSnapshotBackup=backupMode;if(panel==waiting)showTransfer();}
+    private MenuSection phoneSection(){
+        if(!transferResultId.isEmpty())return MenuSection.SHARING;
+        if(transferView.equals("opponents"))return MenuSection.PLAYERS;
+        if(transferView.equals("backup"))return MenuSection.SETTINGS;
+        return MenuSection.RESULTS;
+    }
     private String phoneTitle(){return transferView.equals("backup")?tr("Backup & restore"):transferView.equals("opponents")?tr("Edit names on phone"):transferView.equals("import")?tr("Import CSV"):tr("Results on phone");}
     private String phoneLink(){return transfer.link()+"&view="+transferView+(transferResultId.isEmpty()?"":"&match="+transferResultId);}
     private void showTransfer(){
-        LinearLayout content=panel(phoneTitle());
+        LinearLayout content=panel(phoneTitle(),"phone-transfer:"+transferView+(transferResultId.isEmpty()?"":":card"),phoneSection());
         if(transfer==null||transfer.expired()){
             paragraph(content,tr("No active phone link. Create an encrypted link that expires after ten minutes."));
             button(content,tr("Create phone link"),()->{transfer=null;beginTransfer(transferFiltered);});
@@ -1350,10 +1566,22 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     }
     private void showUpdates(){
         if(BuildConfig.PLAY_DISTRIBUTION){showPlayUpdates();return;}
-        LinearLayout content=panel("App updates");updatePanel=true;updateText=paragraph(content,updateDescription());
+        LinearLayout content = panel("App updates", null, downloading ? PanelTitle.CUSTOM : PanelTitle.STANDARD);
+        updatePanel = true;
+        if (downloading) panelHeading(content, tr("App updates"), true);
+        updateBar = (ProgressBar) getLayoutInflater().inflate(R.layout.update_progress, content, false);
+        content.addView(updateBar);
+        updateText = paragraph(content, "");
+        renderUpdateStatus();
+        if (downloading) {
+            locationHeader(content,null,null);
+            backButton(content, "Back to Settings", this::showSettings);
+            return;
+        }
+        paragraph(content, updateDetails());
         settingsAction(content,checking?tr("Checking…"):tr("Check for updates"),this::checkUpdates);
         if(latest!=null&&latest.newerThan(BuildConfig.VERSION_CODE)&&latest.supports(Build.VERSION.SDK_INT)){
-            if(getPackageManager().canRequestPackageInstalls())settingsAction(content,downloading?tr("Downloading…"):tr("Download & update"),this::downloadUpdate);
+            if(getPackageManager().canRequestPackageInstalls())settingsAction(content,tr("Download & update"),this::downloadUpdate);
             else settingsButton(content,tr("Allow app updates"),this::allowUpdates);
         }else if(!getPackageManager().canRequestPackageInstalls())settingsButton(content,tr("Set up direct updates"),this::allowUpdates);
         settingsButton(content,tr("Phone install help"),this::phoneHelp);backButton(content,"Back to Settings",this::showSettings);
@@ -1367,25 +1595,32 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
                 UpdatePolicy release=updater.check();
                 onUi(()->{
                     checking=false;latest=release;
+                    counter.available(release.newerThan(BuildConfig.VERSION_CODE)&&release.supports(Build.VERSION.SDK_INT));
+                    if (downloading) return;
                     setUpdateStatus(!release.supports(Build.VERSION.SDK_INT)?"New release needs a newer watch OS."
                         :release.newerThan(BuildConfig.VERSION_CODE)?"A new version is ready.":"You have the latest version.");
-                    counter.available(release.newerThan(BuildConfig.VERSION_CODE)&&release.supports(Build.VERSION.SDK_INT));
                     if(updatePanel)showUpdates();
                 });
-            }catch(Exception error){onUi(()->{checking=false;setUpdateStatus("Check failed: "+error.getMessage());if(updatePanel)showUpdates();});}
+            }catch(Exception error){onUi(()->{checking=false;if(downloading)return;setUpdateStatus("Check failed: "+error.getMessage());if(updatePanel)showUpdates();});}
         });
     }
     private void downloadUpdate(){
         if(BuildConfig.PLAY_DISTRIBUTION){showPlayUpdates();return;}
         if(downloading||latest==null)return;
         if(!getPackageManager().canRequestPackageInstalls()){allowUpdates();return;}
-        downloading=true;persistScore();setUpdateStatus("Downloading verified update…");
-        final ScrollView updates = panelScroll;
-        if (updates != null) updates.post(() -> updates.scrollTo(0, 0));
+        downloading=true;persistScore();setUpdateStatus("Downloading verified update…", 0);
+        if (updatePanel) showUpdates();
         final UpdatePolicy release=latest;
         tasks.execute(()->{
             try{
-                File apk=updater.download(release,p->onUi(()->setUpdateStatus("Downloading: "+p+"%")));
+                File apk = updater.download(release, new UpdateClient.Progress() {
+                    @Override public void update(int percent) {
+                        onUi(() -> setUpdateStatus("Downloading: " + percent + "%", percent));
+                    }
+                    @Override public void verifying() {
+                        onUi(() -> setUpdateStatus("Verifying update…"));
+                    }
+                });
                 onUi(()->setUpdateStatus("Verified. Requesting installation…"));
                 preferences.edit().putString("install_status","Installation requested. Confirm on the watch if asked; then reopen the app.").commit();
                 updater.install(apk);
@@ -1395,7 +1630,20 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     }
     private String safe(Exception error){String message=error.getMessage();return message==null?error.getClass().getSimpleName():ui.status(message);}
     private void onUi(Runnable work){runOnUiThread(()->{if(!isFinishing()&&!isDestroyed())work.run();});}
-    private void setUpdateStatus(String value){updateStatus=value;preferences.edit().putString("update_status",value).apply();if(updatePanel&&updateText!=null)updateText.setText(updateDescription());}
+    private void setUpdateStatus(String value) { setUpdateStatus(value, -1); }
+    private void setUpdateStatus(String value, int percent) {
+        updateStatus = value;
+        updatePercent = percent;
+        preferences.edit().putString("update_status", value).apply();
+        renderUpdateStatus();
+    }
+    private void renderUpdateStatus() {
+        if (!updatePanel || updateBar == null) return;
+        updateText.setText(ui.status(updateStatus));
+        updateBar.setVisibility(checking || downloading ? View.VISIBLE : View.GONE);
+        updateBar.setIndeterminate(updatePercent < 0);
+        if (updatePercent >= 0) updateBar.setProgress(updatePercent);
+    }
     private void allowUpdates(){
         if(BuildConfig.PLAY_DISTRIBUTION){showPlayUpdates();return;}
         try{
@@ -1450,7 +1698,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
             +tr("\nScore: ")+book.current().game().blue()+"–"+book.current().game().red()+tr("; sets ")+book.current().gamesWon(0)+"–"+book.current().gamesWon(1)
             +tr("\nBest of ")+book.current().bestOf()+tr("; saved results ")+book.count()
             +tr("\nPaused / waiting to resume: ")+needsResume()+tr("; ambient: ")+ambient+tr("; keep awake setting: ")+preferences.getBoolean("match_keep_awake_v3",true)
-            +"\n\n"+updateDescription()+"\n\n"+tr(preferences.getString("diagnostic",""))
+            +"\n\n"+ui.status(updateStatus)+"\n\n"+updateDetails()+"\n\n"+tr(preferences.getString("diagnostic",""))
             +tr("\n\nLast crash:\n")+crash+tr("\n\nProcess exit reasons:\n")+AppDiagnostics.recentExits(this,false)+tr("\n\nLifecycle trace:\n")+trace;
         return text;
     }
@@ -1518,7 +1766,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
             }
             if (diagnostic) bitmap = android.graphics.Bitmap.createScaledBitmap(bitmap, size, size, false);
             bitmap.setDensity(android.graphics.Bitmap.DENSITY_NONE);
-            LinearLayout page=panel(title,null,PanelTitle.QR);
+            LinearLayout page=panel(title,null,PanelTitle.CUSTOM);
             panelPage=backLabel.equals("Back to Diagnostics")?"Diagnostic QR":backLabel.equals("Back to Live scoreboard")?"Audience QR":"Phone QR";
             ImageView qr=new ImageView(this);
             BitmapDrawable code=new BitmapDrawable(getResources(),bitmap);
@@ -1547,6 +1795,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
             frame.topMargin=Math.max(0,centerY-size/2-used);
             frame.bottomMargin=dp(4);
             page.addView(qr,titleFits?1:0,frame);
+            locationHeader(page,null,null);
             if(nfc.canSend())navigationButton(page,tr("Share page via NFC"),
                 ()->nfc.shareLink(link,()->showQr(link,title,back,backLabel),"Back to QR"));
             backButton(page,backLabel,back);
@@ -1564,29 +1813,57 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         return panel(title,null);
     }
     private LinearLayout panel(String title,String scrollKey){return panel(title,scrollKey,PanelTitle.STANDARD);}
-    private LinearLayout panel(String title,String scrollKey,PanelTitle titleKind){
+    private LinearLayout panel(String title,String scrollKey,PanelTitle titleKind){return panel(title,scrollKey,titleKind,null);}
+    private LinearLayout panel(String title,String scrollKey,MenuSection section){return panel(title,scrollKey,PanelTitle.STANDARD,section);}
+    private LinearLayout panel(String title,String scrollKey,PanelTitle titleKind,MenuSection section){
+        String route=scrollKey==null?"title:"+title:scrollKey;
+        if(route.startsWith("results:"))route="results";
+        if(route.startsWith("current-match:"))route="current-match";
+        String pathTitle=title.equals("Menu")?MatchFormat.name(selectedSport):route.startsWith("result:")?"Match result":title;
+        if(route.startsWith("set-points:"))pathTitle="Losing score";
+        if(route.startsWith("phone-transfer:"))pathTitle=phoneTitle();
+        boolean homeRoute=false;
+        for(MenuLocation step=location;step!=null;step=step.parent)if(step.key.equals("home")){homeRoute=true;break;}
+        MenuLocation next=MenuLocation.open(panel==null||route.equals("home")||route.equals("sports")&&!homeRoute?null:location,route,pathTitle,section);
         closePanel();
-        panel=new Dialog(this,R.style.WatchPanel);panel.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        location=next;
+        panel=new Dialog(this,R.style.WatchPanel){
+            @Override public boolean dispatchTouchEvent(android.view.MotionEvent event){
+                if(event.getActionMasked()==android.view.MotionEvent.ACTION_DOWN)reviewInteraction();
+                return super.dispatchTouchEvent(event);
+            }
+            @Override public boolean dispatchGenericMotionEvent(android.view.MotionEvent event){
+                if(event.getActionMasked()==android.view.MotionEvent.ACTION_SCROLL)reviewInteraction();
+                return super.dispatchGenericMotionEvent(event);
+            }
+            @Override public boolean dispatchKeyEvent(KeyEvent event){
+                if(event.getAction()==KeyEvent.ACTION_DOWN)reviewInteraction();
+                return super.dispatchKeyEvent(event);
+            }
+        };panel.requestWindowFeature(Window.FEATURE_NO_TITLE);
         ScrollView scroll=new ScrollView(this);scroll.setBackgroundColor(MENU_SURFACE);scroll.setClipToPadding(false);
         android.util.DisplayMetrics metrics=getResources().getDisplayMetrics();boolean round=getResources().getConfiguration().isScreenRound();
         int horizontal=round?Math.round(metrics.widthPixels*.095f):dp(12),top=round?Math.round(metrics.heightPixels*.105f):dp(14);
+        if(round&&route.equals("home"))top=Math.round(metrics.heightPixels*.05f);
         scroll.setPadding(horizontal,top,horizontal,round?Math.round(metrics.heightPixels*.14f):dp(18));
         LinearLayout content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);content.setGravity(Gravity.CENTER_HORIZONTAL);
         scroll.addView(content,new ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT));
-        boolean qr=titleKind==PanelTitle.QR;
-        if(!qr){
-            sportBadge(content,sharedArea?null:selectedSport);
-            panelHeading(content,titleKind==PanelTitle.PLAYER_NAME?title:tr(title),false);
+        boolean customTitle=titleKind==PanelTitle.CUSTOM;
+        if(!customTitle){
+            locationHeader(content,sharedArea?null:selectedSport,titleKind==PanelTitle.PLAYER_NAME?title:tr(title));
         }
         content.setAccessibilityPaneTitle(titleKind==PanelTitle.PLAYER_NAME?title:tr(title));
-        panelShortcut=!qr&&(titleKind==PanelTitle.PLAYER_NAME||!title.equals("Menu")&&!title.equals("Choose sport")&&!title.endsWith("?"))&&book.current().format().sport.equals(selectedSport)&&(sessionOngoing()||needsResume());
-        panelScroll=scroll;panelScrollKey=scrollKey;
+        panelShortcut=!customTitle&&(titleKind==PanelTitle.PLAYER_NAME||!title.equals("Menu")&&!title.equals("Choose sport")&&!title.endsWith("?"))&&book.current().format().sport.equals(selectedSport)&&(sessionOngoing()||needsResume());
+        // When a match finishes, start the idle menu at its primary action.
+        final String positionKey = scrollKey != null && (route.equals("sports") || route.startsWith("sport-menu:"))
+                ? scrollKey + (sportLocked() ? ":playing" : unsavedFinish() ? ":pending-save" : ":idle") : scrollKey;
+        panelScroll=scroll;panelScrollKey=positionKey;
         panelPage=title;panel.setContentView(swipeContainer(scroll,panel));panel.show();
         panel.getWindow().setBackgroundDrawable(new ColorDrawable(MENU_SURFACE));
         panel.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT);
         trackPanelDismiss();
         bindBack(this::closePanel);
-        if(scrollKey!=null){final int position=scrollPositions.containsKey(scrollKey)?scrollPositions.get(scrollKey):0;scroll.post(()->scroll.scrollTo(0,position));}
+        if(positionKey!=null){final int position=scrollPositions.containsKey(positionKey)?scrollPositions.get(positionKey):0;scroll.post(()->scroll.scrollTo(0,position));}
         updateDisplay();
         return content;
     }
@@ -1594,15 +1871,95 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         TextView heading=paragraph(content,title);
         heading.setTextSize(compact?14:18);
         heading.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
-        heading.setTextColor(0xffe8f3ff);
+        heading.setTextColor(location.section.accent);
         heading.setPadding(0,dp(compact?0:3),0,dp(6));
         heading.setAccessibilityHeading(true);
         return heading;
     }
+    private void addHomeBrand(LinearLayout header){
+        LinearLayout brand=new LinearLayout(this);
+        brand.setGravity(Gravity.CENTER);
+        header.addView(brand,new LinearLayout.LayoutParams(-1,-2));
+
+        ImageView logo=new ImageView(this);
+        logo.setImageResource(R.drawable.ic_launcher);
+        logo.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        brand.addView(logo,new LinearLayout.LayoutParams(dp(24),dp(24)));
+
+        TextView name=new TextView(this);
+        name.setText(R.string.app_name);
+        name.setTextSize(15);
+        name.setTextColor(Color.WHITE);
+        name.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+        name.setPadding(dp(3),0,0,0);
+        brand.addView(name,new LinearLayout.LayoutParams(-2,-2));
+
+        if(getResources().getConfiguration().isScreenRound()){
+            float radius=getResources().getDisplayMetrics().widthPixels/2f;
+            float labelWidth=name.getPaint().measureText(name.getText().toString());
+            float width=dp(24)+name.getPaddingLeft()+labelWidth;
+            int side=panelScroll.getPaddingLeft();
+            if(width>2*(radius-side)){
+                brand.setOrientation(LinearLayout.VERTICAL);
+                name.setPadding(0,0,0,0);
+                width=Math.min(labelWidth,2*(radius-side));
+            }
+            // At this inset the circle is wide enough for both ends of the wordmark.
+            float half=width/2f;
+            int safeTop=(int)Math.ceil(radius-Math.sqrt(Math.max(0,radius*radius-half*half)))+dp(2);
+            panelScroll.setPadding(side,Math.max(panelScroll.getPaddingTop(),safeTop),panelScroll.getPaddingRight(),panelScroll.getPaddingBottom());
+        }
+    }
+    private void locationHeader(LinearLayout content,String sport,String title){
+        final MenuLocation here=location;
+        LinearLayout header=new LinearLayout(this);
+        header.setOrientation(LinearLayout.VERTICAL);header.setGravity(Gravity.CENTER);
+        header.setMinimumHeight(dp(48));header.setFocusable(true);
+        content.addView(header,new LinearLayout.LayoutParams(-1,-2));
+        LinearLayout strip=new LinearLayout(this);strip.setGravity(Gravity.CENTER);
+        boolean homeHeader=here.key.equals("home");
+        if(homeHeader)addHomeBrand(header);
+        header.addView(strip,new LinearLayout.LayoutParams(-1,-2));
+        if(title!=null)sportBadge(strip,sport);
+        else if(homeHeader){
+            TextView home=panelHeading(strip,tr("Home"),true);
+            home.setLayoutParams(new LinearLayout.LayoutParams(-2,-2));
+            home.setTextSize(11);home.setPadding(0,0,0,0);
+        }
+        String level=ui.format("Level {0}","Ebene {0}","Niveau {0}","Nivel {0}",here.depth);
+        LinearLayout indicator=new LinearLayout(this);
+        indicator.setOrientation(LinearLayout.VERTICAL);
+        indicator.setGravity(Gravity.CENTER);
+        indicator.setPadding(dp(6),0,0,0);
+        strip.addView(indicator);
+        for(int i=0;i<here.depth;i++){
+            View bar=new View(this);
+            GradientDrawable ink=new GradientDrawable();
+            ink.setCornerRadius(dp(1));ink.setColor(here.section.accent);
+            bar.setBackground(ink);
+            LinearLayout.LayoutParams size=new LinearLayout.LayoutParams(dp(12),dp(2));
+            if(i>0)size.topMargin=dp(2);
+            indicator.addView(bar,size);
+        }
+        indicator.setContentDescription(level);
+        indicator.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
+        if(title!=null)panelHeading(header,title,false);
+        String path=here.path(this::tr);
+        TextView trail=paragraph(header,path);
+        trail.setTextSize(12);trail.setVisibility(View.GONE);
+        String spokenTitle=(homeHeader?getString(R.string.app_name)+". ":"")+(title==null?tr(here.title):title)+". ";
+        header.setContentDescription(spokenTitle+level+". "+tr("Show menu path"));
+        header.setOnClickListener(v->{
+            boolean reveal=trail.getVisibility()!=View.VISIBLE;
+            trail.setVisibility(reveal?View.VISIBLE:View.GONE);
+            header.setContentDescription(spokenTitle+level+". "+(reveal?path+". "+tr("Hide menu path"):tr("Show menu path")));
+            if(reveal)header.announceForAccessibility(path);
+        });
+    }
     private void trackPanelDismiss(){
         final Dialog shown=panel;
         Runnable releaseBack=registerPanelBack(shown);
-        panel.setOnDismissListener(d->{releaseBack.run();if(panel==shown){if(nfc!=null)nfc.clear();rememberPanelScroll();updatePanel=false;updateText=null;panel=null;panelScroll=null;panelScrollKey=null;panelPage="Scoreboard";updateDisplay();}});
+        panel.setOnDismissListener(d->{releaseBack.run();if(panel==shown){if(nfc!=null)nfc.clear();rememberPanelScroll();updatePanel=false;updateText=null;updateBar=null;panel=null;panelScroll=null;panelScrollKey=null;panelPage="Scoreboard";updateDisplay();}});
     }
     private Runnable registerPanelBack(Dialog shown){
         if(Build.VERSION.SDK_INT<33)return ()->{};
@@ -1638,7 +1995,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         TextView label=paragraph(content,title.toUpperCase(ui.locale));
         label.setTextSize(11);
         label.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
-        label.setTextColor(0xffafc0d5);
+        label.setTextColor(location.section.accent);
         label.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);
         label.setPadding(dp(10),dp(8),dp(10),dp(3));
         label.setContentDescription(title);
@@ -1658,7 +2015,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         GradientDrawable shape=new GradientDrawable();
         shape.setColor(0xff142131);
         shape.setCornerRadius(dp(ROW_RADIUS_DP));
-        shape.setStroke(dp(1),new ColorStateList(new int[][]{{android.R.attr.state_focused},{}},new int[]{0xff76cfff,0xff63758b}));
+        shape.setStroke(dp(1),new ColorStateList(new int[][]{{android.R.attr.state_focused},{}},new int[]{location.section.accent,0xff63758b}));
         field.setBackground(shape);
         LinearLayout.LayoutParams position=new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT);
         position.bottomMargin=dp(ROW_GAP_DP);
@@ -1666,8 +2023,8 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         return field;
     }
     private void sportBadge(LinearLayout content,String sport){
-        TextView badge=paragraph(content,sport==null?"Keep Score":tr(MatchFormat.name(sport)));badge.setTextSize(12);badge.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);badge.setTextColor(sport==null?0xffd9c6ff:SportIcons.accent(sport));badge.setPadding(dp(10),dp(4),dp(10),dp(4));
-        GradientDrawable shape=new GradientDrawable();shape.setCornerRadius(dp(12));shape.setColor(sport==null?0xff241c32:(SportIcons.accent(sport)&0x00ffffff)|0x18000000);badge.setBackground(shape);
+        TextView badge=paragraph(content,sport==null?getString(R.string.app_name):tr(MatchFormat.name(sport)));badge.setTextSize(12);badge.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);badge.setTextColor(sport==null?location.section.accent:SportIcons.accent(sport));badge.setPadding(dp(10),dp(4),dp(10),dp(4));
+        GradientDrawable shape=new GradientDrawable();shape.setCornerRadius(dp(12));shape.setColor(sport==null?location.section.subtle:(SportIcons.accent(sport)&0x00ffffff)|0x18000000);badge.setBackground(shape);
         if(sport!=null){SportIcons icon=new SportIcons(sport,dp(18));icon.setBounds(0,0,dp(18),dp(18));badge.setCompoundDrawables(icon,null,null,null);badge.setCompoundDrawablePadding(dp(5));}
         badge.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,ViewGroup.LayoutParams.WRAP_CONTENT));badge.setContentDescription(sport==null?tr("Keep Score, shared across all sports"):tr("Current sport: ")+tr(MatchFormat.name(sport)));
     }
@@ -1675,7 +2032,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         int accent=SportIcons.accent(sport);GradientDrawable shape=new GradientDrawable();shape.setCornerRadius(dp(ROW_RADIUS_DP));shape.setColor((accent&0x00ffffff)|0x18000000);shape.setStroke(dp(1),(accent&0x00ffffff)|0x66000000);
         button.setBackground(new RippleDrawable(ColorStateList.valueOf(0x40ffffff),shape,null));button.setTextColor(new ColorStateList(new int[][]{new int[]{-android.R.attr.state_enabled},new int[]{}},new int[]{0xff687589,accent}));button.setCompoundDrawablesRelativeWithIntrinsicBounds(new SportIcons(sport,dp(22)),null,button.getCompoundDrawablesRelative()[2],null);button.setCompoundDrawablePadding(dp(8));
     }
-    private Button choiceButton(LinearLayout content,String text,boolean selected,Runnable action){
+    Button choiceButton(LinearLayout content,String text,boolean selected,Runnable action){
         return markChoice(styledButton(content,text,action,ButtonKind.CHOICE),selected);
     }
     private Button markChoice(Button option,boolean selected){
@@ -1689,8 +2046,8 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
             if(icon==null){
                 GradientDrawable shape=new GradientDrawable();
                 shape.setCornerRadius(dp(ROW_RADIUS_DP));
-                shape.setColor(0xff163346);
-                shape.setStroke(dp(1),0xff76cfff);
+                shape.setColor(location.section.subtle);
+                shape.setStroke(dp(1),location.section.accent);
                 option.setBackground(new RippleDrawable(ColorStateList.valueOf(0x40ffffff),shape,null));
             }
         }
@@ -1699,15 +2056,31 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     private Button playerChoice(LinearLayout page,String name,boolean selected,Runnable action){
         return markChoice(personButton(page,name,action),selected);
     }
-    Button button(LinearLayout content,String text,Runnable action){return styledButton(content,text,action,ButtonKind.MATCH);}
+    Button button(LinearLayout content,String text,Runnable action){return styledButton(content,text,action,ButtonKind.ACTION);}
+    Button destinationButton(LinearLayout content,MenuSection section,String text,Runnable action){
+        return styledButton(content,text,action,ButtonKind.DESTINATION,section);
+    }
     Button navigationButton(LinearLayout content,String text,Runnable action){return styledButton(content,text,action,ButtonKind.NAVIGATION);}
-    private Button personButton(LinearLayout content,String text,Runnable action){return styledButton(content,text,action,ButtonKind.PERSON);}
-    private Button settingsButton(LinearLayout content,String text,Runnable action){return styledButton(content,text,action,ButtonKind.SETTINGS);}
-    private Button settingsAction(LinearLayout content,String text,Runnable action){return styledButton(content,text,action,ButtonKind.SETTINGS_ACTION);}
+    private Button personButton(LinearLayout content,String text,Runnable action){return styledButton(content,text,action,ButtonKind.PERSON,MenuSection.PLAYERS);}
+    private Button settingsButton(LinearLayout content,String text,Runnable action){return destinationButton(content,MenuSection.SETTINGS,text,action);}
+    private Button settingsAction(LinearLayout content,String text,Runnable action){return styledButton(content,text,action,ButtonKind.ACTION,MenuSection.SETTINGS);}
     Button deleteButton(LinearLayout content,String text,Runnable action){return styledButton(content,text,action,ButtonKind.DELETE);}
-    Button backButton(LinearLayout content,String text,Runnable action){if(panelShortcut){panelShortcut=false;styledButton(content,tr("Scoreboard"),this::closePanel,ButtonKind.SHORTCUT);}bindBack(action);return styledButton(content,tr(text),action,ButtonKind.BACK);}
+    Button backButton(LinearLayout content,String text,Runnable action){
+        if(panelShortcut){panelShortcut=false;styledButton(content,tr("Scoreboard"),this::closePanel,ButtonKind.SHORTCUT,MenuSection.CURRENT_MATCH);}
+        MenuLocation here=location;
+        Runnable back=()->{location=here==null?null:here.parent;action.run();};
+        bindBack(back);return styledButton(content,tr(text),back,ButtonKind.BACK,here!=null&&here.parent!=null?here.parent.section:MenuSection.HOME);
+    }
     private Button styledButton(LinearLayout content,String text,Runnable action,ButtonKind kind){
+        return styledButton(content,text,action,kind,location==null?MenuSection.CURRENT_MATCH:location.section);
+    }
+    private Button styledButton(LinearLayout content,String text,Runnable action,ButtonKind kind,MenuSection section){
         boolean back=kind==ButtonKind.BACK;
+        boolean destination=kind==ButtonKind.DESTINATION||kind==ButtonKind.PERSON;
+        boolean danger=kind==ButtonKind.DELETE||kind==ButtonKind.SCORE_OPPONENT;
+        boolean filled=destination||kind==ButtonKind.ACTION||danger;
+        ColorStateList fill=danger?DANGER_FILL:destination?section.fill:filled?section.actionFill:section.plain;
+        ColorStateList ink=filled?section.ink:section.linkInk;
         Button button=new Button(this);
         button.setText(text);
         button.setTextSize(14);
@@ -1719,46 +2092,86 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         button.setBackgroundTintList(null);
         GradientDrawable shape=new GradientDrawable();
         shape.setCornerRadius(dp(ROW_RADIUS_DP));
-        shape.setColor(kind.colours.fill);
-        if(back||kind==ButtonKind.SHORTCUT)shape.setStroke(dp(1),0xff76cfff);
+        shape.setColor(fill);
+        if(back||kind==ButtonKind.SHORTCUT)shape.setStroke(dp(1),section.border);
+        if(kind==ButtonKind.RESULT_TOOL){
+            int[][] states={{android.R.attr.state_selected},{}};
+            shape.setColor(new ColorStateList(states,new int[]{section.surface,section.subtle}));
+            shape.setStroke(dp(1),new ColorStateList(states,new int[]{section.accent,section.border}));
+            button.setPadding(dp(6),dp(4),dp(6),dp(4));
+        }
         button.setBackground(new RippleDrawable(ColorStateList.valueOf(0x40ffffff),shape,null));
-        if(kind.colours!=RowColours.PLAIN){
-            button.setBackgroundTintList(kind.colours.fill);
+        if(filled){
+            button.setBackgroundTintList(fill);
             button.setBackgroundTintMode(android.graphics.PorterDuff.Mode.SRC_IN);
         }
-        button.setTextColor(kind.colours.ink);
-        if(kind==ButtonKind.NAVIGATION||kind==ButtonKind.SETTINGS||kind==ButtonKind.PERSON||kind==ButtonKind.CHOICE){
+        button.setTextColor(ink);
+        if(destination||kind==ButtonKind.NAVIGATION||kind==ButtonKind.CHOICE){
             button.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);
             Drawable icon=kind==ButtonKind.PERSON?getDrawable(R.drawable.ic_person):null;
             Drawable arrow=kind==ButtonKind.CHOICE?null:getDrawable(R.drawable.ic_navigation_arrow);
             if(icon!=null)icon.setBounds(0,0,dp(18),dp(18));
-            if(arrow!=null)arrow.setBounds(0,0,dp(16),dp(16));
+            if(arrow!=null){arrow.mutate().setTintList(ink);arrow.setBounds(0,0,dp(16),dp(16));}
             button.setCompoundDrawablesRelative(icon,null,arrow,null);
             button.setCompoundDrawablePadding(dp(6));
         }
-        button.setOnClickListener(v->action.run());
+        button.setOnClickListener(v->{reviewInteraction();action.run();});
         LinearLayout.LayoutParams position=new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT);
         position.topMargin=back?dp(3):0;
         position.bottomMargin=dp(ROW_GAP_DP);
         content.addView(button,position);
         return button;
     }
-    private void resultCard(LinearLayout content,MatchResult result,Runnable open){
-        boolean meWon=result.winner()==0;
-        LinearLayout card=new LinearLayout(this);card.setOrientation(LinearLayout.VERTICAL);card.setPadding(dp(10),dp(10),dp(10),dp(10));
-        GradientDrawable shape=new GradientDrawable();shape.setCornerRadius(dp(16));shape.setColor(meWon?0xff103b68:0xff551c30);shape.setStroke(dp(2),meWon?0xff2489f5:0xfff34b65);
-        card.setBackground(open==null?shape:new RippleDrawable(ColorStateList.valueOf(0x40ffffff),shape,null));
-        TextView reference=null;
-        if(open!=null){reference=paragraph(card,ui.scoreTerms(result.title()));reference.setTextSize(11);reference.setTextColor(0xffedf4ff);}
-        paragraph(card,tr(result.format.name())+" · "+tr(result.format.mode())+"\n"+(result.format.doubles?teamName(result.id,0)+tr(" vs ")+teamName(result.id,1):tr("vs ")+opponentName(result.id)));
-        TextView score=paragraph(card,result.format.doubles?tr("Our team ")+result.gamesWon(0)+"–"+result.gamesWon(1)+tr(" Opponents"):ownName()+" "+result.gamesWon(0)+"–"+result.gamesWon(1)+" "+opponentName(result.id));score.setTextSize(17);score.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);score.setTextColor(Color.WHITE);
-        TextView details=paragraph(card,tr("Best of ")+result.bestOf+" · "+ui.scoreTerms(result.outcomeText())+(open==null?"\n"+ui.scoreTerms(result.timingText()):"")+tr("\nDuration: ")+ui.scoreTerms(result.durationText())+tr("\nMatch ")+result.number+(open==null?"\n\n"+ui.scoreTerms(result.gamesText()):""));details.setTextSize(12);details.setTextColor(0xffedf4ff);
-        if(open!=null){
-            card.setFocusable(true);card.setClickable(true);card.setContentDescription(ui.scoreTerms(result.title())+". "+ui.scoreTerms(result.summary())+tr(". Open match result."));
-            reference.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);score.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);details.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-            card.setOnClickListener(v->open.run());
-        }
-        LinearLayout.LayoutParams position=new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT);position.bottomMargin=dp(12);content.addView(card,position);
+    private String resultOutcome(MatchResult result){
+        return result.winner()==0?ui.pick("Won","Gewonnen","Victoire","Victoria"):ui.pick("Lost","Verloren","Défaite","Derrota");
     }
-    void closePanel(){if(nfc!=null)nfc.clear();rememberPanelScroll();if(panel!=null){panel.dismiss();panel=null;}panelScroll=null;panelScrollKey=null;panelPage="Scoreboard";updatePanel=false;updateText=null;updateDisplay();}
+    private LinearLayout resultSurface(LinearLayout content,MatchResult result,boolean interactive){
+        boolean won=result.winner()==0;
+        LinearLayout card=new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        int inset=dp(interactive?8:10);
+        card.setPadding(inset,inset,inset,inset);
+        GradientDrawable shape=new GradientDrawable();
+        shape.setCornerRadius(dp(16));
+        shape.setColor(won?0xff103b68:0xff551c30);
+        shape.setStroke(dp(2),won?0xff2489f5:0xfff34b65);
+        card.setBackground(interactive?new RippleDrawable(ColorStateList.valueOf(0x40ffffff),shape,null):shape);
+        LinearLayout.LayoutParams position=new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT);
+        position.bottomMargin=dp(interactive?6:12);
+        content.addView(card,position);
+        return card;
+    }
+    private void historyCard(LinearLayout content,MatchResult result,int page){
+        LinearLayout card=resultSurface(content,result,true);
+        String tally=result.gamesWon(0)+"–"+result.gamesWon(1);
+        String outcome=resultOutcome(result);
+        SpannableString standing=new SpannableString(tally+"  "+outcome);
+        standing.setSpan(new StyleSpan(android.graphics.Typeface.BOLD),0,tally.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        standing.setSpan(new RelativeSizeSpan(.75f),tally.length()+2,standing.length(),Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        String players=result.format.doubles?teamName(result.id,0)+tr(" vs ")+teamName(result.id,1):tr("vs ")+opponentName(result.id);
+        String reference=ui.date(ResultFilter.date(result));
+        if(result.startedAt>0)reference+=" · "+result.heading();
+        if(result.retired())reference+=" · "+tr("Retirement");
+        TextView score=paragraph(card,"");
+        score.setText(standing);
+        score.setPadding(0,0,0,dp(1));score.setTextSize(16);score.setTextColor(Color.WHITE);
+        TextView names=paragraph(card,players);
+        names.setPadding(0,0,0,dp(2));
+        TextView date=paragraph(card,reference);
+        date.setPadding(0,0,0,0);date.setTextSize(12);
+        for(int i=0;i<card.getChildCount();i++)card.getChildAt(i).setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        String decision=result.retired()?ui.scoreTerms(result.outcomeText()):outcome;
+        card.setContentDescription(ui.scoreTerms(result.title())+". "+tally+". "+decision+". "+players+tr(". Open match result."));
+        card.setFocusable(true);
+        card.setOnClickListener(v->{reviewInteraction();showResult(result.id,page);});
+    }
+    private void resultDetailCard(LinearLayout content,MatchResult result){
+        LinearLayout card=resultSurface(content,result,false);
+        paragraph(card,tr(result.format.name())+" · "+tr(result.format.mode())+"\n"+(result.format.doubles?teamName(result.id,0)+tr(" vs ")+teamName(result.id,1):tr("vs ")+opponentName(result.id)));
+        TextView score=paragraph(card,result.format.doubles?tr("Our team ")+result.gamesWon(0)+"–"+result.gamesWon(1)+tr(" Opponents"):ownName()+" "+result.gamesWon(0)+"–"+result.gamesWon(1)+" "+opponentName(result.id));
+        score.setTextSize(17);score.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);score.setTextColor(Color.WHITE);
+        TextView details=paragraph(card,tr("Best of ")+result.bestOf+" · "+ui.scoreTerms(result.outcomeText())+"\n"+ui.scoreTerms(result.timingText())+tr("\nDuration: ")+ui.scoreTerms(result.durationText())+tr("\nMatch ")+result.number+"\n\n"+ui.scoreTerms(result.gamesText()));
+        details.setTextSize(12);details.setTextColor(0xffedf4ff);
+    }
+    void closePanel(){if(nfc!=null)nfc.clear();rememberPanelScroll();if(panel!=null){panel.dismiss();panel=null;}location=null;panelScroll=null;panelScrollKey=null;panelPage="Scoreboard";updatePanel=false;updateText=null;updateBar=null;updateDisplay();}
 }

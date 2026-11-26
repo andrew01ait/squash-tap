@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {addName,incomingPayload,checkRetirementSupport,opponentStatistics,initialView} from '../public/transfer-state.mjs';
+import {addName,incomingPayload,checkRetirementSupport,opponentStatistics,initialView,recentPlayerRanks,playersInLast30Days} from '../public/transfer-state.mjs';
 import {statistics,rowWinner,rowOutcome,writeCsv,parseCsv,RETIREMENT_HEADER} from '../public/interchange.mjs';
 import {newest} from '../public/transfer-view.mjs';
 const snapshot={baseDirectory:'base',currentMatchId:'last-completed',currentOpponentId:'alice',opponents:[{id:'alice',name:'Alice',archived:false}]};
@@ -7,6 +7,19 @@ const draft=(current,changeCurrent,catalog)=>incomingPayload({snapshot,catalog,c
 const normal=['1','won','2026-11-07','1','alice','Alice','3','','','','','2','0','11','4','11','6','','','','','',''];
 const retired=['2','retired','2026-11-06','1','bob','Bob','3','','','','','1','0','11','4','6','8','','','','','','','me'];
 test('phone launch intent selects only the supported local tabs',()=>{for(const view of ['results','statistics','opponents','import'])assert.equal(initialView(view),view);});
+test('recent player order includes doubles roles and uses the played date of backfilled results',()=>{
+  const latest=[...normal];latest[0]='3';latest[2]='2026-11-24';latest[4]='rival';latest[32]='partner';latest[34]='second';
+  const older=[...normal];older[2]='2020-01-01';older[4]='early';
+  const ranks=recentPlayerRanks([latest,older]);
+  assert.equal(ranks.get('rival'),0);assert.equal(ranks.get('partner'),0);assert.equal(ranks.get('second'),0);assert.equal(ranks.get('early'),1);
+});
+test('last 30 days includes both boundaries and all doubles roles using the recorded local date',()=>{
+  const on=(day,id)=>{const row=[...normal];row[2]=day;row[4]=id;return row;};
+  const team=on('2026-10-28','opponent');team[0]='3';team[32]='partner';team[34]='second';
+  const late=on('2026-10-27','local');late[7]='2026-10-27T23:30:00Z';late[9]='Europe/Vienna';
+  const rows=[on('2026-10-27','too-old'),team,on('2026-11-26','today'),on('2026-11-27','tomorrow'),late];
+  assert.deepEqual(playersInLast30Days(rows,new Date(2026,10,26)),new Set(['opponent','partner','second','local','today']));
+});
 test('old links and untrusted phone launch values fall back to results',()=>{for(const value of [undefined,null,'','../settings','<script>','opponents&admin=true',{},['import']])assert.equal(initialView(value),'results');});
 test('adding multiple names preserves the previous match assignment in the outgoing payload',()=>{const catalog=structuredClone(snapshot.opponents);const first=addName(catalog,'Bob'),last=addName(catalog,'Charlie');assert.equal(catalog.length,3);const p=draft(last.id,false,catalog);assert.equal(p.currentOpponentId,'alice');assert.equal(p.changeCurrentOpponent,false);assert.notEqual(first.id,last.id);assert.deepEqual(snapshot.opponents,[{id:'alice',name:'Alice',archived:false}]);});
 test('adding to an unnamed match never silently names that match',()=>{const base={...snapshot,currentOpponentId:''},catalog=[];const last=addName(catalog,'Alice');const p=incomingPayload({snapshot:base,catalog,current:last.id,changeCurrent:false,csv:'',sessionId:'session'});assert.equal(p.currentOpponentId,'');});

@@ -15,6 +15,24 @@ public class SettingsAndSharingUiTest {
  private void network(){q.runAll();shadowOf(Looper.getMainLooper()).idle();}
  private void back(){Dialog d=ShadowDialog.getLatestDialog();d.dispatchKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN,KeyEvent.KEYCODE_BACK));d.dispatchKeyEvent(new KeyEvent(KeyEvent.ACTION_UP,KeyEvent.KEYCODE_BACK));shadowOf(Looper.getMainLooper()).idle();}
  private void swipe(){for(View v:all(ShadowDialog.getLatestDialog().getWindow().getDecorView()))if(v instanceof SwipeDismissFrameLayout){ReflectionHelpers.callInstanceMethod(v,"performDismissFinishedCallbacks");shadowOf(Looper.getMainLooper()).idle();return;}throw new AssertionError("No swipe container");}
+ @Test public void spokenScoresAreOffByDefaultAndCanBeToggledBesideVibration() {
+     String book = p.getString("match_book", "");
+     click("Settings");
+     List<View> rows = all(ShadowDialog.getLatestDialog().getWindow().getDecorView());
+     assertTrue(rows.indexOf(button("Vibrations:")) < rows.indexOf(button("Announce score · Off")));
+     assertTrue(rows.indexOf(button("Announce score · Off")) < rows.indexOf(button("Court and interval reminders:")));
+     click("Announce score · Off");
+     assertTrue(button("✓ Off").isSelected());
+     click("On");
+     assertTrue(p.getBoolean("spoken_scores", false));
+     assertTrue(button("✓ On").isSelected());
+     click("Back to Settings");
+     click("Announce score · On");
+     click("Off");
+     assertFalse(p.getBoolean("spoken_scores", true));
+     assertFalse(p.contains("haptic_mode"));
+     assertEquals(book, p.getString("match_book", ""));
+ }
  @Test public void vibrationChoicesStayOpenShowTheirTickAndPreserveScore(){String book=p.getString("match_book","");click("Settings");click("Vibrations:");click("Off");assertEquals("Vibrations",page());assertTrue(button("✓ Off").isSelected());click("✓ Off");assertEquals("Vibrations",page());click("Point confirmation");assertEquals("points",p.getString("haptic_mode",""));assertTrue(button("✓ Point confirmation").isSelected());assertEquals(book,p.getString("match_book",""));assertEquals("current",p.getString(MatchDisplayPolicy.ACTIVE_MATCH,""));click("Back to Settings");assertNotNull(button("Vibrations: Point confirmation"));}
  @Test public void reminderAndDisplayChoicesStayOpenAndBackAndSwipeReturnToSettings(){click("Settings");click("Court and interval reminders:");click("On");assertEquals("Match reminders",page());assertTrue(button("✓ On").isSelected());back();assertEquals("Settings",page());click("Keep screen on: ON");click("Allow screen to sleep");assertEquals("Screen during play",page());assertTrue(button("✓ Allow screen to sleep").isSelected());swipe();assertNotNull(button("Keep screen on: OFF"));}
  @Test public void settingsReturnsToItsCallerAfterChangingAPreference(){click("Settings");click("Vibrations:");click("Off");back();click("Back to Menu");assertEquals("Menu",page());click("Change sport");click("Settings");click("Vibrations:");click("Points and milestones");swipe();click("Back to sports");assertEquals("Choose sport",page());}

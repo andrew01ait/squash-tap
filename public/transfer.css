@@ -65,14 +65,16 @@ input::file-selector-button { cursor: pointer; color: var(--ink); background: #2
 #status { max-width: 72ch; color: #d2ebfd; background: #152b3e; border-left: 3px solid var(--blue); padding: 13px 16px; margin: 0 0 20px; }
 #status.error { color: #ffd4db; border-color: var(--red); background: #35222d; }
 #journal-nav { display: flex; align-items: stretch; gap: clamp(10px,3vw,32px); border-bottom: 1px solid var(--line); margin-bottom: clamp(17px,2.4vw,27px); }
-#journal-nav > button, #journal-tools > summary { display: flex; align-items: center; justify-content: center; position: relative; min-height: 46px; padding: 5px 2px 11px; color: var(--muted); background: none; border: 0; border-radius: 0; font-size: 15px; font-weight: 620; line-height: 1.25; }
-#journal-nav > button.selected, #journal-tools.active > summary { color: var(--ink); }
-#journal-nav > button.selected::after, #journal-tools.active > summary::before { content: ""; position: absolute; bottom: -1px; inset-inline: 0; height: 3px; background: var(--blue); }
+#journal-nav > button, #journal-tools > summary { display: flex; align-items: center; justify-content: center; position: relative; min-height: 46px; padding: 5px 2px 11px; color: var(--menu-accent); background: none; border: 0; border-radius: 0; font-size: 15px; font-weight: 620; line-height: 1.25; }
+#journal-nav > button.selected, #journal-tools.active > summary { font-weight: 750; }
+#journal-nav > button.selected::after, #journal-tools.active > summary::before { content: ""; position: absolute; bottom: -1px; inset-inline: 0; height: 3px; background: var(--menu-accent); }
 #journal-tools { margin-left: auto; position: relative; }
 #journal-tools > summary { gap: 10px; }
 .files-menu { position: absolute; z-index: 3; top: calc(100% + 3px); right: 0; width: max-content; min-width: 160px; max-width: min(270px,86vw); padding: 4px; border: 1px solid var(--stroke); background: var(--raised); border-radius: 9px; box-shadow: 0 8px 22px #0005; }
 .files-menu button { display: block; width: 100%; border-radius: 5px; text-align: left; background: transparent; color: var(--ink); }
-.files-menu button.selected { color: var(--blue); }
+.files-menu button[data-menu-colour], #workspace section[data-menu-colour] h2 { color: var(--menu-accent); }
+.files-menu button.selected { text-decoration: underline; text-underline-offset: 3px; }
+.sport-scope label:first-child > span { color: var(--menu-sports); }
 summary { list-style: none; }
 summary::-webkit-details-marker { display: none; }
 #journal-tools summary::after, .disclosure > summary::after, .player-record summary::after, .result-summary::after { content: ""; flex: none; width: 8px; height: 8px; border-right: 2px solid #9aaebf; border-bottom: 2px solid #9aaebf; transform: rotate(45deg); }
@@ -212,8 +214,8 @@ footer { margin-top: clamp(24px,4vw,44px); border-top: 1px solid var(--line); pa
   .result-detail { padding-inline: 18px; }
   .stats-layout, .file-layout { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .stat-panel { height: 100%; }
-  .directory-tools { display: flex; align-items: center; gap: 15px; }
-  .directory-tools input[type=search] { flex: 1; }
+  .directory-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+  .directory-tools input[type=search] { flex: 1 1 11rem; min-width: 0; }
   .directory-tools .checkbox { max-width: 54%; }
   .file-layout { align-items: stretch; }
 }

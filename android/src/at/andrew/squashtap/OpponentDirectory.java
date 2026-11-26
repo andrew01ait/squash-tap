@@ -25,6 +25,10 @@ public final class OpponentDirectory {
         return name;
     }
     private String key(String name){return name.toLowerCase(Locale.ROOT);}
+    boolean hasPlayers(boolean includeArchived){
+        for(Entry e:entries.values())if(includeArchived||!e.archived)return true;
+        return false;
+    }
     public Entry get(String id){return entries.get(id);}
     public String opponentId(String matchId){String id=assignments.get(matchId);return id==null?"":id;}
     public String nameFor(String matchId){Entry e=get(opponentId(matchId));return e==null?"":e.name;}
@@ -43,6 +47,55 @@ public final class OpponentDirectory {
     public boolean involved(String matchId,String id){if(id==null)return true;if(id.isEmpty())return roleId(matchId,0).isEmpty()&&roleId(matchId,1).isEmpty()&&roleId(matchId,2).isEmpty();for(int i=0;i<3;i++)if(roleId(matchId,i).equals(id))return true;return false;}
     public java.util.Set<String> sportsFor(String id,Iterable<MatchResult> results){java.util.Set<String> sports=new java.util.LinkedHashSet<>();for(MatchResult result:results)if(involved(result.id,id))sports.add(result.format.sport);return sports;}
     public List<Entry> list(boolean includeArchived){List<Entry> out=new ArrayList<>();for(Entry e:entries.values())if(includeArchived||!e.archived)out.add(e);Collections.sort(out,(a,b)->a.name.compareToIgnoreCase(b.name));return out;}
+
+    /** Fresh view of the roster, based on recorded matches rather than insertion/import order. */
+    List<Entry> playerList(boolean archived, String order, Locale locale, MatchBook book, boolean active, java.time.LocalDate recentThrough) {
+        List<Entry> roster = list(archived);
+        java.text.Collator alphabet = java.text.Collator.getInstance(locale);
+        alphabet.setStrength(java.text.Collator.SECONDARY);
+        Comparator<Entry> byName = (a, b) -> alphabet.compare(a.name, b.name);
+        byName = byName.thenComparing(e -> e.name).thenComparing(e -> e.id);
+        Comparator<Entry> alphabetical = order.equals("za") ? byName.reversed() : byName;
+        if (!order.equals("recent") && recentThrough == null) {
+            roster.sort(alphabetical);
+            return roster;
+        }
+        Comparator<MatchResult> byMatch = Comparator.comparing(ResultFilter::date)
+                .thenComparingLong(r -> r.startedAt).thenComparingInt(r -> r.number);
+        Map<String,MatchResult> last = new HashMap<>();
+        java.time.LocalDate firstDay = recentThrough == null ? null : recentThrough.minusDays(29);
+        for (MatchResult r : book.newestFirst()) {
+            if (firstDay != null) {
+                java.time.LocalDate day = ResultFilter.date(r);
+                if (day.isBefore(firstDay) || day.isAfter(recentThrough)) continue;
+            }
+            for (int role = 0; role < (r.format.doubles ? 3 : 1); role++) {
+                String id = roleId(r.id, role);
+                if (!id.isEmpty()) last.merge(id, r, (a, b) -> byMatch.compare(a, b) >= 0 ? a : b);
+            }
+        }
+        if (recentThrough != null) roster.removeIf(e -> !last.containsKey(e.id));
+        if (!order.equals("recent")) {
+            roster.sort(alphabetical);
+            return roster;
+        }
+        Set<String> playing = new HashSet<>();
+        if (active && !book.current().complete()) {
+            for (int role = 0; role < (book.current().format().doubles ? 3 : 1); role++)
+                playing.add(roleId(book.current().id(), role));
+        }
+        Comparator<Entry> recent = Comparator.comparing((Entry e) -> !playing.contains(e.id))
+                .thenComparing(e -> last.get(e.id), Comparator.nullsLast(byMatch.reversed()));
+        roster.sort(recent.thenComparing(byName));
+        return roster;
+    }
+
+    private static final java.util.regex.Pattern DIACRITICS = java.util.regex.Pattern.compile("\\p{M}+");
+
+    static String searchName(String name, Locale locale) {
+        String decomposed = Normalizer.normalize(name.trim().toLowerCase(locale), Normalizer.Form.NFD);
+        return DIACRITICS.matcher(decomposed).replaceAll("").replace("ß", "ss");
+    }
     public String add(String name){
         name=validName(name);for(Entry e:entries.values())if(key(e.name).equals(key(name))){entries.put(e.id,new Entry(e.id,e.name,false));return e.id;}
         String id=UUID.randomUUID().toString();put(new Entry(id,name,false));return id;

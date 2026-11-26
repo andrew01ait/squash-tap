@@ -208,5 +208,68 @@
     "filename": "KeepScore-0.21.3.apk",
     "sizeBytes": 4829100,
     "sha256": "1c32820aef9537fc746734e124e00f56a5fb1263c403ad7db9b40ec0687b59fc"
+  },
+  {
+    "versionCode": 34,
+    "versionName": "0.21.4",
+    "filename": "KeepScore-0.21.4.apk",
+    "sizeBytes": 4829100,
+    "sha256": "87646bfe815e0ccc490b37324270075635c2bd3b3482df3114dff176418d598e"
+  },
+  {
+    "versionCode": 35,
+    "versionName": "0.21.5",
+    "filename": "KeepScore-0.21.5.apk",
+    "sizeBytes": 4829260,
+    "sha256": "99a3bbfef837b1e5fac89d50a8236e23b2bf233bac2ca39de58d959c466fd462"
+  },
+  {
+    "versionCode": 36,
+    "versionName": "0.21.6",
+    "filename": "KeepScore-0.21.6.apk",
+    "sizeBytes": 4829260,
+    "sha256": "db24a316c333da0ff1984f8c6aef606c624503ec9df2d109df9c6933cdc5fc3c"
+  },
+  {
+    "versionCode": 37,
+    "versionName": "0.22.0",
+    "filename": "KeepScore-0.22.0.apk",
+    "sizeBytes": 4837452,
+    "sha256": "655a3bf79e479366039d9c4dfa989fded56fe5c6cbd42150ca157864a2977e8b"
+  },
+  {
+    "versionCode": 38,
+    "versionName": "0.22.1",
+    "filename": "KeepScore-0.22.1.apk",
+    "sizeBytes": 4837452,
+    "sha256": "c871a379c4482c452d360d755ab7ce4ef242774f36c37bc970e08317b9bb0a86"
+  },
+  {
+    "versionCode": 39,
+    "versionName": "0.23.0",
+    "filename": "KeepScore-0.23.0.apk",
+    "sizeBytes": 4845644,
+    "sha256": "c2697af90e43ee19502e83e052cb2933e82d74d488e5ecae4f17aa671b58d5ae"
+  },
+  {
+    "versionCode": 40,
+    "versionName": "0.23.1",
+    "filename": "KeepScore-0.23.1.apk",
+    "sizeBytes": 4853836,
+    "sha256": "34b62338e4d5605c9a7ca228a35a3ba456664c0b3393c0825313b4a37d3caafa"
+  },
+  {
+    "versionCode": 41,
+    "versionName": "0.23.2",
+    "filename": "KeepScore-0.23.2.apk",
+    "sizeBytes": 4898901,
+    "sha256": "667010cae9759a040ced31b0e3b5ea06cef4f14a8093fa75b2d9a18425e2254f"
+  },
+  {
+    "versionCode": 42,
+    "versionName": "0.23.3",
+    "filename": "KeepScore-0.23.3.apk",
+    "sizeBytes": 4902997,
+    "sha256": "c41c604a8ed17fb89b056be6c11551c6ee6dd26d70fbd43becfc0f841d3b77f8"
   }
 ]

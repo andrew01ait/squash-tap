@@ -2,15 +2,19 @@ import handler from "vinext/server/fetch-handler";
 import { handleTransfer } from "./relay.mjs";
 import { handleRooms } from "./rooms.mjs";
 import { handleLive } from "./live.mjs";
+import { handleImprint, handleSupport } from "./imprint.mjs";
 import { runWithConnectorBinding } from "../lib/connector-context";
 import type { ConnectorBinding } from "../lib/connector-contract.mjs";
 
 const worker = {
   fetch(request: Request, env: Cloudflare.Env, ctx: ExecutionContext<{ CONNECTORS?: ConnectorBinding }>) {
-    if (import.meta.env.DEV && new URL(request.url).pathname.startsWith("/__transfer-preview")) return import("../web-test/browser-preview.mjs").then(m=>m.preview(request,env));
-    if (new URL(request.url).pathname.startsWith("/api/transfer")) return handleTransfer(request,env);
-    if (new URL(request.url).pathname.startsWith("/api/live")) return handleLive(request,env);
-    if (new URL(request.url).pathname.startsWith("/api/rooms")) return handleRooms(request,env);
+    const path = new URL(request.url).pathname;
+    if (path === "/support" || path === "/support/") return handleSupport(request, env);
+    if (path === "/imprint" || path === "/imprint/") return handleImprint(request, env);
+    if (import.meta.env.DEV && path.startsWith("/__transfer-preview")) return import("../web-test/browser-preview.mjs").then(m=>m.preview(request,env));
+    if (path.startsWith("/api/transfer")) return handleTransfer(request,env);
+    if (path.startsWith("/api/live")) return handleLive(request,env);
+    if (path.startsWith("/api/rooms")) return handleRooms(request,env);
     let binding = ctx.props?.CONNECTORS;
     // Local preview emulates the same request-scoped capability. This branch and
     // the auxiliary service binding are absent from production builds.

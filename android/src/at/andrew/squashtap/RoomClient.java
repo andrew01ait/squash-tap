@@ -20,6 +20,7 @@ final class RoomClient {
         void write(JSONObject contents) throws Exception;
     }
     interface PendingJoin { Session accept() throws Exception; }
+    interface DiscardDraft { void discard(String matchId) throws Exception; }
     interface Transport {
         JSONObject send(String method, String path, String bearer, JSONObject body) throws Exception;
     }
@@ -346,18 +347,28 @@ final class RoomClient {
     }
 
     /** Leave a received match, or keep a locally scored final in the outbox until its last PUT is acknowledged. */
-    void leave() throws Exception { detach(false); }
+    void leave() throws Exception { detach(false,null,null); }
 
     /** Queue revocation after a confirmed host cancellation. A later retry survives process death and network loss. */
-    void revoke() throws Exception { detach(true); }
+    void revoke() throws Exception { detach(true,null,null); }
 
-    private void detach(boolean revoke) throws Exception {
+    boolean leaveConfirmed(Session shown, DiscardDraft discardDraft) throws Exception {
+        return detach(!"follow".equals(shown.role),shown,discardDraft);
+    }
+
+    private boolean detach(boolean revoke, Session shown, DiscardDraft discardDraft) throws Exception {
         synchronized (DISK) {
             JSONObject contents = vault.read();
             String id = contents.optString(ACTIVE);
             JSONObject r = contents.optJSONObject(id);
-            if (r == null) return;
+            if (r == null) return false;
             boolean finished = new JSONObject(r.getString("snapshot")).getBoolean("final");
+            if (shown != null) {
+                // A referee can finish the match while the confirmation is on screen.
+                if (!id.equals(shown.id) || !r.getString("role").equals(shown.role)
+                    || finished != shown.snapshot().getBoolean("final")) return false;
+                if ("host".equals(shown.role)) discardDraft.discard(shown.matchId);
+            }
             if (revoke && r.has("admin") && !finished) r.put("closing", "revoke");
             else if ("follow".equals(r.optString("role")) && r.has("memberId")) r.put("closing","leave");
             else if (finished && "score".equals(r.getString("role")) && (!r.optBoolean("created") || r.getLong("local") > r.getLong("seen")))
@@ -365,6 +376,7 @@ final class RoomClient {
             else contents.remove(id);
             contents.remove(ACTIVE);
             vault.write(contents);
+            return true;
         }
     }
 

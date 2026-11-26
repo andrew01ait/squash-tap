@@ -26,5 +26,6 @@ public/apks/
 public/SquashTap-source.zip
 public/KeepScore-source.zip
 .openai/deliverables.json
+DEVICE_TESTS.json
 *.pem
 *.key

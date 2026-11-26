@@ -44,7 +44,11 @@ final class MatchWidgets {
                 SharedPreferences settings=context.getSharedPreferences("squash",Context.MODE_PRIVATE);
                 String encoded=settings.getString("match_book",null);
                 if(encoded==null)return data;
-                match=MatchBook.decode(encoded).current();
+                MatchBook book=MatchBook.decode(encoded);
+                match=book.current();
+                if(match.complete()&&!book.currentDeleted()&&book.result(match.id())!=null
+                        &&(!FinishedMatchReview.available(settings,book)||!match.id().equals(FinishedMatchReview.result(settings,book).id)
+                        ||FinishedMatchReview.expired(settings,book,System.currentTimeMillis())))return data;
                 if(!match.hasPoints()&&!match.complete()&&!match.id().equals(settings.getString("match_ready_id","")))
                     return data;
                 boolean ongoing=MatchDisplayPolicy.ongoing(match,settings.getString(MatchDisplayPolicy.ACTIVE_MATCH,""),settings.getBoolean("match_paused",false));

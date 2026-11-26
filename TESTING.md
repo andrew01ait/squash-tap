@@ -1,6 +1,62 @@
 # Testing and verification
 
-Current watch release: **v0.21.3 / code 33**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
+Current watch release: **v0.23.3 / code 42**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
+
+## Direct v0.23.3 · 2026-11-26
+
+The direct release passed 349 core, 288 native watch UI and 110 web/relay tests (747 total). The Play source set passed 304 native UI tests.
+
+On a simulated 192 dp round watch, the watch test opens the German Über mich page, decodes its contact QR from the rendered screen, checks the official URL and verifies Back and the saved match state. Web tests cover the three gallery images, the search and social metadata, public and private routes, four imprint translations and contact disclosure without JavaScript. The first response omits the contact links. The reply to a same-origin form contains the configured links and forbids caching.
+
+The release check verified the original signing certificate, package name, minimum SDK, version, APK alignment and the hashes and sizes of 38 earlier APKs. This release has yet to be tried on a physical watch.
+
+## Direct v0.23.2 · 2026-11-26
+
+The direct release passed 349 core, 287 native watch UI and 106 web/relay tests (742 total). The separate Play source set passed 303 native UI tests.
+
+On a simulated 192 dp round watch, the logo and app name fit inside the visible circle at standard and 130% German text size. The four primary tile labels fit on the first screen at standard size. Tests cover all ten menu colours in normal, pressed and disabled states, label contrast of at least 4.5:1, consistent shortcuts from Home and Statistics, and inherited section colours on nested pages. A player named Settings keeps the Players colour. The system Tile test resolves its artwork to the launcher drawable and checks the idle launch destination. The web test checks both menu guides and the phone journal against the watch palette.
+
+The release was checked for package name, version code, APK alignment, the original signing certificate and historical APK checksums. Physical-watch testing for this version is pending.
+
+## Direct v0.23.1 · 2026-11-26
+
+The signed release passed 349 core, 284 native watch UI and 105 web/relay checks (738 total). A simulated 192 dp round watch at 130% German text checked the bounds of every score, opponent and date label on the first result card. At 180 dp and larger text the controls switch to full-width rows. Coverage includes a fresh visit at the newest match, scroll restoration after details, paging, filtered empty results, direct past-match entry in empty sport history and cancellation back to Options.
+
+Home and match-review coverage includes cold and warm launch, the three-hour boundary and interaction on a result, closing local and saved shared results, preserving saved scores, and prepared, running, paused and in-progress setup routes. On a simulated 192 dp German watch, the four main home tile labels fit within the round display. Player-filter checks cover both date boundaries, doubles partners, both opponents, search, sorting and both watch and phone histories. A separate interaction check also exercised the phone directory’s rendered rows and checkbox, search and sort handlers.
+
+The navigation test reached the sixth level through a phone QR. It checked the dimensions and count of the horizontal strokes, the accessible level, and the heading after returning. The Play source set passed 300 native UI checks. Signing, package identity, alignment and the older APK checksums were verified. Testing this release on a physical watch remains pending.
+
+## Direct v0.23.0 · 2026-11-26
+
+The Java 17 release run passed 348 core tests, 274 native watch UI tests and 104 web and relay tests (726 total). The watch suite won a squash match by entering the final rally on a simulated 192 dp round watch at 130% text in German. It checked the full label of the green New match button against the physical circular viewport, the order of New match and Quick rematch, and the complete saved result after opening and cancelling setup.
+
+Player cases cover accented names, all pages, date-based activity, backfilled results, doubles roles, archived players and preference backup validation. Navigation cases cover the actual path from the launcher and from a sport, Back and swipe, preserved search focus and a player literally named Settings. The phone menu map has nine sections in each language. Its section links, language switch, search, empty state and expand/collapse controls were checked.
+
+The Play source set passed 290 native UI tests with compiled Play resources. Signing and package checks verified the direct APK and all 35 older APKs retained their recorded checksums. The small-watch render and menu-path illustration are included in the [menu map](public/watch-menus.html). Physical OnePlus testing of this release remains open.
+
+## Direct v0.22.1 · 2026-11-22
+
+The signed direct release passed 345 core, 270 native watch UI and 103 web/relay tests (718 total) with Java 17 and `scripts/build.py`. A simulated German watch played a tennis game from 1–3 to 2–3 and sent “Spiel für Andrew. Susi führt 3 zu 2.” to the speech engine. Undo restored the previous point call. The room payload and player catalogue retained both full names.
+
+Scoring sequences cover all six sports and all four watch languages. They check trailing game winners, equal sets, ordinary and deciding tie-breaks, the three padel deuce modes, squash game and match ball on either side of service, both badminton scoring caps, table tennis after ten all and three pickleball scoring presets. Referee snapshots cover single rallies, skipped intermediate rallies, repeated updates and corrections. The APK passed the original signer, package identity, ZIP alignment and checksum checks. All 34 older APKs matched their release records. The speech-text checks use a simulated engine. Actual voice, pronunciation and volume depend on the installed voice and physical audio output.
+
+The Play source set and resources passed a separate run of 286 native UI checks with `scripts/test_ui.py --play`, including distribution checks on simulated APIs 34 and 35.
+
+## Direct v0.22.0 · 2026-11-22
+
+The Java 17 direct release build passed 345 core tests, 256 native watch UI tests on simulated API 34, and 103 web and relay tests. New cases cover all six sports, localized tennis and padel calls, pickleball service changes, Undo, repeated referee snapshots, the Settings switch, backup validation and speech lifecycle. Tests with simulated voices check late initialization, the latest queued score and missing local voices. The APK was signed with the original certificate. Speaker volume, Bluetooth routing and audibility during a rally require a physical watch.
+
+## Direct v0.21.6 · 2026-11-19
+
+344 core, 246 native watch UI and 103 web/relay tests passed. On a simulated 192 dp round watch with German labels and 130% text, the entire **Partie abbrechen** button is visible when the host reopens the match menu. The navigation tests also cover both entry points, Keep playing, Back, swipe, discarding offline, revoking access on reconnect and preserving a referee result received during confirmation. The Play source set also passed all 262 native UI checks, including the separate distribution checks on APIs 34 and 35. The signed APK passed the package, certificate, alignment and retained-release checks. Physical watch acceptance is pending.
+
+## Direct v0.21.5 · 2026-11-19
+
+344 core, 243 native UI and 103 web/relay tests passed. A German watch UI test with a 192 dp round screen and 130% text starts from the scrolled download button. It verifies that the entire progress bar fits inside the circular display, the percentage reflects the transfer, and the status survives pause, resume and returning to the page. It also checks verification, handoff, failure and retry. A scan of the rendered diagnostic QR recovered the complete NFC end reason and elapsed time despite later stop and resume events. The 295-byte test link fits the 318-byte limit. All 16 Play-distribution checks on API 34 and 35 also passed, including the guards on download and installation. Physical NFC reception still requires a watch-to-phone tap.
+
+## Direct v0.21.4 · 2026-11-19
+
+The release passed 343 core, 243 native UI and 103 web/relay tests. NFC tests distinguish a two-second activity pause, a closed sharing page and a full 60-second timeout with zero commands. The German diagnostic QR on a 192 dp round display retains the NFC end reason and elapsed time. On the same display with text at 130%, starting a download reveals the initial status, percentage and installation request. A physical watch-to-phone tap still needs a device test.
 
 ## Direct v0.21.3 · 2026-11-19
 
@@ -81,7 +137,7 @@ The original APK-to-Play Store upgrade, real watch behaviour, foreground-service
 | Browser/relay | 35 | 13 interchange/crypto, 12 transfer-state and 10 Miniflare D1/R2 relay checks; native/browser vectors, CSV and capability/isolation/expiry/storage behavior. |
 | Total | 400 | Automated release evidence; not a physical Wear OS emulator/watch battery test. |
 
-The preserved combined report is `public/test-results.txt`. APK metadata/signatures/alignment and immutable retained checksums were also verified by the release builder. [DEVICE_TESTS.json](DEVICE_TESTS.json) records actual user reports separately; raw user diagnostics are not published.
+The public report contains automated test counts and release checks. The release builder verified APK identity, signatures, alignment and retained APK checksums. [Automated release report](public/test-results.txt)
 
 ## Checks without the private signing key
 
@@ -156,7 +212,7 @@ Verify public export paths, sanitized hosting/signing metadata and absence of cr
 - Optical QR scan, browser file picking/download/sharing, explicit receive/preview/apply/cancel, schema/conflict/expiry behavior and updater installation.
 - Active-match availability/ambient transitions and idle sleep after Pause/completion/task dismissal. Measure battery on the actual device; event snapshots alone do not attribute energy to this app.
 
-Initial phone-only installation, v0.1→v0.2 update/score retention, later version installations, working foreground retention since v0.3 and a v0.4 diagnostic QR export were user-reported. They do not automatically validate a future app/firmware release. Ordinary activity pauses and package-install exits are not evidence of a crash.
+Record physical acceptance separately for each app and firmware version.
 
 ## Documentation/publication verification — 2026-11-09
 
@@ -188,7 +244,7 @@ v0.16.0/code 18 uses the Java 17 release pipeline. The suite is 325 core + 170 n
 
 API-34 native Canvas renders cover six sport scoreboards and nine profiles: round 192/216/233/240dp, square 180/240dp, rectangular 201×238dp, and round 192/240dp with 130% system text. Scoreboard, current menu, menu bottom and Players are rendered for each; long player names retain an independent serving cue. Three palette renders inspect Classic/Neon Lime/Sunlight. These are actual native view renders with synthetic data, not installed watch screenshots.
 
-The live API suite checks audience read-only roles, encrypted content, no listing/CORS/cache, ordered/parallel revisions, expiry/revocation, field/body bounds and hashed-IP rate limits. Browser QA uses only local synthetic fixtures, separately from production sessions. Physical OnePlus sunlight/brightness/reflection, vibration feel, tile/complication system rendering, touch/swipe/ambient, optical QR, phone file sharing and watch-network reconnect/battery acceptance remain to be performed; DEVICE_TESTS.json is unchanged.
+The live API suite checks audience read-only roles, encrypted content, no listing/CORS/cache, ordered/parallel revisions, expiry/revocation, field/body bounds and hashed-IP rate limits. Browser QA uses only local synthetic fixtures, separately from production sessions. Physical OnePlus sunlight/brightness/reflection, vibration feel, tile/complication system rendering, touch/swipe/ambient, optical QR, phone file sharing and watch-network reconnect/battery acceptance remain to be performed.
 
 The audience page adapts to portrait phones and short landscape screens. Portrait keeps two large aligned cards; landscape places match details and controls alongside them. Full team names wrap, serving has its own badge, and viewers independently choose Classic/Neon Lime/Sunlight. Browser QA covers actual 393×852 and 852×393 CSS viewports with synthetic doubles names, aligned scores, all controls reachable and no horizontal overflow. These are browser layout checks, not physical phone acceptance.
 

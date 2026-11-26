@@ -126,3 +126,27 @@ test('static page translation captures the initial template only and supports ne
     if (previousNavigator) Object.defineProperty(globalThis,'navigator',previousNavigator); else delete globalThis.navigator;
   }
 });
+
+test('menu guide and phone journal share the ten watch destination accents', () => {
+  const read = file => readFileSync(new URL(file, import.meta.url), 'utf8');
+  const native = read('../android/src/at/andrew/squashtap/MenuSection.java');
+  const colours = read('../public/menu-colours.css');
+  const guide = read('../public/watch-menus.html');
+  const journal = read('../public/transfer.html');
+  const accents = [...colours.matchAll(/--menu-([a-z-]+): #(\w{6});/g)];
+  assert.equal(accents.length, 10);
+  assert.equal(new Set(accents.map(match => match[2])).size, 10);
+  for (const [, key, accent] of accents) {
+    const section = key.toUpperCase().replaceAll('-', '_');
+    const declaration = native.split('\n').find(line => line.trimStart().startsWith(section + '('));
+    assert.ok(declaration?.includes(', 0xff' + accent + ')'), key);
+    for (const lang of ['en', 'de']) {
+      const article = guide.split('data-guide="' + lang + '"')[1].split('</article>')[0];
+      assert.ok(article.includes('<span data-menu-colour="' + key + '"><b aria-hidden="true">'), key);
+    }
+  }
+  for (const [tab, section] of Object.entries({results:'results', statistics:'statistics', opponents:'players', import:'results', backup:'settings'})) {
+    assert.ok(journal.includes('data-tab="' + tab + '" data-menu-colour="' + section + '"'));
+    assert.ok(journal.includes('<section id="' + tab + '" data-menu-colour="' + section + '"'));
+  }
+});

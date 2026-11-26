@@ -2,6 +2,10 @@ import {language, t} from './locale.mjs';
 import {rowWinner, localMoment} from './interchange.mjs?v=0.16.0';
 
 const messages = {
+  "Played in the last 30 days": ["Gespielt in den letzten 30 Tagen", "A joué ces 30 derniers jours", "Ha jugado en los últimos 30 días"],
+  "No players in the last 30 days.": ["Keine Spieler mit einer Partie in den letzten 30 Tagen.", "Aucun joueur avec un match ces 30 derniers jours.", "Nadie ha jugado un partido en los últimos 30 días."],
+  "Sort players": ["Spieler sortieren", "Trier les joueurs", "Ordenar jugadores"],
+  "Most recent activity": ["Zuletzt gespielt", "Activité récente", "Actividad reciente"],
   "Choose the same opponent in Players and in the edited result.": ["Wähle unter Spieler und im bearbeiteten Ergebnis denselben Gegner.","Sélectionnez le même adversaire dans Joueurs et dans le résultat modifié.","Selecciona el mismo rival en Jugadores y en el resultado editado."],
   "Add result": ["Ergebnis eintragen", "Ajouter un résultat", "Añadir resultado"],
   "Edit result": ["Ergebnis bearbeiten", "Modifier le résultat", "Editar resultado"],

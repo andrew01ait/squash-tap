@@ -17,7 +17,10 @@ import java.util.Set;
 import javax.net.ssl.HttpsURLConnection;
 
 public final class UpdateClient {
-    public interface Progress { void update(int percent); }
+    public interface Progress {
+        void update(int percent);
+        default void verifying() {}
+    }
     private final Context context;
     private final String trustedHost;
     public UpdateClient(Context context){
@@ -60,6 +63,7 @@ public final class UpdateClient {
             long headerLength=connection.getContentLengthLong();
             if(headerLength>0&&headerLength!=release.sizeBytes)throw new IOException("Download size differs from release");
             VerifiedDownload.copy(input,output,release.sizeBytes,release.sha256,progress::update);
+            progress.verifying();
             output.getFD().sync();
             verifyPackage(partial,release);
             accepted=true;

@@ -5,9 +5,9 @@ import {mountLanguage,language} from './locale.mjs';
 import {validateBackup,datedFile} from './backup.mjs?v=0.16.0';
 import {SPORTS,sportMarkup,rowSport} from './sports.mjs?v=0.16.3';
 import {open,seal,name,parseCsv,writeCsv,HEADER,statistics,localDate,rowWinner} from './interchange.mjs?v=0.16.0';
-import {addName,incomingPayload,checkRetirementSupport,initialView,filteredRows,sportsByPlayer,inScope,filterPlayers} from './transfer-state.mjs?v=2';
+import {addName,incomingPayload,checkRetirementSupport,initialView,filteredRows,sportsByPlayer,inScope,filterPlayers,recentPlayerRanks,playersInLast30Days} from './transfer-state.mjs?v=4';
 import {newest,resultCard,shortRecord,renderStatistics,orderedSports,node} from './transfer-view.mjs?v=6';
-import {tx,errorText,sportText,momentText} from './transfer-copy.mjs?v=5';
+import {tx,errorText,sportText,momentText} from './transfer-copy.mjs?v=7';
 
 const $=id=>document.getElementById(id);
 const PAGE_SIZE=25;
@@ -21,6 +21,7 @@ let importCsv='', importRows=[], restoreBackup='', restoreDate=null, sent=false,
 let myName='', invalidOwnName=false, current='', changeCurrent=false, editPerson=null, editValue='';
 let notice=['On your watch, open Results → Options → View results on phone, or Players → Edit names on phone. Scan the QR code.'], error=false;
 const originals=new Map(),pendingResults=new Map();
+let recentRanks=new Map();
 const editor=mountResultEditor($('result-editor'),row=>{
   if(!link||!snapshot||Date.now()>=expiry||sent||sending)throw Error('This transfer has expired. Scan a new QR code on your watch.');
   const id=row[1],base=originals.get(id);
@@ -36,7 +37,7 @@ const editor=mountResultEditor($('result-editor'),row=>{
 function refreshEntries(){
   rows=[...originals.values()].map(row=>pendingResults.get(row[1])||row);
   for(const [id,row] of pendingResults)if(!originals.has(id))rows.push(row);
-  sportsIndex=sportsByPlayer(rows);fillPlayers();renderResults(false);renderPeople();renderStats();renderDraft();
+  sportsIndex=sportsByPlayer(rows);recentRanks=recentPlayerRanks(rows);fillPlayers();renderResults(false);renderPeople();renderStats();renderDraft();
 }
 function openEntry(row=null){
   if(!snapshot||sent||sending||row&&originals.has(row[1])&&!snapshot.supportsResultEdits)return;
@@ -193,14 +194,22 @@ function makeAction(text,style,fn) {
   b.addEventListener('click',()=>tryAction(fn));return b;
 }
 function applied() {editPerson=null;editValue='';fillPlayers();renderPeople();renderResults(false);renderStats();renderDraft();setNotice('Changes prepared for your watch.');}
-function searchKey(value) {return value.normalize('NFD').replace(/\p{Mark}/gu,'').toLocaleLowerCase(language()).trim();}
+function searchKey(value) {return value.normalize('NFD').replace(/\p{Mark}/gu,'').toLocaleLowerCase(language()).replaceAll('ß','ss').trim();}
 function renderPeople() {
   const list=$('opponent-list'),query=searchKey($('player-search').value);
   const available=catalog.filter(e=>!e.archived||$('show-removed').checked);
-  const people=available.filter(e=>!query||searchKey(e.name).includes(query)).sort(byName);
+  const order=$('player-sort').value;
+  const recent=$('played-recently').checked?playersInLast30Days(rows):null;
+  const people=available.filter(e=>(!recent||recent.has(e.id))&&(!query||searchKey(e.name).includes(query))).sort((a,b)=>{
+    if(order==='recent'){
+      const delta=(recentRanks.get(a.id)??Number.MAX_SAFE_INTEGER)-(recentRanks.get(b.id)??Number.MAX_SAFE_INTEGER);
+      if(delta)return delta;
+    }
+    return order==='za'?byName(b,a):byName(a,b);
+  });
   list.replaceChildren();
-  $('player-count').textContent=query?people.length+' / '+available.length:people.length;
-  if(!people.length) list.append(node('p',tx(query?'No players match your search.':catalog.length?'No active players.':'No saved players yet.'),'empty'));
+  $('player-count').textContent=query||recent?people.length+' / '+available.length:people.length;
+  if(!people.length) list.append(node('p',tx(query?'No players match your search.':recent?'No players in the last 30 days.':catalog.length?'No active players.':'No saved players yet.'),'empty'));
   for(const e of people) {
     const row=node('article',undefined,'person');
     const avatar=node('span',initials(e.name),'avatar');avatar.setAttribute('aria-hidden','true');
@@ -331,8 +340,17 @@ $('reset-filter').addEventListener('click',()=>{
   $('mode-select').value='all';$('opponent-filter').value='*';$('role-filter').value='all';
   $('outcome-filter').value='all';$('from').value='';$('to').value='';renderResults();renderStats();
 });
+$('played-recently').addEventListener('change',renderPeople);
 $('show-removed').addEventListener('change',renderPeople);
 $('player-search').addEventListener('input',renderPeople);
+try {
+  const saved=localStorage.getItem('keep-score-player-sort');
+  if(['az','za','recent'].includes(saved))$('player-sort').value=saved;
+} catch {}
+$('player-sort').addEventListener('change',()=>{
+  try {localStorage.setItem('keep-score-player-sort',$('player-sort').value);} catch {}
+  renderPeople();
+});
 $('add-person').addEventListener('submit',ev=>{ev.preventDefault();if(sent||sending)return;tryAction(()=>{
   addName(catalog,$('new-name').value);$('new-name').value='';applied();$('new-name').focus();
 });});
@@ -367,7 +385,7 @@ $('csv-file').addEventListener('change',async()=>{
 $('clear-import').addEventListener('click',()=>{importCsv='';importRows=[];$('csv-file').value='';renderImportGames();renderDraft();setNotice();});
 $('send').addEventListener('click',()=>{
   if(!unfinishedRename()){sendIncoming();return;}
-  showTab('opponents');$('player-search').value='';renderPeople();$('edit-player-name').focus();
+  showTab('opponents');$('player-search').value='';$('played-recently').checked=false;renderPeople();$('edit-player-name').focus();
 });
 $('download-backup').addEventListener('click',()=>tryAction(()=>{
   if(!snapshot?.fullBackup)throw Error('backup');
@@ -395,7 +413,7 @@ async function initialize(){
     const names=incoming.opponents.map(e=>({...e,name:name(e.name),archived:!!e.archived})),matches=parseCsv(incoming.csv);
     if(data.expiresAt<=Date.now()){expire();return;}
     for(const row of matches)originals.set(row[1],row);
-    snapshot=incoming;expiry=data.expiresAt;catalog=names;rows=matches;sportsIndex=sportsByPlayer(rows);current=snapshot.currentOpponentId||'';
+    snapshot=incoming;expiry=data.expiresAt;catalog=names;rows=matches;sportsIndex=sportsByPlayer(rows);recentRanks=recentPlayerRanks(rows);current=snapshot.currentOpponentId||'';
     myName=snapshot.myName||'';$('my-name').value=myName;$('my-initial').textContent=initials(myName)||'●';
     $('your-name-section').hidden=!snapshot.supportsYourName;$('backup-tab').hidden=!snapshot.supportsFullBackup;
     $('download-backup').disabled=!snapshot.fullBackup;$('workspace').hidden=false;$('expiry').hidden=false;

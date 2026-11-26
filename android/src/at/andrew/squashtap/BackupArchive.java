@@ -10,15 +10,16 @@ public final class BackupArchive {
     public static final int MAX_JSON=20*1024*1024;
     public final MatchBook book;public final OpponentDirectory directory;public final Map<String,String> settings;public final String createdAt;
     private BackupArchive(String created,MatchBook b,OpponentDirectory d,Map<String,String> s){createdAt=created;book=b;directory=d;settings=Collections.unmodifiableMap(new TreeMap<>(s));validateSettings(s);String ready=s.get("match_ready_id");if(ready!=null&&!ready.equals(b.current().id()))throw new IllegalArgumentException("Backup prepared match does not match its score");}
-    public static boolean settingKey(String key){if(Arrays.asList("my_name","score_palette","favourite_formats","selected_sport","match_keep_awake_v3","haptic_mode","match_reminders","match_paused","match_ready_id","last_best_of").contains(key))return true;for(String sport:MatchFormat.SPORTS)if(key.equals("last_format_"+sport)||key.equals("last_best_"+sport))return true;return false;}
+    public static boolean settingKey(String key){if(Arrays.asList("my_name","score_palette","player_sort","favourite_formats","selected_sport","match_keep_awake_v3","haptic_mode","spoken_scores","match_reminders","match_paused","match_ready_id","last_best_of").contains(key))return true;for(String sport:MatchFormat.SPORTS)if(key.equals("last_format_"+sport)||key.equals("last_best_"+sport))return true;return false;}
     public static void validateSettings(Map<String,String> s){if(s.size()>32)throw new IllegalArgumentException("Too many backup settings");for(Map.Entry<String,String> e:s.entrySet()){
         String k=e.getKey(),v=e.getValue();if(!settingKey(k)||v==null||v.length()>24000)throw new IllegalArgumentException("Unsupported backup setting");
         if(k.equals("my_name")&&!v.isEmpty())OpponentDirectory.validName(v);
         else if(k.equals("score_palette")&&!ScorePalette.valid(v))throw new IllegalArgumentException("Unsupported colour scheme");
+        else if(k.equals("player_sort")&&!Arrays.asList("az","za","recent").contains(v))throw new IllegalArgumentException("Unsupported player sort");
         else if(k.equals("favourite_formats"))MatchPresets.decode(v);
         else if(k.equals("selected_sport")&&!Arrays.asList(MatchFormat.SPORTS).contains(v))throw new IllegalArgumentException("Unsupported selected sport");
         else if(k.equals("haptic_mode")&&!Arrays.asList("off","points","milestones").contains(v))throw new IllegalArgumentException("Unsupported vibration setting");
-        else if((k.equals("match_keep_awake_v3")||k.equals("match_reminders")||k.equals("match_paused"))&&!v.equals("true")&&!v.equals("false"))throw new IllegalArgumentException("Invalid display setting");
+        else if((k.equals("match_keep_awake_v3")||k.equals("match_reminders")||k.equals("spoken_scores")||k.equals("match_paused"))&&!v.equals("true")&&!v.equals("false"))throw new IllegalArgumentException("Invalid display setting");
         else if(k.equals("match_ready_id"))OpponentDirectory.validId(v);
         else if(k.equals("last_best_of")){if(!Arrays.asList("1","3","5","7").contains(v))throw new IllegalArgumentException("Invalid match length");}
         else if(k.startsWith("last_format_")){MatchFormat f=MatchFormat.decode(v);if(!k.equals("last_format_"+f.sport))throw new IllegalArgumentException("Inconsistent format setting");}

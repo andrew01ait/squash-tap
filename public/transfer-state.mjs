@@ -1,3 +1,4 @@
+import {todayLocal} from './result-entry.mjs?v=2';
 import {participants, rowMode, rowSport, scorePairs, sportRows} from './sports.mjs?v=0.16.3';
 import {name, statistics, localDate, rowWinner} from './interchange.mjs?v=0.16.0';
 
@@ -81,6 +82,21 @@ export function sportsByPlayer(rows) {
     index.get(id).add(rowSport(row));
   }
   return index;
+}
+
+export function playersInLast30Days(rows, now = new Date()) {
+  const first = new Date(now);
+  first.setDate(first.getDate() - 29);
+  const matches = filteredRows(rows, {from: todayLocal(first), to: todayLocal(now)});
+  return new Set(matches.flatMap(participants));
+}
+
+export function recentPlayerRanks(rows) {
+  const ranks = new Map();
+  newest(rows).forEach((row, index) => {
+    for (const id of participants(row)) if (!ranks.has(id)) ranks.set(id, index);
+  });
+  return ranks;
 }
 
 export function inScope(rows,sport,mode) {

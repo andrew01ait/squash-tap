@@ -102,7 +102,7 @@ public class NavigationUiTest {
         }throw new AssertionError("Missing result card");
     }
     @Test public void resultUsesStartTimeTitleAndShowsFinishAndDuration(){
-        openSavedResult();assertTrue(hasText("10:00"));assertFalse(hasText("Match 1"));assertTrue(textContains("Duration: 25 min 0 sec"));assertTrue(textContains("Date: 03.11.2026\nStart: 10:00\nEnd: 10:25"));assertTrue(textContains("Match 1"));assertFalse(textContains("Match 1 · 03.11.2026"));
+        openSavedResult();assertTrue(hasText("Match result · 10:00"));assertFalse(hasText("Match 1"));assertTrue(textContains("Duration: 25 min 0 sec"));assertTrue(textContains("Date: 03.11.2026\nStart: 10:00\nEnd: 10:25"));assertTrue(textContains("Match 1"));assertFalse(textContains("Match 1 · 03.11.2026"));
     }
     @Test public void loadingLegacyBookCreatesBackupAndKeepsUnknownTimingHonest()throws Exception{
         ShadowDialog.getLatestDialog().dismiss();controller.pause().stop().destroy();

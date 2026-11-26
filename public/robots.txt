@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /apks/
+Disallow: /KeepScore-source.zip
+Disallow: /SquashTap-source.zip
+
+Sitemap: https://squash-tap-andrew.endruuu.chatgpt.site/sitemap.xml

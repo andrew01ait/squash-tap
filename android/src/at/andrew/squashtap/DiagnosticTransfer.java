@@ -3,6 +3,7 @@ package at.andrew.squashtap;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.TreeMap;
 import java.util.zip.GZIPOutputStream;
 
 /** Payload is in a URL fragment, which is never sent with the site's HTTP request. */
@@ -31,17 +32,30 @@ public final class DiagnosticTransfer {
             header = header.substring(0, header.lastIndexOf('\n'));
         }
         String[] events = trace.trim().isEmpty() ? new String[0] : trace.trim().split("\n");
-        String recent = events.length == 0 ? "" : "\n" + events[events.length - 1];
-        // Reserve space for the newest event, including one exceptionally long or multilingual line.
-        while (!recent.isEmpty() && !fits(site, header + recent, textBudget)) {
-            int length = recent.codePointCount(0, recent.length());
-            recent = length <= 3 ? "" : excerpt(recent, 3 * length / 4);
+        int primary = primaryEvent(events);
+        String first = primary < 0 ? "" : events[primary];
+        if (first.contains(" NFC share: ") && !fits(site, header + "\n" + first, textBudget)
+                && header.indexOf('\n') < header.lastIndexOf('\n')) {
+            header = header.substring(0, header.lastIndexOf('\n'));
+        }
+        // Reserve the selected event before fitting the optional details around it.
+        while (!first.isEmpty() && !fits(site, header + "\n" + first, textBudget)) {
+            int length = first.codePointCount(0, first.length());
+            first = length <= 3 ? "" : excerpt(first, 3 * length / 4);
+        }
+        TreeMap<Integer, String> selected = new TreeMap<>();
+        String recent = "";
+        if (!first.isEmpty()) {
+            selected.put(primary, first);
+            recent = "\n" + first;
         }
         if (!crash.isEmpty() && fits(site, header + "\n" + crash + recent, textBudget)) {
             header += "\n" + crash;
         }
-        for (int i = events.length - 2; i >= 0; i--) {
-            String candidate = "\n" + events[i] + recent;
+        for (int i = events.length - 1; i >= 0; i--) {
+            if (i == primary) continue;
+            selected.put(i, events[i]);
+            String candidate = "\n" + String.join("\n", selected.values());
             if (!fits(site, header + candidate, textBudget)) break;
             recent = candidate;
         }
@@ -53,6 +67,17 @@ public final class DiagnosticTransfer {
         String url = link(site, report) + suffix;
         if (url.length() > MAX_WATCH_LINK_BYTES) throw new IllegalArgumentException("Diagnostic header exceeds the watch QR limit");
         return url;
+    }
+
+    private static int primaryEvent(String[] events) {
+        // Leaving NFC to open Diagnostics can add several routine activity events.
+        for (int i = events.length - 1; i >= 0; i--) {
+            String line = events[i];
+            if (line.contains(" NFC share: ")) return i;
+            if (!line.contains(" Activity pause;") && !line.contains(" Activity stop;")
+                    && !line.contains(" Activity resume;")) break;
+        }
+        return events.length - 1;
     }
 
     private static boolean fits(String site, String report, int budget) throws Exception {

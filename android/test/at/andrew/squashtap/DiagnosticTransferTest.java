@@ -48,6 +48,25 @@ public class DiagnosticTransferTest {
         assertFalse(report.contains("older-0"));
     }
 
+    @Test public void mostRecentNfcAttemptSurvivesLaterActivityEventsInTheWatchQr() throws Exception {
+        String header = "Keep Score v0.21.5 (35)\n2026-04-12T14:12:57\nExample Wrist Device · API 34";
+        String previous = "13:59:58 NFC share: commands=6 mapping=2 stage=complete end=page_closed after=3s";
+        String outcome = "14:11:02 NFC share: commands=0 mapping=0 stage=waiting end=pause after=2s";
+        String lifecycle = "\n14:11:03 Activity stop; finishing=false changingConfig=false"
+            + "\n14:11:46 Activity resume; ambient=false paused=false";
+        String link = DiagnosticTransfer.watchLink(SITE, header, STATE, previous + "\n" + outcome + lifecycle, "");
+        String report = decode(URI.create(link));
+        assertTrue(report.contains(outcome));
+        assertFalse(report.contains(previous));
+        assertTrue(link.length() <= DiagnosticTransfer.MAX_WATCH_LINK_BYTES);
+        String start = "14:12:58 NFC share: foreground=true defaultV2=true defaultV1=true";
+        String next = DiagnosticTransfer.watchLink(SITE, header, STATE, outcome + "\n" + start + lifecycle, "");
+        assertTrue(decode(URI.create(next)).contains(start));
+        String newIssue = "14:13:02 Example error in a different operation";
+        String other = DiagnosticTransfer.watchLink(SITE, header, STATE, outcome + lifecycle + "\n" + newIssue, "");
+        assertTrue(decode(URI.create(other)).contains(newIssue));
+    }
+
     @Test public void longUnicodeEventKeepsItsBeginningAndDoesNotBreakTheExport() throws Exception {
         StringBuilder event = new StringBuilder("11:02:03 New error ");
         for (int i = 0; i < 115; i++) event.appendCodePoint(0x1F600 + i);
