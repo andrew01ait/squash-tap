@@ -1,74 +1,36 @@
-# Architecture
+# Keep Score components
 
-Current watch release: **v0.13.0**, code **14**. This document describes the implemented system; release changes are in [CHANGELOG.md](CHANGELOG.md).
+Keep Score v0.23.14 runs on Wear OS and supports six racket sports. The watch stores match history, scoring rules, player names and personal match notes. A note and optional event belong to the match ID. The event picker draws its labels from annotated matches and the history supports an event filter and alphabetical event sorting. Phones and tablets can open a match journal, follow an audience scoreboard or score a match as referee.
 
-## Components and responsibilities
+The idle Home header shows the launcher artwork and app name with a greeting using the given name from the local display name setting. The Wear OS Tile uses the logo and app name. MenuLocation carries the section for every watch panel. Home tiles, menu titles and section headings use the destination colours. Watch buttons use a shared neutral style, with a filled primary action, chevrons for submenus and an outlined Back. Secondary actions, submenu buttons and unselected options use a subtle dark fill. Selected options use a lighter surface and a tick. Deleting entries and discarding work use red. Sport selectors keep sport colours. The phone journal uses the corresponding accents for its tabs and headings.
 
-| Area | Implementation | Responsibility |
-| --- | --- | --- |
-| Watch UI | `android/src/at/andrew/squashtap/MainActivity.java`, `ScoreView`, `TouchTargets`, `ManualEntryUi` | Native round-screen scoring, dialogs, menus, input, contextual navigation and storage orchestration. |
-| Scoring/model | `ScoreState`, `MatchState`, `MatchResult`, `MatchBook` | PAR-11/deuce, BO3/BO5, rally/entered-set Undo, retirement, persistence, timing and result references. |
-| People/interchange | `OpponentDirectory`, `ResultFilter`, `MatchStatistics`, `MatchCsv`, `ManualMatchEntry` | Stable names, filters, derived totals, validated CSV and independent past-match drafts. |
-| Availability | `MatchDisplayPolicy`, `MatchSessionService`, AndroidX ambient/ongoing integration | Explicit active-session policy, quiet return shortcut and scoreboard screen flags. |
-| Updates | `UpdatePolicy`, `VerifiedDownload`, `UpdateClient`, `InstallReceiver` | Manual update checks, bounded verified download, package/signer checks and installation. |
-| Diagnostics | `AppDiagnostics`, `BatterySnapshot`, `DiagnosticTransfer` | Bounded local lifecycle/crash/exit and whole-watch battery evidence; explicit phone export. |
-| Phone UI | `public/transfer.mjs`, `transfer-state.mjs`, `transfer-view.mjs`, `interchange.mjs` | In-memory browsing/statistics, CSV and staged name/import changes. |
-| Server | `worker/index.ts`, `worker/relay.mjs`, `db/`, `drizzle/` | Vinext Worker, short-lived D1 metadata and R2 ciphertext. |
-| Release tooling | `scripts/build.py`, `androidx_deps.py`, `test_ui.py`, `package_source.py` | Pinned builds/tests, original release signing, retained-APK verification and sanitized source exports. |
+## Watch app
 
-The website is a Vinext/Cloudflare Worker application with `DB` and `BUCKET` bindings. Canonical static assets are in `public/`; `dist/` is generated. GitHub Pages alone cannot run the transfer relay.
+`SpokenScore` formats accepted rallies and corrections from the watch’s scoring and serving models. It derives spoken first names from the four original player labels. Host and following watches use the same formatter for the set leader, tie-break points, service handovers and closing scores. A following watch compares successive snapshots and reports a service event only for a single observed rally. `ScoreSpeech` uses an installed offline Android text-to-speech voice in the app language. A newer call replaces a queued score. Pausing the activity, entering ambient mode or turning speech off releases the engine.
 
-## Local persistence and compatibility
+- The scoring classes in `android/src` calculate points, service order and match outcomes. Completed matches provide the data for statistics.
+- The native watch UI uses contextual menus for match setup, active play, following and results. Each multi-purpose menu exposes its translated section headings to Android accessibility services. The player catalog is accessible from the launcher and each sport menu. Catalog screens and player pickers share a panel for search, recency and sorting above the saved player rows. A current match has its own player or team selector. Shared page components provide headings, action rows, pickers, inputs and contextual Back, including QR pages. Settings contains watch language for every role.
+- The host watch exposes confirmed cancellation in the shared match menu and sharing screen. Before discarding the local draft, the room client checks the active room, role and final status under the same lock used to store an incoming referee score.
+- The score view reserves separate space for names, points and serving. Round and rectangular layouts use the same geometry for drawing each scorecard and detecting taps.
 
-`SharedPreferences("squash")` contains the match book, separate opponent directory and display/session preferences. State commits precede successful result/apply confirmation. Failed commits retain the previous state and report the failure.
+FinishedMatchReview ties the last user interaction and the closed marker to the saved match ID and finish time. While foregrounded, the watch schedules one deadline. Resume, launcher and widget reads evaluate the same persisted times. A legacy result with no known finish time starts its review clock when first opened. Closing review preserves the scorebook and sharing state. A confirmed, saved shared result can be reviewed while the local watch is idle. Unclaimed remote results keep their explicit save and seat selection.
 
-| Format | Current contract |
-| --- | --- |
-| Match book | Write B4; read B1/B2/B3/B4. Current match, completed results, timing, durable daily counters and the deleted-current marker are one unit. |
-| Match/set encodings | Preserve M1 for ordinary matches and M2 for retirement-only state; M3 can carry entered set totals. `ScoreState` keeps real rallies or validated `2|me|opponent` completed totals. |
-| Opponents | O1 with stable IDs, NFC-normalized optional names up to 60 code points and archive flags. Commit related match/name edits together. |
-| CSV | Schema 1 for ordinary-only results; schema 2 appends `retired_player` for retired/mixed exports. Read both and gate unsupported old-watch imports. |
-| Migration/recovery | Retain once-only B1/B2/B3 backups, legacy score data and recovery copies of malformed data. Never fabricate old timestamps or rally order. |
+The transient menu path records the actual caller, stable screen key and title. Tapping the title shows the path and announces it to the screen reader. Results renders the first matching card before its adaptive Filter and Options controls and restores the prior reading position on return from details. Returning to the player directory restores that visit’s search and page. Player recency is derived from match dates and role assignments and uses the same identities as the directory. No per-player timestamps are stored.
 
-Duplicate/conflicting imported IDs, the active current ID and deleted-current tombstones must not overwrite or resurrect local state. Validate every CSV row first, preview against current data, then merge cloned books atomically. Imported matches allocate references beyond durable local counters; deleting results never resets those counters.
+## Diagnostic QR
 
-History is bounded to 10,000 results; the decoded match-book string is bounded to 5,000,000 characters. A full book keeps the completed scoreboard while the user frees space and explicitly saves. Opponent identities are bounded to 1,000. CSV is bounded to 3 MiB, expanded transfer content to 4 MiB and compressed transfer content to 1 MiB; large histories need date-range exports before these limits.
+The watch keeps twelve timestamped events with up to 160 characters each. Recording a new event also trims logs from earlier installations. The export reserves space for the app version, time and newest event. When only routine activity events follow an NFC sharing entry, that NFC entry gets priority. Device information is included when space permits. It adds a crash summary and older events as space allows, then checks whether other status details fit. The size check covers the complete URL after gzip and base64url encoding. Its 318-byte limit fits a version 11-L QR with a four-module quiet zone. A separate field in the same URL fragment holds the battery, match score and device flags. The phone expands these into the watch language. Links from earlier watches still open directly. The watch’s Copy details action includes the stored crash stack and system exit descriptions.
 
-## Scoring, retirement and timing
+## NFC handover
 
-Me is always first in scores. Sets use PAR-11/win by two. BO3/BO5 changes retain UUID, points, sets, timing and Undo, but reject completed matches and a BO5→BO3 change after either player already has two set wins.
+The installed watch app declares both NFC Forum Type 4 NDEF identifiers (mapping v2 and v1) in Android’s non-payment category. Opening the handover page prepares the complete record in memory before requesting foreground routing. Outside an active handover the service rejects every read. Browser handovers carry one HTTPS URI record including its fragment. Watch invitations carry one Keep Score external record containing the existing ten-character watch code. The foreground reader accepts only this invitation format and passes it to the ordinary read-only room join. The HCE service keeps the offered file in memory and enforces its elapsed-time deadline on every read. The capability file advertises the mapping requested by each reader. Local diagnostics record the foreground preference result, the reported default for each identifier, the command count, the last read stage, what ended the offer and its elapsed duration in seconds. The record omits the link, invitation and command bytes. The watch reports contact on application selection and reports a complete read once a single reader session has requested every payload byte. It removes the offer on navigation or backgrounding. The match and its score updates still use their existing network connection.
 
-A real final point or confirmed retirement completes/saves the match and stops its active session. Retirement preserves actual points/sets and determines the match winner independently of the set lead. Undo retirement restores the prior state before ordinary rally Undo. Undo/re-completion reuses its original reference and cannot revive a deliberately deleted result.
+## Web interfaces and tests
 
-`MatchBook` uses an injectable `java.time.Clock`. First live point starts timing; Start match only enables availability. A valid manually saved set supplies the save instant/zone only when no start exists. Existing starts survive corrections and reopening. A live winning point or retirement records a finish; a manually submitted winning set does not claim to know its actual finish. Independent historical capture remains date-only.
+The web interfaces live in `public` and the hosted application in `app` and `worker`. The referee view can retain scoring changes while disconnected. Watch users review journal edits before applying them.
 
-Duration includes pauses and set breaks. Recorded start zone controls display/filter days after travel. Same-day details show one date and HH:mm times; overnight results include an end date. Unknown legacy times and backward-clock durations remain unknown rather than invented or negative.
+The browser computes journal statistics from the decrypted matches and their event labels. Date ranges use each recorded playing day. The squash total, averages and monthly series apply one duration policy to elapsed time from paired timestamps. Durations above four hours, or eight for tennis, are excluded from time aggregates and flagged wherever the journal displays the duration. Outcomes still count. Timestamps stay intact and duration eligibility is recalculated when the journal opens.
 
-## Navigation and power
+The watch import review reads from the validated transfer plan. It lists each new or edited match and its note changes by ID, and keeps player changes and import notices separately navigable. Viewing a page or opening a detail does not apply the transfer. Final confirmation still verifies the source snapshot and expiry before saving both books.
 
-Menus are Current match, Results, Statistics, Opponents and Settings. Results have 10 items per watch page; phone browsing has 25. Filters apply before pagination. Details/pickers/delete cancellation preserve list filter/page/scroll and the actual caller. Every named Back/Cancel, system Back and native swipe callback uses the same route. Late network callbacks cannot reopen an abandoned waiting panel.
-
-Roles are explicit: blue match/secondary navigation, purple people, grey Settings, red destructive actions and outlined Back/Cancel. Touch targets are at least 48dp. Score taps reject swipes, long presses and multi-touch. New-match setup stages format/name choices until explicit Create; replacement requires confirmation.
-
-Availability requires `active_match_id` equal to the unfinished current UUID and no pause. First point or Start/Resume activates it. Pause, completion, task removal and replacement clear it. Older unfinished books without a session wait for Resume; Undo after completion also waits. Undo to zero during active play retains the session. Ordinary activity pause/ambient does not impose an inactivity timeout during play.
-
-Keep screen on applies only to a resumed active scoreboard; panels/backgrounding release its window flag. QR screen retention is limited to one minute and releases on backgrounding. Idle drafts/results/statistics do not create a session. No health/sensor sampling, GPS, background update polling, telemetry or app-held CPU wake lock is added. Battery snapshots are event/on-demand evidence for the whole watch, not attributed app energy use.
-
-## Encrypted transfer boundary
-
-1. An explicit watch action creates a random session ID, AES-256 key and separate owner/guest capabilities, held in activity memory.
-2. The watch encrypts a bounded gzip snapshot with AES-GCM (random 12-byte IV, 128-bit tag). AAD binds session ID and direction: `squashtap-transfer-v1|sessionId|direction`.
-3. The QR's HTTPS fragment carries key/guest capability and a whitelisted local phone tab. The fragment is not sent in the page request; unknown/old view values default to Results.
-4. The phone fetches ciphertext with its guest capability, decrypts locally and browses/filters/statistically analyzes that snapshot in memory.
-5. Explicit one-shot incoming submission is encrypted. The watch separately receives, previews and applies it. Adding/restoring names does not assign an opponent without explicit opt-in.
-6. End/successful apply requests deletion; ten-minute expiry refuses later access. Unused expired objects/rows are cleaned in bounded batches on subsequent API traffic.
-
-D1 stores session metadata, hashes of capabilities, expiry/pending state and short-lived hashed-IP rate buckets; R2 stores opaque ciphertext. No plaintext names/history, AES keys or raw-IP logs are required. Creation is bounded to 12 attempts per ten-minute IP bucket and 250 concurrent sessions. Requests are fixed-origin HTTPS, redirect-disabled and bounded; native connect/read timeouts are 12/20 seconds. Authorization headers carry capabilities after creation; responses use no-store and do not grant CORS access. There is no public list endpoint.
-
-This is link-possession access, not identity-based authorization: anyone with a complete active QR link can access its transfer. Access expiry does not guarantee exact-time physical deletion, provider-backup erasure, revocation of screenshots or deletion of downloaded CSVs. It is not a permanent backup service. Diagnostics use a separate fragment decoder and no diagnostic-upload endpoint.
-
-## APK updates and evidence
-
-Update metadata is untrusted. Validate schema/package/version/SDK, HTTPS origin, expected size and SHA-256. Streaming download enforces size/hash; the APK must match the package and installed signer before PackageInstaller confirmation. Settings initiates the request; no launch/scheduled polling exists. Keep the original package and release key for official in-place updates.
-
-See [TESTING.md](TESTING.md) for the recorded 400-check v0.13 release, separately recorded user reports and remaining physical-device acceptance. Source publishing and documentation checks do not establish physical screen, sensor, gesture or battery behavior.
+The core, native UI and web test suites exercise scoring rules, navigation and interoperability. The native suite renders round, square and rectangular displays at multiple sizes and text scales. See [watch menus](FLOW.md), [sport rules](RULES.md) and [test coverage](TESTING.md).

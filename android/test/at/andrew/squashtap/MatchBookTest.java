@@ -42,4 +42,68 @@ public class MatchBookTest {
     @Test public void finishedResultCannotBeChangedThroughFormatSelector(){MatchBook b=book();finish(b,0,DAY);String before=b.encode();assertFalse(b.changeBestOf(5));assertEquals(before,b.encode());}
     @Test public void deletedResultStaysDeletedAfterFormatCorrection(){MatchBook b=book();finish(b,0,DAY);b.delete("first");b.undo();assertTrue(b.changeBestOf(5));b=MatchBook.decode(b.encode());b.add(0,DAY);b.nextGame();for(int i=0;i<11;i++)b.add(0,DAY);assertTrue(b.current().complete());assertEquals(0,b.count());assertTrue(b.currentDeleted());}
     @Test public void correctionWithFormatChangeKeepsOriginalReference(){MatchBook b=book();finish(b,0,DAY);b.undo();assertTrue(b.changeBestOf(5));b.add(0,DAY.plusDays(1));b.nextGame();for(int i=0;i<11;i++)b.add(0,DAY.plusDays(1));assertEquals(1,b.result("first").number);assertEquals(DAY.toString(),b.result("first").date);assertEquals(5,b.result("first").bestOf);}
+    @Test public void notesStayWithTheMatchThroughCompletionUndoAndNewMatch(){
+        MatchBook b=book();
+        assertTrue(b.encode().startsWith("B4:"));
+        MatchNotes note=new MatchNotes("Served short\r\n📝 Watch positioning","Landesliga");
+        b.setNotes("first",note);
+        finish(b,0,DAY);
+        assertTrue(b.encode().startsWith("B6:"));
+        MatchBook restored=MatchBook.decode(b.encode());
+        assertEquals(note,restored.notes("first"));
+        assertTrue(restored.undo());
+        assertNull(restored.result("first"));
+        assertEquals(note,restored.notes("first"));
+        assertTrue(restored.add(0,DAY));
+        assertEquals(1,restored.result("first").number);
+        restored.newMatch("second",3,MatchFormat.defaults("tennis"));
+        restored.setNotes("second",new MatchNotes("", "Autumn cup"));
+        MatchBook multi=MatchBook.decode(restored.encode());
+        assertEquals("tennis",multi.current().format().sport);
+        assertEquals(note,multi.notes("first"));
+        assertEquals("Autumn cup",multi.notes("second").event);
+        multi.discardCurrent("replacement");
+        assertTrue(multi.notes("second").isEmpty());
+        assertTrue(multi.delete("first"));
+        assertTrue(multi.notes("first").isEmpty());
+        assertTrue(multi.encode().startsWith("B5:"));
+    }
+    @Test public void annotationsRejectInvalidTextAndCannotReviveDeletedResults(){
+        MatchBook b=book();
+        assertEquals("A\nB",new MatchNotes(" A\r\nB ","").text);
+        assertThrows(IllegalArgumentException.class,()->new MatchNotes("","A\nB"));
+        assertThrows(IllegalArgumentException.class,()->new MatchNotes("","A\u0000B"));
+        assertThrows(IllegalArgumentException.class,()->new MatchNotes(String.join("",java.util.Collections.nCopies(601,"x")),""));
+        assertThrows(IllegalArgumentException.class,()->b.setNotes("missing",new MatchNotes("text","")));
+        finish(b,0,DAY);
+        b.setNotes("first",new MatchNotes("","Test league"));
+        b.deleteAll();
+        assertTrue(b.notes("first").isEmpty());
+        assertThrows(IllegalArgumentException.class,()->b.setNotes("first",new MatchNotes("text","")));
+        assertTrue(b.encode().startsWith("B4:"));
+    }
+    @Test public void legacyTeamDataIsDroppedWhenLoadingOrRewritingB6()throws Exception{
+        MatchBook original=book();
+        byte[] base=java.util.Base64.getDecoder().decode(original.encode().substring(3));
+        for(MatchNotes expected:new MatchNotes[]{MatchNotes.EMPTY,new MatchNotes("Serve short","Landesliga")}){
+            java.io.ByteArrayOutputStream bytes=new java.io.ByteArrayOutputStream();
+            try(java.io.DataOutputStream out=new java.io.DataOutputStream(bytes)){
+                out.writeBoolean(false);
+                out.write(base);
+                out.writeInt(1);
+                out.writeUTF("first");
+                out.writeUTF(expected.text);
+                out.writeUTF("Legacy club");
+                out.writeUTF(expected.event);
+            }
+            MatchBook decoded=MatchBook.decode("B6:"+java.util.Base64.getEncoder().encodeToString(bytes.toByteArray()));
+            assertEquals(expected,decoded.notes("first"));
+            assertEquals(original.current().encode(),decoded.current().encode());
+            assertEquals(expected,MatchBook.decode(decoded.encode()).notes("first"));
+            String payload=new String(java.util.Base64.getDecoder().decode(decoded.encode().substring(3)),
+                java.nio.charset.StandardCharsets.ISO_8859_1);
+            assertFalse(payload.contains("Legacy club"));
+            if(expected.isEmpty())assertEquals(original.encode(),decoded.encode());
+        }
+    }
 }

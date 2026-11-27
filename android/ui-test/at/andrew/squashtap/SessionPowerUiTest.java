@@ -47,7 +47,7 @@ public class SessionPowerUiTest {
     private boolean awake(){return (activity.getWindow().getAttributes().flags&WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)!=0;}
     private MatchBook saved(){return MatchBook.decode(preferences.getString("match_book",""));}
     private boolean active(){return MatchDisplayPolicy.ongoing(saved().current(),preferences.getString(MatchDisplayPolicy.ACTIVE_MATCH,""),preferences.getBoolean("match_paused",false));}
-    private Button findButton(View view,String text){if(view instanceof Button&&((Button)view).getText().toString().equals(text))return (Button)view;if(view instanceof ViewGroup)for(int i=0;i<((ViewGroup)view).getChildCount();i++){Button found=findButton(((ViewGroup)view).getChildAt(i),text);if(found!=null)return found;}return null;}
+    private Button findButton(View view,String text){if(view instanceof Button&&((Button)view).getText().toString().split("\n",2)[0].equals(text))return (Button)view;if(view instanceof ViewGroup)for(int i=0;i<((ViewGroup)view).getChildCount();i++){Button found=findButton(((ViewGroup)view).getChildAt(i),text);if(found!=null)return found;}return null;}
     private void click(String text){Dialog dialog=ShadowDialog.getLatestDialog();assertNotNull(dialog);assertTrue(dialog.isShowing());Button found=findButton(dialog.getWindow().getDecorView(),text);assertNotNull("Missing "+text,found);found.performClick();}
     private boolean containsText(View view,String text){if(view instanceof TextView&&((TextView)view).getText().toString().contains(text))return true;if(view instanceof ViewGroup)for(int i=0;i<((ViewGroup)view).getChildCount();i++)if(containsText(((ViewGroup)view).getChildAt(i),text))return true;return false;}
     private void matchMenu(){activity.action(TouchTargets.MENU);click("Current match");}
@@ -69,6 +69,7 @@ public class SessionPowerUiTest {
     }
     @Test public void startBeforeFirstPointIsExplicitAndDoesNotStartMatchTiming(){
         launch();matchMenu();click("Start match");assertTrue(active());assertTrue(awake());assertFalse(saved().current().hasPoints());assertEquals("Starts with first point",saved().currentStartedText());
+        preferences.edit().remove(MatchDisplayPolicy.ACTIVE_MATCH).commit();activity.action(TouchTargets.MENU);click("Change sport");Button tennis=findButton(ShadowDialog.getLatestDialog().getWindow().getDecorView(),"Tennis");assertNotNull(tennis);assertFalse(tennis.isEnabled());assertEquals(0,saved().currentStartedAt());
     }
     @Test public void pauseReleasesScreenAndServiceAndReopeningRequiresResume(){
         launch();activity.action(TouchTargets.BLUE);matchMenu();clearServiceEvents();click("Pause match");
@@ -93,7 +94,7 @@ public class SessionPowerUiTest {
         assertFalse(saved().current().complete());assertFalse(active());assertFalse(awake());assertNoServiceStart();matchMenu();click("Resume match");assertTrue(awake());
     }
     @Test public void newMatchSetupDoesNotKeepAnOldSessionRunning(){
-        launch();activity.action(TouchTargets.BLUE);activity.action(TouchTargets.NEW);click("Best of 5");click("Create match");clearServiceEvents();click("Replace & create match");
+        launch();activity.action(TouchTargets.BLUE);activity.action(TouchTargets.NEW);click("Match length: Best of 3");click("Best of 5 · first to 3");click("Create match");clearServiceEvents();click("Replace & create match");
         assertEquals(5,saved().current().bestOf());assertFalse(saved().current().hasPoints());assertFalse(active());assertFalse(awake());assertServiceStopped();assertNoServiceStart();
     }
     @Test public void backgroundReleasesScreenWithoutEndingARealMatch(){

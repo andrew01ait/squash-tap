@@ -15,18 +15,24 @@ def download(group,name,version,extension):
         with urllib.request.urlopen(origin+relative,timeout=30) as response:path.write_bytes(response.read())
     return path
 
-def version_key(value):return tuple(int(x) if x.isdigit() else x for x in re.split(r'[.\-]',value))
+def version_key(value):
+    # A stable 1.0.0 is newer than 1.0.0-beta01, even though its tuple is shorter.
+    match=re.fullmatch(r'(\d+(?:\.\d+)*)(?:-(.*))?',value)
+    if not match:raise RuntimeError('Unsupported dependency version: '+value)
+    numbers=tuple(map(int,match.group(1).split('.')));numbers=numbers+(0,)*(4-len(numbers))
+    suffix=match.group(2) or '';pre=re.fullmatch(r'(alpha|beta|rc)(\d+)',suffix)
+    return numbers+(({'alpha':0,'beta':1,'rc':2}[pre.group(1)],int(pre.group(2))) if pre else (3 if suffix else 4,0))
 
 def resolve():
     CACHE.mkdir(parents=True,exist_ok=True)
-    queue=[('androidx.wear','wear-ongoing','1.1.0','aar'),('androidx.wear','wear','1.3.0','aar'),('com.google.zxing','core','3.5.3','jar')]
+    queue=[('androidx.wear','wear-ongoing','1.1.0','aar'),('androidx.wear','wear','1.3.0','aar'),('com.google.zxing','core','3.5.3','jar'),('androidx.wear.tiles','tiles','1.2.0','aar'),('androidx.wear.watchface','watchface-complications-data-source','1.2.1','aar'),('org.jetbrains.kotlin','kotlin-stdlib','1.8.22','jar')]
     selected={};properties={}
     while queue:
         group,name,version,kind=queue.pop(0)
         version=version.strip('[]()').split(',')[0]
         key=group+':'+name
         if key in selected and version_key(selected[key]['version'])>=version_key(version):continue
-        if len(selected)>60:raise RuntimeError('Unexpected dependency graph size')
+        if len(selected)>120:raise RuntimeError('Unexpected dependency graph size')
         print('Resolving',key,version,flush=True)
         pom=ET.parse(download(group,name,version,'pom')).getroot()
         props={x.tag.split('}')[-1]:(x.text or '') for x in pom.findall('m:properties/*',NS)}
@@ -50,9 +56,22 @@ def resolve():
             if dep.findtext('m:optional',default='false',namespaces=NS)=='true':continue
             if dep.findtext('m:scope',default='compile',namespaces=NS) not in ('compile','runtime'):continue
             dg=dep.findtext('m:groupId',namespaces=NS);dn=dep.findtext('m:artifactId',namespaces=NS);dv=value(dep.findtext('m:version',namespaces=NS));dt=dep.findtext('m:type',default='jar',namespaces=NS)
-            if dv is None:raise RuntimeError('Dependency version missing: '+dg+':'+dn)
+            if dv is None and dg=='org.jetbrains.kotlin' and dn=='kotlin-stdlib':dv='1.8.22' # explicit project root
+            if dv is None:
+                # Some Google Maven POMs intentionally omit Kotlin versions and
+                # publish the authoritative constraint in Gradle module metadata.
+                module=json.loads(download(group,name,version,'module').read_text())
+                constraints=[]
+                for variant in module.get('variants',[]):
+                    for dependency in variant.get('dependencies',[]):
+                        if dependency.get('group')==dg and dependency.get('module')==dn:
+                            constraint=dependency.get('version',{})
+                            pinned=constraint.get('strictly') or constraint.get('requires') or constraint.get('prefers')
+                            if pinned:constraints.append(pinned)
+                if not constraints:raise RuntimeError('Dependency version missing from POM/module: '+dg+':'+dn)
+                dv=max(constraints,key=version_key)
             queue.append((dg,dn,dv,dt))
-    lock={'roots':['androidx.wear:wear-ongoing:1.1.0','androidx.wear:wear:1.3.0','com.google.zxing:core:3.5.3'],'artifacts':sorted(selected.values(),key=lambda x:(x['group'],x['name']))}
+    lock={'roots':['androidx.wear:wear-ongoing:1.1.0','androidx.wear:wear:1.3.0','com.google.zxing:core:3.5.3','androidx.wear.tiles:tiles:1.2.0','androidx.wear.watchface:watchface-complications-data-source:1.2.1','org.jetbrains.kotlin:kotlin-stdlib:1.8.22'],'artifacts':sorted(selected.values(),key=lambda x:(x['group'],x['name']))}
     (ROOT/'android-dependencies.json').write_text(json.dumps(lock,indent=2)+'\n')
     print('Pinned',len(selected),'runtime artifacts.',flush=True)
 

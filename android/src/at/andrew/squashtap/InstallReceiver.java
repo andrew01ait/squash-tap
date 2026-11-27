@@ -16,7 +16,7 @@ public final class InstallReceiver extends BroadcastReceiver {
                 if(confirmation==null)throw new IllegalStateException("No installer screen");
                 confirmation.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);context.startActivity(confirmation);
             }catch(Exception unavailable){message="This firmware cannot open installation confirmation. Update from your phone instead.";}
-        }else if(status==PackageInstaller.STATUS_SUCCESS){message="Update installed. Reopen Squash Tap to see the new version.";}
+        }else if(status==PackageInstaller.STATUS_SUCCESS){message="Update installed. Reopen Keep Score to see the new version.";}
         else{message="Installation failed ("+status+"): "+result.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE);}
         context.getSharedPreferences("squash",Context.MODE_PRIVATE).edit().putString("install_status",message).apply();
     }

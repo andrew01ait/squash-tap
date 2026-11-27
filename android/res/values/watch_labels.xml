@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name" translatable="false">Keep Score</string>
+    <string name="nfc_service" translatable="false">Keep Score NFC</string>
+    <string name="complication_name">Keep Score · Match score</string>
+</resources>

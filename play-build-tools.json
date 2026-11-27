@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "tools": [
+    {
+      "name": "build-tools;35.0.0",
+      "url": "https://dl.google.com/android/repository/build-tools_r35_linux.zip",
+      "destination": ".local/android-sdk/build-tools/35.0.0",
+      "sha256": "bd3a4966912eb8b30ed0d00b0cda6b6543b949d5ffe00bea54c04c81e1561d88",
+      "files": {
+        "d8": "b773a721be3d4988dea9660815a9e441b76100e5b0f5c72b5893cfadadc76c6f",
+        "lib/d8.jar": "305622ad00535684534eb8f742cbf5e628a9abc09d8ea4d39d1babb95bf0cee5",
+        "apksigner": "b47549e373b895ce6ca620d0c7887e674d9615ffa837a86ac601dcfd04adb0f0",
+        "lib/apksigner.jar": "00ef9948f843fe395d2440ae3ef41405b8040a6d5d46493bd1902ac0ee6deae7",
+        "zipalign": "a205d94a45c8522ca1b571dcbe190df145c818f0a29dfb366e4dd78eef4f56a7"
+      }
+    },
+    {
+      "name": "platforms;android-35",
+      "url": "https://dl.google.com/android/repository/platform-35-ext15_r01.zip",
+      "destination": ".local/android-sdk/platforms/android-35",
+      "sha256": "a93712aedd4f851d9cf1f7281f7c4fe5581ce03a9df37ffc8c53a487eadf311f",
+      "files": {
+        "android.jar": "aec874bb691a604a64b93c907b65c26bcc1311050e09413cf050bc5bd9e68488"
+      }
+    },
+    {
+      "name": "aapt2",
+      "url": "https://dl.google.com/dl/android/maven2/com/android/tools/build/aapt2/8.9.2-12782657/aapt2-8.9.2-12782657-linux.jar",
+      "destination": ".local/play-tools/aapt2-8.9.2-12782657",
+      "sha256": "ffb7b7d419c7341dd013f2f87bfb0148f8bff0a2a47c222f54935b3b8f233605",
+      "files": {
+        "aapt2": "9fa58e0125a111756f1c26acfe75a95a4fc273513bc2588781ced7b4ee1d2081"
+      }
+    },
+    {
+      "name": "bundletool",
+      "url": "https://github.com/google/bundletool/releases/download/1.18.3/bundletool-all-1.18.3.jar",
+      "sha256": "a099cfa1543f55593bc2ed16a70a7c67fe54b1747bb7301f37fdfd6d91028e29",
+      "destination": ".local/play-tools/bundletool-all-1.18.3.jar",
+      "files": {
+        ".": "a099cfa1543f55593bc2ed16a70a7c67fe54b1747bb7301f37fdfd6d91028e29"
+      }
+    }
+  ]
+}

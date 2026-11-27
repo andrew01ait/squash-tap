@@ -82,5 +82,271 @@
     "filename": "SquashTap-0.13.0.apk",
     "sizeBytes": 2070686,
     "sha256": "efa4ce1e396927fa36254464c45fa7232c9a134a0330e7ab1c0288b14430092c"
+  },
+  {
+    "versionCode": 15,
+    "versionName": "0.14.0",
+    "filename": "SquashTap-0.14.0.apk",
+    "sizeBytes": 2091166,
+    "sha256": "148b3c7c2a78432eef4ee9a076528c5517e013ee03b1fae29065ffac89556112"
+  },
+  {
+    "versionCode": 16,
+    "versionName": "0.15.0",
+    "filename": "SquashTap-0.15.0.apk",
+    "sizeBytes": 2099358,
+    "sha256": "1c48e4d68e2bbf7f240a150539e8ae0286c01eb70898ee5c290719287e6f94fc"
+  },
+  {
+    "versionCode": 17,
+    "versionName": "0.15.1",
+    "filename": "SquashTap-0.15.1.apk",
+    "sizeBytes": 2099358,
+    "sha256": "82282b004744966b0c2233f2be018773f75defbb85751155ccf9e16cc6762585"
+  },
+  {
+    "versionCode": 18,
+    "versionName": "0.16.0",
+    "filename": "KeepScore-0.16.0.apk",
+    "sizeBytes": 4697757,
+    "sha256": "3bfa2168b3d8f2ae0aad7b82259fe689a1dd86108a76b8461f9a50e5461c659d"
+  },
+  {
+    "versionCode": 19,
+    "versionName": "0.16.1",
+    "filename": "KeepScore-0.16.1.apk",
+    "sizeBytes": 4697757,
+    "sha256": "02ba5b9e5811de88efdfdf37d81a1f2005e1521f890a95b3f0077d6662091b87"
+  },
+  {
+    "versionCode": 20,
+    "versionName": "0.16.2",
+    "filename": "KeepScore-0.16.2.apk",
+    "sizeBytes": 4697757,
+    "sha256": "f8aba59507ed94a90d4d4ca028d62ff1f6479df599984e7ea785f4838114894f"
+  },
+  {
+    "versionCode": 21,
+    "versionName": "0.16.3",
+    "filename": "KeepScore-0.16.3.apk",
+    "sizeBytes": 4697757,
+    "sha256": "32db22d269e63a89c062b04947fba7197da4abacf02bb460cd1c93ebf79495cd"
+  },
+  {
+    "versionCode": 22,
+    "versionName": "0.16.4",
+    "filename": "KeepScore-0.16.4.apk",
+    "sizeBytes": 4697757,
+    "sha256": "20bd85843462c379e9142ea82a9b28b7ce9684be138f7fc22d04e03502858c5b"
+  },
+  {
+    "versionCode": 24,
+    "versionName": "0.18.0",
+    "filename": "KeepScore-0.18.0.apk",
+    "sizeBytes": 4792166,
+    "sha256": "e12bfc6817531005ce7d2df4fb09fe41b375579637f6f8da450898d125f8f481"
+  },
+  {
+    "versionCode": 25,
+    "versionName": "0.18.1",
+    "filename": "KeepScore-0.18.1.apk",
+    "sizeBytes": 4796262,
+    "sha256": "96e627e236b981c0aefd84e200d8bad669a16158e9d18830cae79253ec127bfc"
+  },
+  {
+    "versionCode": 26,
+    "versionName": "0.19.0",
+    "filename": "KeepScore-0.19.0.apk",
+    "sizeBytes": 4800358,
+    "sha256": "c0c8ccb4984933eb1ce23a281f8d3172516857d34c984a63e04a62fb4ddab2d2"
+  },
+  {
+    "versionCode": 27,
+    "versionName": "0.20.0",
+    "filename": "KeepScore-0.20.0.apk",
+    "sizeBytes": 4808550,
+    "sha256": "de9f29be42e34871a5a05d43e1beaed570c44722e8f79de4f3119495acc72d15"
+  },
+  {
+    "versionCode": 28,
+    "versionName": "0.20.1",
+    "filename": "KeepScore-0.20.1.apk",
+    "sizeBytes": 4812646,
+    "sha256": "70ecedd0772cc98246c8e5c9e62eba1066a554f31d8c547310aa3c01845eb2ee"
+  },
+  {
+    "versionCode": 29,
+    "versionName": "0.20.2",
+    "filename": "KeepScore-0.20.2.apk",
+    "sizeBytes": 4812646,
+    "sha256": "f254c5a5f4b82e025734badc775df3306f7f416597e2c3f67c59edd7c4f90c11"
+  },
+  {
+    "versionCode": 30,
+    "versionName": "0.21.0",
+    "filename": "KeepScore-0.21.0.apk",
+    "sizeBytes": 4825004,
+    "sha256": "8ccc44c63bb939d2c623b33fdf368d81b8d81696d7adb5c51d385bf01aab189e"
+  },
+  {
+    "versionCode": 31,
+    "versionName": "0.21.1",
+    "filename": "KeepScore-0.21.1.apk",
+    "sizeBytes": 4825004,
+    "sha256": "25e307c570d6fcd82cddf23e81d73ca4bcff52d6ce4d050a59882e863714329f"
+  },
+  {
+    "versionCode": 32,
+    "versionName": "0.21.2",
+    "filename": "KeepScore-0.21.2.apk",
+    "sizeBytes": 4825004,
+    "sha256": "19c31f4ab66a6ad8bfefb17ac5d88a4ff08d2cb16a937230dd96fb670881829e"
+  },
+  {
+    "versionCode": 33,
+    "versionName": "0.21.3",
+    "filename": "KeepScore-0.21.3.apk",
+    "sizeBytes": 4829100,
+    "sha256": "1c32820aef9537fc746734e124e00f56a5fb1263c403ad7db9b40ec0687b59fc"
+  },
+  {
+    "versionCode": 34,
+    "versionName": "0.21.4",
+    "filename": "KeepScore-0.21.4.apk",
+    "sizeBytes": 4829100,
+    "sha256": "87646bfe815e0ccc490b37324270075635c2bd3b3482df3114dff176418d598e"
+  },
+  {
+    "versionCode": 35,
+    "versionName": "0.21.5",
+    "filename": "KeepScore-0.21.5.apk",
+    "sizeBytes": 4829260,
+    "sha256": "99a3bbfef837b1e5fac89d50a8236e23b2bf233bac2ca39de58d959c466fd462"
+  },
+  {
+    "versionCode": 36,
+    "versionName": "0.21.6",
+    "filename": "KeepScore-0.21.6.apk",
+    "sizeBytes": 4829260,
+    "sha256": "db24a316c333da0ff1984f8c6aef606c624503ec9df2d109df9c6933cdc5fc3c"
+  },
+  {
+    "versionCode": 37,
+    "versionName": "0.22.0",
+    "filename": "KeepScore-0.22.0.apk",
+    "sizeBytes": 4837452,
+    "sha256": "655a3bf79e479366039d9c4dfa989fded56fe5c6cbd42150ca157864a2977e8b"
+  },
+  {
+    "versionCode": 38,
+    "versionName": "0.22.1",
+    "filename": "KeepScore-0.22.1.apk",
+    "sizeBytes": 4837452,
+    "sha256": "c871a379c4482c452d360d755ab7ce4ef242774f36c37bc970e08317b9bb0a86"
+  },
+  {
+    "versionCode": 39,
+    "versionName": "0.23.0",
+    "filename": "KeepScore-0.23.0.apk",
+    "sizeBytes": 4845644,
+    "sha256": "c2697af90e43ee19502e83e052cb2933e82d74d488e5ecae4f17aa671b58d5ae"
+  },
+  {
+    "versionCode": 40,
+    "versionName": "0.23.1",
+    "filename": "KeepScore-0.23.1.apk",
+    "sizeBytes": 4853836,
+    "sha256": "34b62338e4d5605c9a7ca228a35a3ba456664c0b3393c0825313b4a37d3caafa"
+  },
+  {
+    "versionCode": 41,
+    "versionName": "0.23.2",
+    "filename": "KeepScore-0.23.2.apk",
+    "sizeBytes": 4898901,
+    "sha256": "667010cae9759a040ced31b0e3b5ea06cef4f14a8093fa75b2d9a18425e2254f"
+  },
+  {
+    "versionCode": 42,
+    "versionName": "0.23.3",
+    "filename": "KeepScore-0.23.3.apk",
+    "sizeBytes": 4902997,
+    "sha256": "c41c604a8ed17fb89b056be6c11551c6ee6dd26d70fbd43becfc0f841d3b77f8"
+  },
+  {
+    "versionCode": 43,
+    "versionName": "0.23.4",
+    "filename": "KeepScore-0.23.4.apk",
+    "sizeBytes": 4902997,
+    "sha256": "7fb7c537e2869c19ee86267a41e32dd43f69031a3e7cb39d04472aed89900911"
+  },
+  {
+    "versionCode": 44,
+    "versionName": "0.23.5",
+    "filename": "KeepScore-0.23.5.apk",
+    "sizeBytes": 4902997,
+    "sha256": "66c3a6cfcf26f1262e7dd12d5e275060b121fcfee9d9425c8a891d4e8a7645d5"
+  },
+  {
+    "versionCode": 45,
+    "versionName": "0.23.6",
+    "filename": "KeepScore-0.23.6.apk",
+    "sizeBytes": 4902997,
+    "sha256": "d5f35d58d5ffcafac9cb08f96ea1882fa2db7d918dbbc37578c3aba12c851d73"
+  },
+  {
+    "versionCode": 46,
+    "versionName": "0.23.7",
+    "filename": "KeepScore-0.23.7.apk",
+    "sizeBytes": 4902997,
+    "sha256": "043c7e685c9e6b618c4cfad7be56684fbbf93bfdd1c848ad0b7095985b9fc245"
+  },
+  {
+    "versionCode": 47,
+    "versionName": "0.23.8",
+    "filename": "KeepScore-0.23.8.apk",
+    "sizeBytes": 4903079,
+    "sha256": "6da974f077d306ec0791fcce80ce26ecb5655419864e8cda6989bf4d63d9af04"
+  },
+  {
+    "versionCode": 48,
+    "versionName": "0.23.9",
+    "filename": "KeepScore-0.23.9.apk",
+    "sizeBytes": 4903079,
+    "sha256": "d4daceed97515e06dd7186e89e3389c12b3b5fc117752bf0f7e67fbf00180ea6"
+  },
+  {
+    "versionCode": 49,
+    "versionName": "0.23.10",
+    "filename": "KeepScore-0.23.10.apk",
+    "sizeBytes": 4903079,
+    "sha256": "e05fd03239e9d244be26f40fd5cdd8bf724bf17a582f94f84542e9c0a32abb03"
+  },
+  {
+    "versionCode": 50,
+    "versionName": "0.23.11",
+    "filename": "KeepScore-0.23.11.apk",
+    "sizeBytes": 4907175,
+    "sha256": "24999d9861768f679a08cf9b429f0464c4c9ef413cf1f84509fdb9479df9a6a1"
+  },
+  {
+    "versionCode": 51,
+    "versionName": "0.23.12",
+    "filename": "KeepScore-0.23.12.apk",
+    "sizeBytes": 4911271,
+    "sha256": "ac2168f087d6e83727023a7927803eff6999281e47c58327779b448244f1df8b"
+  },
+  {
+    "versionCode": 52,
+    "versionName": "0.23.13",
+    "filename": "KeepScore-0.23.13.apk",
+    "sizeBytes": 4915367,
+    "sha256": "cf781c590cd1e4ee8d2285f27bed81b78199ac76a41d8cfa4a633409d6b9b94f"
+  },
+  {
+    "versionCode": 53,
+    "versionName": "0.23.14",
+    "filename": "KeepScore-0.23.14.apk",
+    "sizeBytes": 4915367,
+    "sha256": "09746239fe88e49395b4200414f821d1e6090a6ec97658eea22f4169c710e3d5"
   }
 ]

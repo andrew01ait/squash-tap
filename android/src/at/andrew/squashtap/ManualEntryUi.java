@@ -26,10 +26,10 @@ final class ManualEntryUi {
         private final TextView meValue,otherValue;private final String title,opponent;
         ScoreCard(Context c,String title,String opponent){super(c);this.title=title;this.opponent=opponent;setOrientation(VERTICAL);
             TextView heading=text(c,title,12);heading.setPadding(0,dp(c,5),0,dp(c,5));addView(heading,new LayoutParams(-1,-2));LinearLayout pair=new LinearLayout(c);pair.setOrientation(HORIZONTAL);addView(pair,new LayoutParams(-1,-2));
-            meValue=side(pair,"Me",0xff1668cb);otherValue=side(pair,opponent,0xffb82e4c);
+            meValue=side(pair,WatchLanguage.get(c).text("Me"),0xff1668cb);otherValue=side(pair,opponent,0xffb82e4c);
         }
         private TextView side(LinearLayout pair,String name,int colour){Context c=getContext();LinearLayout side=new LinearLayout(c);side.setOrientation(VERTICAL);side.setPadding(dp(c,5),dp(c,8),dp(c,5),dp(c,8));GradientDrawable shape=new GradientDrawable();shape.setColor(colour);shape.setCornerRadius(dp(c,13));side.setBackground(shape);LayoutParams p=new LayoutParams(0,-2,1);if(pair.getChildCount()==0)p.rightMargin=dp(c,6);pair.addView(side,p);TextView label=text(c,name,11);label.setSingleLine(true);label.setEllipsize(TextUtils.TruncateAt.END);side.addView(label,new LayoutParams(-1,-2));TextView value=text(c,"0",34);value.setTypeface(Typeface.DEFAULT_BOLD);side.addView(value,new LayoutParams(-1,-2));return value;}
-        void scores(int me,int other){meValue.setText(Integer.toString(me));otherValue.setText(Integer.toString(other));meValue.setTextSize(me>=1000?22:me>=100?28:34);otherValue.setTextSize(other>=1000?22:other>=100?28:34);setContentDescription(title+". Me "+me+", "+opponent+" "+other+". Score entry.");}
+        void scores(int me,int other){meValue.setText(Integer.toString(me));otherValue.setText(Integer.toString(other));meValue.setTextSize(me>=1000?22:me>=100?28:34);otherValue.setTextSize(other>=1000?22:other>=100?28:34);setContentDescription(title+WatchLanguage.get(getContext()).text(". Me ")+me+", "+opponent+" "+other+WatchLanguage.get(getContext()).text(". Score entry."));}
         private static TextView text(Context c,String text,int size){TextView v=new TextView(c);v.setText(text);v.setTextSize(size);v.setTextColor(Color.WHITE);v.setGravity(Gravity.CENTER);return v;}
     }
 }

@@ -60,41 +60,52 @@ public class NavigationUiTest {
     }
     private View root(){Dialog dialog=ShadowDialog.getLatestDialog();assertNotNull(dialog);assertTrue(dialog.isShowing());return dialog.getWindow().getDecorView();}
     private List<View> descendants(View view){List<View> all=new ArrayList<>();all.add(view);if(view instanceof ViewGroup)for(int i=0;i<((ViewGroup)view).getChildCount();i++)all.addAll(descendants(((ViewGroup)view).getChildAt(i)));return all;}
-    private Button button(String text){for(View view:descendants(root()))if(view instanceof Button&&((Button)view).getText().toString().equals(text))return (Button)view;throw new AssertionError("Missing button: "+text);}
-    private boolean hasButton(String text){for(View view:descendants(root()))if(view instanceof Button&&((Button)view).getText().toString().equals(text))return true;return false;}
-    private boolean hasText(String text){for(View view:descendants(root()))if(view instanceof TextView&&((TextView)view).getText().toString().equals(text))return true;return false;}
+    private Button button(String text){for(View view:descendants(root()))if(view instanceof Button&&((Button)view).getText().toString().split("\n",2)[0].equals(text))return (Button)view;throw new AssertionError("Missing button: "+text);}
+    private boolean hasButton(String text){for(View view:descendants(root()))if(view instanceof Button&&((Button)view).getText().toString().split("\n",2)[0].equals(text))return true;return false;}
+    private boolean hasText(String text){for(View view:descendants(root()))if(view instanceof TextView&&((TextView)view).getText().toString().split("\n",2)[0].equals(text))return true;return false;}
     private boolean textContains(String text){for(View view:descendants(root()))if(view instanceof TextView&&((TextView)view).getText().toString().contains(text))return true;return false;}
     private int colour(Button button){assertNotNull(button.getBackgroundTintList());return button.getBackgroundTintList().getColorForState(button.getDrawableState(),0);}
     private void grey(Button button){int c=colour(button);assertEquals(Color.red(c),Color.green(c));assertEquals(Color.green(c),Color.blue(c));assertTrue(Color.alpha(c)>0);}
-    private void blue(Button button){int c=button.getBackgroundTintList()==null?button.getCurrentTextColor():colour(button);assertTrue(Color.blue(c)>Color.red(c));}
+    private void submenu(Button button){
+        assertNull(button.getBackgroundTintList());
+        assertEquals(MainActivity.MENU_CONTROL_TEXT.getDefaultColor(),button.getTextColors().getDefaultColor());
+        assertNotNull(button.getCompoundDrawablesRelative()[2]);
+        RippleDrawable background=(RippleDrawable)button.getBackground();
+        GradientDrawable shape=(GradientDrawable)background.getDrawable(0);
+        int fill=shape.getColor().getColorForState(button.getDrawableState(),Color.TRANSPARENT);
+        assertEquals(button.getText().toString(),255,Color.alpha(fill));
+        assertEquals(Color.red(fill),Color.green(fill));
+        assertEquals(Color.green(fill),Color.blue(fill));
+        assertTrue(androidx.core.graphics.ColorUtils.calculateContrast(button.getCurrentTextColor(),fill)>=4.5);
+    }
     private void red(Button button){int c=colour(button);assertTrue(Color.red(c)>Color.blue(c));}
-    private void outline(Button button){assertNull(button.getBackgroundTintList());GradientDrawable shape=(GradientDrawable)((RippleDrawable)button.getBackground()).getDrawable(0);assertEquals(0,Color.alpha(shape.getColor().getColorForState(button.getDrawableState(),Color.WHITE)));}
+    private void outline(Button button){assertNull(button.getBackgroundTintList());assertNull(button.getCompoundDrawablesRelative()[2]);assertEquals(MainActivity.MENU_CONTROL_TEXT.getDefaultColor(),button.getTextColors().getDefaultColor());GradientDrawable shape=(GradientDrawable)((RippleDrawable)button.getBackground()).getDrawable(0);assertEquals(0,Color.alpha(shape.getColor().getDefaultColor()));}
     private MatchBook saved(){return MatchBook.decode(activity.getSharedPreferences("squash",0).getString("match_book",""));}
     private void openResults(){button("Results (1)").performClick();}
     private void openSavedResult(){openResults();for(View view:descendants(root()))if(view instanceof LinearLayout&&view.getContentDescription()!=null&&view.getContentDescription().toString().contains("Open match result")){view.performClick();return;}throw new AssertionError("Missing result card");}
 
-    @Test public void rootSeparatesMatchResultsAndGreySettings(){
-        assertTrue(hasText("Menu"));assertFalse(hasText("Match menu"));blue(button("Current match"));blue(button("Results (1)"));grey(button("Settings"));outline(button("Back to score"));
+    @Test public void rootHighlightsTheCurrentMatchAndUsesNeutralSubmenus(){
+        assertTrue(hasText("Menu"));assertFalse(hasText("Match menu"));grey(button("Current match"));assertNotNull(button("Current match").getCompoundDrawablesRelative()[2]);submenu(button("Results (1)"));submenu(button("Settings"));outline(button("Back to score"));
         assertFalse(hasButton("Check for updates"));assertFalse(hasButton("Diagnostics"));assertFalse(hasButton("New match"));
     }
     @Test public void matchControlsContainNoAppSettings(){
-        button("Current match").performClick();assertTrue(hasText("Current match"));blue(button("Match options"));blue(button("Enter set score"));blue(button("Pause match"));assertFalse(hasButton("New match"));outline(button("Back to Menu"));assertFalse(hasButton("Settings"));assertFalse(hasButton("Check for updates"));
+        button("Current match").performClick();assertTrue(hasText("Current match"));submenu(button("Match options"));submenu(button("Enter set score"));grey(button("Pause match"));assertNull(button("Pause match").getCompoundDrawablesRelative()[2]);assertFalse(hasButton("New match"));outline(button("Back to Menu"));assertFalse(hasButton("Settings"));assertFalse(hasButton("Check for updates"));
     }
     @Test public void settingsStayNeutralGreyInPressedAndDisabledStates(){
-        button("Settings").performClick();assertTrue(hasText("Settings"));Button updates=button("Check for updates");grey(updates);updates.setPressed(true);grey(updates);updates.setPressed(false);updates.setEnabled(false);grey(updates);
-        grey(button("Keep screen on: ON"));grey(button("Diagnostics"));outline(button("Back to Menu"));outline(button("Scoreboard"));assertFalse(hasButton("New match"));assertFalse(hasButton("Results (1)"));
+        button("Settings").performClick();assertTrue(hasText("Settings"));Button updates=button("Check for updates");submenu(updates);updates.setPressed(true);submenu(updates);updates.setPressed(false);updates.setEnabled(false);submenu(updates);
+        submenu(button("Keep screen on: ON"));submenu(button("Diagnostics"));outline(button("Back to Menu"));outline(button("Scoreboard"));assertFalse(hasButton("New match"));assertFalse(hasButton("Results (1)"));
     }
     @Test public void updatePageUsesGreyControlsAndOutlinedBack(){
-        button("Settings").performClick();ReflectionHelpers.setField(activity,"checking",true);button("Check for updates").performClick();assertTrue(hasText("App updates"));grey(button("Checking…"));grey(button("Phone install help"));outline(button("Back to Settings"));
+        button("Settings").performClick();ReflectionHelpers.setField(activity,"checking",true);button("Check for updates").performClick();assertTrue(hasText("App updates"));if(BuildConfig.PLAY_DISTRIBUTION){grey(button("Open Google Play"));assertFalse(hasButton("Phone install help"));}else{grey(button("Checking…"));submenu(button("Phone install help"));}outline(button("Back to Settings"));
     }
     @Test public void formatSelectorKeepsPointsThroughActualButtonNavigation(){
-        button("Current match").performClick();button("Match options").performClick();button("Match format: Best of 3").performClick();blue(button("Best of 5 · first to 3"));button("Best of 5 · first to 3").performClick();MatchBook book=saved();assertEquals(5,book.current().bestOf());assertEquals(2,book.current().game().blue());assertEquals(1,book.current().game().red());assertEquals(1,book.count());
+        button("Current match").performClick();button("Match options").performClick();button("Match length: Best of 3").performClick();assertNull(button("Best of 5 · first to 3").getCompoundDrawablesRelative()[2]);button("Best of 5 · first to 3").performClick();MatchBook book=saved();assertEquals(5,book.current().bestOf());assertEquals(2,book.current().game().blue());assertEquals(1,book.current().game().red());assertEquals(1,book.count());
     }
-    @Test public void singleDeleteAndConfirmationAreRedAndCancelKeepsResult(){
-        openSavedResult();red(button("Delete this result"));button("Delete this result").performClick();red(button("Delete result"));outline(button("Cancel"));button("Cancel").performClick();assertEquals(1,saved().count());assertTrue(hasButton("Delete this result"));
+    @Test public void singleDeleteOpensARedConfirmationAndCancelKeepsResult(){
+        openSavedResult();submenu(button("Delete this result"));button("Delete this result").performClick();red(button("Delete result"));outline(button("Cancel"));button("Cancel").performClick();assertEquals(1,saved().count());assertTrue(hasButton("Delete this result"));
     }
     @Test public void deleteAllUsesRedConfirmationAndPreservesActiveScore(){
-        openResults();assertFalse(hasButton("Delete all results"));button("Options").performClick();red(button("Delete all results"));button("Delete all results").performClick();red(button("Delete all"));outline(button("Cancel"));button("Delete all").performClick();assertEquals(0,saved().count());assertEquals(2,saved().current().game().blue());assertEquals(1,saved().current().game().red());
+        openResults();assertFalse(hasButton("Delete all results"));button("Options").performClick();submenu(button("Delete all results"));button("Delete all results").performClick();red(button("Delete all"));outline(button("Cancel"));button("Delete all").performClick();assertEquals(0,saved().count());assertEquals(2,saved().current().game().blue());assertEquals(1,saved().current().game().red());
     }
     @Test public void savedResultsAreCardsRatherThanGreyButtons(){
         openResults();for(View view:descendants(root()))if(view.getContentDescription()!=null&&view.getContentDescription().toString().contains("Open match result")){
@@ -102,7 +113,7 @@ public class NavigationUiTest {
         }throw new AssertionError("Missing result card");
     }
     @Test public void resultUsesStartTimeTitleAndShowsFinishAndDuration(){
-        openSavedResult();assertTrue(hasText("10:00"));assertFalse(hasText("Match 1"));assertTrue(textContains("Duration: 25 min 0 sec"));assertTrue(textContains("Date: 03.11.2026\nStart: 10:00\nEnd: 10:25"));assertTrue(textContains("Match 1"));assertFalse(textContains("Match 1 · 03.11.2026"));
+        openSavedResult();assertTrue(hasText("Match result · 10:00"));assertFalse(hasText("Match 1"));assertTrue(textContains("Duration: 25 min 0 sec"));assertTrue(textContains("Date: 03.11.2026\nStart: 10:00\nEnd: 10:25"));assertTrue(textContains("Match 1"));assertFalse(textContains("Match 1 · 03.11.2026"));
     }
     @Test public void loadingLegacyBookCreatesBackupAndKeepsUnknownTimingHonest()throws Exception{
         ShadowDialog.getLatestDialog().dismiss();controller.pause().stop().destroy();

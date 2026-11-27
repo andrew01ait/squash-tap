@@ -1,49 +1,5 @@
-# Maintenance instructions
+# Contributing to Keep Score
 
-Read [README.md](README.md), [ARCHITECTURE.md](ARCHITECTURE.md), [FLOW.md](FLOW.md), [DEPLOYMENT.md](DEPLOYMENT.md), [TESTING.md](TESTING.md), [VERSIONING.md](VERSIONING.md) and [GITHUB.md](GITHUB.md) before changing the corresponding behavior. Current release is v0.13.0/code 14; older release-specific decisions remain in Git history and [CHANGELOG.md](CHANGELOG.md).
+The [README](README.md) introduces the app. Use the [build guide](DEPLOYMENT.md) to build a development APK and the [test guide](TESTING.md) to run the watch and web tests.
 
-## Scope, identity and publication
-
-- Keep `at.andrew.squashtap` and the original release signer for official updates. Restore private signing material before official builds; never regenerate a key to bypass a fresh workspace. No keys, passwords, credentials, SDK/cache/build directories or real user exports belong in Git/static output.
-- The official Site is already public by explicit user choice. Preserve its project ID/audience and DB/BUCKET bindings. Do not add Basic Auth, sign-in, an account requirement or a replacement Site. Keep phone-only install/update usable; do not require the user to install PC development tools.
-- GitHub is the sanitized public source mirror, with its own history and no automatic deployment/two-way synchronization. Follow GITHUB.md; preserve internal hosting/private recovery metadata and retained APKs. Reconcile incoming changes before exporting. Do not force-push or infer connector write permission from tool availability.
-- Retain all official APKs from v0.3.0/code 3 onward byte-for-byte. Link only the current APK on the landing page. Keep builds.json/checksums/update metadata consistent; hiding links must not prune binaries. Increment Android version code monotonically for a new APK; docs-only work does not rebuild Android or change the update feed.
-- Keep the landing page simple and external-user focused. Describe features/install/update/privacy; exclude internal chat/debugging narratives. Preserve blue “score.” and red “playing.” headline accents. Bare transfer-page links show instructions only, and the landing page has no generic transfer launch link.
-- No project-wide license has been chosen. Preserve notices and ask the owner before changing licensing.
-
-## Persistence and scoring invariants
-
-- Write B4/read B1/B2/B3/B4; preserve once-only old-book backups, legacy score/recovery data, real rallies/Undo, UUIDs, timing, durable daily counters and deleted-current tombstones. O1 stays separate; commit related books together. Validate new formats and migrations before schema changes.
-- Preserve M1 ordinary, M2 retirement-only and M3 entered-summary states; entered `2|me|opponent` totals are not fabricated rallies and cannot be relabelled as old encodings.
-- Me always appears first. Use PAR-11/win by two, BO3/BO5 and explicit NEXT between won sets. In-place format changes preserve state; reject completed-match edits and BO5→BO3 once either player has two set wins.
-- Save completed results atomically; deleting never reuses daily numbers or resurrects a deleted current result. Undo/re-completion reuses its reference. A full history keeps the completed scoreboard for later explicit saving after space is freed.
-- Retirement belongs under Current match → Match options with player choice and confirmation, not the main scoreboard. It determines match W/L without inventing sets/points. Undo retirement precedes rally Undo, clears the outcome and waits for Resume.
-- First accepted live point starts timing; Start match only enables availability. A valid explicitly saved manual set supplies the current time/zone only if start is missing, including old untimed current matches. Keep existing starts through edits/Undo/reopening; never backfill on launch/cancel/invalid input.
-- A manually submitted finish is unknown; later genuine live completion/retirement may record it. Independent past-match capture stays date-only. Keep recorded-zone display/filter behavior, overnight end dates, unknown legacy times and nonnegative/unknown elapsed durations.
-
-## Navigation and visual rules
-
-- Root destinations: Current match, Results, Statistics, purple Opponents and grey Settings. Current match puts Start/Pause/Resume first. Match options contains format/opponent/new replacement/retirement; app settings stay in Settings.
-- Current match → Enter set score changes the current match. Results → Add past match creates independent history without changing current score/person/timing/Undo/session. Use score wheels, +/−, presets, date wheels and saved names; no mandatory tiny-keyboard entry. Confirm replacing a partial set and whole-set Undo; retain earlier real rallies.
-- NEW stages BO3/BO5 and optional opponent until Create match. Confirm replacement; Back to setup preserves the draft and Cancel changes no old match/person/session. New names may enter the catalog without being assigned to the old match.
-- Each panel has one named outlined Back/Cancel action. Named Back, hardware Back and native swipe-dismiss use the same contextual callback. Retain result filters/page/scroll through details/pickers/delete cancellation. Scoreboard shortcuts preserve pause/session state. Late async transfer callbacks must not reopen an abandoned panel.
-- Secondary navigation is transparent blue text with chevrons; primary match actions filled blue, people purple, Settings grey, destructive actions/confirmations red and Back/Cancel outlined. Set roles explicitly, not from parent tags. Preserve 48dp targets and swipe/multitouch/long-press rejection for scoring.
-- Watch results have 10 matches per page; phone results 25. Filters apply before pagination. Put Filters/Options/Add past match above watch results. Keep CSV/bulk deletion under Options and results as blue/red cards rather than grey buttons.
-- Statistics derives totals from all saved completed/imported/legacy results, excluding unfinished/deleted/Undo-reopened results and ignoring browsing filters. Do not persist duplicate aggregate counters or add polling. Person removal archives future selection, not linked history; stable IDs survive renames.
-
-## Session, privacy and transfer rules
-
-- Require an explicit matching active_match_id, unfinished match and no pause before ongoing service/ambient retention. First point or Start/Resume activates it. Pause/completion/task removal/replacement clears it. Ordinary activity pause/ambient must retain active play without inactivity timeouts. Undo to zero during play retains it; completion Undo and legacy scores without an ID wait for Resume.
-- Idle drafts/results/statistics let the watch sleep. Keep screen on applies only to the visible active scoreboard; panels/backgrounding release its flag. QR retention is bounded to one minute and releases on backgrounding. No CPU wake lock, GPS, sensors/heart-rate tracking, launch update checks, background polling, telemetry or periodic workers.
-- Diagnostics are bounded/local/private until explicitly exported. Do not publish raw diagnostic logs. Whole-watch battery snapshots are event/on-demand observations, not app-attributed consumption or measured energy savings. Keep activity stops, installation exits and process crashes distinct.
-- Browser-only temporary transfers remain explicit and account-free. Use gzip + AES-256-GCM, random IVs and session/direction AAD, independent random owner/guest capabilities, bounded sizes, one-shot incoming submission and fresh watch-side preview. Keys/capabilities stay in memory/QR fragments, never preferences, diagnostics, source or logs.
-- The public page/APKs do not make session contents public. Anyone with a complete active QR link can access its session; do not claim identity protection or absolute confidentiality against leaked links. Preserve no-list/no-CORS/no-store behavior and rate/global-session limits. No permanent cloud history or diagnostic-upload endpoint.
-- Relay D1 stores hashed capabilities/expiry and short-lived hashed-IP buckets; R2 stores opaque ciphertext. End/apply requests deletion; unused expired data is cleaned on later traffic. Do not claim an independent exact-time cleanup job or provider-backup erasure. Test only synthetic data; the development fixture helper must be tree-shaken from production.
-- Adding/restoring a name never assigns an opponent. Reassignment is a separate explicit boolean opt-in and watch preview; never guess/repair old assignments automatically. Validate CSV entirely, merge cloned books, skip conflicts/duplicates/current IDs and protect tombstones. Preserve schema-1 ordinary and schema-2 retirement compatibility and spreadsheet-safe escaping.
-- Future user-facing JSON exports use local-date `YYYYMMDD_ApplicationName_Description.json`, including the app name. This does not add JSON interchange or rename internal configuration files.
-
-## Required verification and documentation
-
-- Preserve pinned Android dependency SHA-256 checksums, Node lockfile, UI dependency declaration and third-party notices. No caches or proxy credentials enter source/APKs.
-- For a new native release, run the full meaningful core/native UI/web suite and signature/package/SDK/alignment/retained-hash checks. Recorded v0.13 evidence is 265 + 100 + 35 = 400. Keep it distinct from a fresh rerun, emulator claims and physical OnePlus swipe/rendering/ambient/battery acceptance. DEVICE_TESTS.json contains only actual user reports.
-- Update all current guides and CHANGELOG for final behavior; keep historical release entries intact. Run `python3 scripts/check_docs.py`, regenerate sanitized source with `scripts/package_source.py`, compare docs in the public export and verify the published source/head. Full native tests are not required for docs-only changes; report the checks actually run and preserve native/release bytes.
+For changes to scoring or match navigation, consult the [sport rules](RULES.md) and [navigation guide](FLOW.md). See the [versioning guide](VERSIONING.md) for data compatibility.

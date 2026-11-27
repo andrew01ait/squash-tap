@@ -1,5 +1,270 @@
 # Releases
 
+## Phone journal timing · 2026-11-27
+
+- Omit unusually long elapsed times from the squash total, averages and monthly time charts. Count these matches in the results and win rate.
+- Show duration on collapsed result cards and label outliers on both the journal card and the exported image.
+
+## v0.23.14 · 2026-11-27 · direct APK code 53
+
+- Review phone imports by change type and count on the watch. Open an individual result or note to compare old and new values, and page through larger batches before applying.
+
+## Phone journal · 2026-11-27
+
+- Filter statistics by event and the last 30 days.
+- Switch the monthly chart between match totals, outcomes and measured time. See total squash playing time and the number of timed squash matches in the open journal.
+- Give match notes their own area on the result card, with a prominent note action and distinct controls for discarding a staged edit.
+
+## v0.23.13 · 2026-11-27 · direct APK code 52
+
+- Private phone journal links last one hour from creation.
+- Choose existing events or add a new event. Filter results by event or sort events A–Z on the watch and in the phone journal.
+- The update migrates match notes and events and removes previous club and team labels from match notes.
+
+## v0.23.12 · 2026-11-27 · direct APK code 51
+
+- Add optional personal notes, opposing club or team, and one event or league to the current match or a saved result.
+- Edit notes for saved matches in the private phone journal and confirm the changes on the watch. Full backups carry the notes.
+
+## v0.23.11 · 2026-11-27 · direct APK code 50
+
+- Home greets the watch owner by first name above the tiles.
+- Match presets explain which settings can be saved and loaded for future matches.
+
+## v0.23.10 · 2026-11-27 · direct APK code 49
+
+- Secondary watch menu buttons that had no surface now use the subtle dark fill. This includes submenu links, direct actions and unselected options. Chevrons lead into submenus and ticks mark the selected options.
+
+## v0.23.9 · 2026-11-27 · direct APK code 48
+
+- Cancel match and Save retirement result use a subtle dark fill and a chevron. Buttons that open match-ending or deletion choices share the style. Back keeps its outline, and the final discard or deletion uses red.
+
+## v0.23.8 · 2026-11-27 · direct APK code 47
+
+- Section headings share the colour of the open menu and use larger text.
+- Search, the Last 30 days filter and sorting sit in one group above Saved players. Saved names have their own tinted rows. Manage names includes the watch owner's name.
+
+## v0.23.7 · 2026-11-27 · direct APK code 46
+
+- Home keeps its coloured tiles, and sport selection keeps its coloured rows and icons. Menu colours identify the titles.
+- A filled neutral button highlights the primary action. Arrows mark submenus, and Back and Cancel use a neutral outline. Red marks the action that deletes an entry or discards work.
+
+## v0.23.6 · 2026-11-27 · direct APK code 45
+
+- New match shows the selected sport in the menu path, for example Home › Squash › New match. During play, Players & options groups the player selection and match options. Referee invitations return to the sharing path after setup.
+- App updates shows a horizontal percentage bar during the download and a round spinner while checking, verifying or handing the update to the installer.
+
+## v0.23.5 · 2026-11-27 · direct APK code 44
+
+- Tap the watch menu title to show or hide the current path. The depth bars are gone.
+- Home tiles, Settings and the result Filter and Options controls have more room at the edges of round displays. Controls stack when the labels need more width.
+
+## v0.23.4 · 2026-11-27 · direct APK code 43
+
+- QR screens show the code and its instructions without the menu depth indicator.
+- Sharing keeps its familiar entry button and uses a softer accent inside its menus. Share with watches groups the invitation QR, manual code and supported NFC pairing on one page. Connected devices opens separately. Audience and phone referee access remain in Live sharing & referee.
+- After discarding a match, Back and swipe take you from its sport menu through sport selection to the Home tiles, including when a phone referee scored the match.
+
+## Website · 2026-11-26
+
+- The optional support section in the footer offers Buy Me a Coffee and PayPal. Each has a direct link and a QR code for visitors who prefer to scan with a phone.
+- The imprint lists Andrew Lindley’s city, Vienna, Austria, in all four website languages. The watch’s existing contact QR opens the updated page.
+- The public source archive and GitHub mirror include an automated test summary. Personal device-test records are kept internally.
+
+## v0.23.3 · 2026-11-26 · direct APK code 42
+
+- Settings → About me introduces Andrew Lindley. The contact QR opens the public imprint in the selected watch language without sharing any match data.
+- The website shows match setup, scoring and history with watch screenshots. It includes publisher details, a contact reveal, search metadata, a sitemap and a social preview.
+
+## v0.23.2 · 2026-11-26 · direct APK code 41
+
+- Home displays the Keep Score logo and name above the quick actions. The Wear OS Tile shows the same artwork and opens Home when idle.
+- Every main menu destination has a distinct colour. Shortcuts use the destination colour wherever they appear. Headings and horizontal depth bars carry it into submenus. Results, Statistics and Players use matching accents in the phone journal.
+
+## v0.23.1 · 2026-11-26 · direct APK code 40
+
+- Home tiles open New match, Results, Players, Sports and Settings when idle. A saved finished match can be marked as done and closes after three hours without interaction. A prepared or running match opens its scoreboard. A paused match opens Resume.
+- Last 30 days filters the watch and phone player lists using completed matches in any sport, including doubles partners. It combines with name search and each sort order.
+- Results opens on the newest matching scorecard with the outcome, opponent or teams, and date. Filters and Options follow the first card. Add past match leads Options and is directly available when the sport’s history is empty.
+- Each menu level adds a horizontal bar beside the badge. Tap the heading for the full route. Screen readers announce the exact level.
+
+## v0.23.0 · 2026-11-26 · direct APK code 39
+
+- Type part of a name in any watch player list. Sort A–Z, Z–A or by most recent match activity. Partners and both opponents count in doubles. The phone player directory includes the same three orders.
+- After a saved finish, the final score and a green New match button appear above Quick rematch. The sport selector and sport menu also lead with a new match when idle. A prepared, playing or paused match retains its own primary action.
+- Watch menus show the page title and current depth. Tap the heading for the path from your entry point. Explore the [watch menu map](public/watch-menus.html) in English or German.
+
+## v0.22.1 · 2026-11-22 · direct APK code 38
+
+- Spoken calls in all six sports use first names. Both members of a named doubles team are called by first name. Players with identical first names can be distinguished by their player number.
+- Tennis and padel distinguish the game winner from the side leading the set. Calls mark a level set, the start of the tie-break at 6–6, and the leading player or pair during the tie-break. Padel identifies Golden Point and Star Point according to the chosen rules.
+- Squash calls game ball, match ball and the two-point margin at 10–10. Badminton calls service changes and game and match points for both scoring presets. Table tennis announces the next server’s points first during play and the winner’s points first at the end of a game.
+- Traditional pickleball distinguishes a side out from a handover to the second server. In a one-game match the final call gives the winning score and winner. All six sports support the four watch languages and corrections.
+
+## v0.22.0 · 2026-11-22 · direct APK code 37
+
+- Added optional spoken scores below Vibrations in watch Settings. An installed voice calls the live score, Undo corrections and game or match wins in English, German, French or Spanish.
+- Tennis and padel use their game, advantage and tie-break scores. Traditional doubles pickleball includes the server number. A watch following a referee calls the latest score it receives while its scoreboard is open.
+
+## v0.21.6 · 2026-11-19 · direct APK code 36
+
+- When a referee scores on a phone, **Cancel match** is the first action in the host watch’s **Match menu** and **Live sharing & referee**. Choose **Discard match** to end play for everyone without saving a result, or **Keep playing** to return.
+
+## v0.21.5 · 2026-11-19 · direct APK code 35
+
+- Tapping **Download & update** opens the progress bar at the top of the watch display. It shows the percentage of the APK received, then switches to an animated indicator while Keep Score verifies the package and opens the Android installer.
+- The small diagnostic QR gives the latest NFC sharing entry priority over routine pause, stop and resume events. The QR still fits the same size limit.
+
+## v0.21.4 · 2026-11-19 · direct APK code 34
+
+- Tapping **Download & update** scrolls the watch back to the current download and installation status.
+- The last NFC sharing event records how long the offer was active and whether it timed out, the app paused, or the sharing page closed.
+- The website illustrates how to award a point as referee and how to share a page by scanning the watch.
+
+## v0.21.3 · 2026-11-19 · direct APK code 33
+
+- The diagnostic QR takes up more of the watch display and carries only the most recent events that fit. The watch automatically discards events beyond the newest twelve.
+- Copy details in Diagnostics includes the system report and the recorded crash stack.
+
+## v0.21.2 · 2026-11-19 · direct APK code 32
+
+- The watch now accepts the older NFC reader request that Android can try when its first attempt to open the shared link fails. Both formats serve the same page or watch invitation.
+- If the watch is still waiting after a minute, it shows whether it received any NFC request. Settings → Diagnostics records the command count and the last stage reached.
+
+## v0.21.1 · 2026-11-19 · direct APK code 31
+
+- Android can discover the watch’s NFC link service as soon as the app is installed. Opening the share page supplies the complete link before the watch asks Android to route a tap.
+- The watch shows when a reader connects and when it has read the complete link or invitation. If an attempt times out, the watch distinguishes an interrupted read from one that never reached Keep Score.
+
+## v0.21.0 · 2026-11-18 · direct APK code 30
+
+- Pair compatible watches by tapping them together to follow the same match. The host can invite watches while scoring or while a referee scores.
+- Hand an audience, referee or journal page to an NFC-capable phone directly from the watch. QR and manual watch codes are also available.
+- The browser marks each completed game or set with a green check. Result entry updates while typing. Downloadable PNG cards show the teams, final score and winners of each completed game or set, including a partial-period label after retirement.
+
+## v0.20.2 · 2026-11-18 · direct APK code 29
+
+- Players is directly accessible on the sports screen and in every sport menu. Select an opponent or doubles team in Current match.
+- Current match groups the score, match setup, sharing and end-of-match actions. Finished matches offer the result, summary, available sharing and next match.
+- Watch menus share page headings, row spacing, text fields and selection marks. Results uses full-width actions. QR pages provide a native Back button and support the system Back gesture.
+
+## v0.20.1 · 2026-11-18 · direct APK code 28
+
+- Watch language has one home in Settings. A shared scoreboard opens a match menu for set scores, saving, sharing and app settings.
+- Sport menus, saved results, players, doubles teams and invitations have task-specific headings. Device lists group player watches and referees.
+- Live scorecards use the available display width and reserve separate space for names, points and the serving badge. Lower buttons fit the round edge and keep 48 dp touch targets.
+
+## v0.20.0 · 2026-11-18 · direct APK code 27
+
+- Choose a sport first on the launcher. Live sharing & referee sits below all six sports. The watch Back gesture and button return one level, including during pairing.
+- Couple every player watch with the same code. The host can identify each player watch or referee browser by its short ID, check its last contact and remove it individually.
+- Finished matches prioritise the saved result, a new match and the result card. Match setup, score entry and discard actions are available in their corresponding phases.
+
+## v0.19.0 · 2026-11-18 · direct APK code 26
+
+- Add results in the phone or tablet journal for all six sports, including doubles, deciding tie-breaks and retirements.
+- Open a saved match to correct players, scores or a date-only entry. Review and confirm the batch on the watch. Concurrent changes prompt a fresh transfer.
+- A correction updates the existing match and its statistics. The latest finished scoreboard keeps the actual rallies for unchanged games. Undo of a corrected retirement can restore the original live score.
+
+## v0.18.1 · 2026-11-18 · direct APK code 25
+
+- Open Live sharing & referee from the sports launcher, a sport menu or an active match. Share an audience link, invite a phone referee, or pair additional watches with a short code. A new host selects the sport and confirms the match before sharing.
+- Read the current period and match tally above the points on the watch. Match details lists completed and current scores with the most recent first. The same layout supports referee-host and spectator watches, ambient mode and large text.
+- The website uses the original Keep Score launcher artwork. The audience broadcast, referee console, results journal and roster adapt to phones in either orientation and to wider tablet screens.
+
+## v0.18.0 · 2026-11-18 · direct APK code 24
+
+- Hand over scoring to a phone referee by private QR. An offline rally, correction or confirmed finish is stored locally and uploaded on reconnect. Both the host watch and other watches follow read-only and can save the confirmed result independently.
+- Pair spectator watches with a ten-character code. Handing an already shared match to a referee keeps existing readers connected. Follower imports use the selected player's side, position and retirement outcome.
+- Browse phone results across sports and filter by player, role, mode, date or outcome. Explore form, streaks, deciding sets, time played and separate partner and opponent records. Redesigned roster editing keeps drafts across language changes.
+- Add automatic language detection and a persistent override for English, German, French and Spanish on the watch and throughout the web interfaces.
+
+## Play contact confirmation — 2026-11-12 (public watch v0.16.4 unchanged)
+
+- Record the owner-confirmed support and privacy contact in the Play drafts and release checklist. Account registration is user-reported; account verification remains pending.
+- Keep publisher identity, provider/request-handling review, policy publication, signing enrollment, testing and Google approval as outstanding gates. This documentation update does not change Play Console settings or submit a release.
+
+## Google Play preparation — 2026-11-12 (public watch v0.16.4 unchanged)
+
+- Add a separate API-35 AAB candidate, 0.17.0-play.1/code 23, using the original package/signer and locked official build tools. Preserve all published APK/feed bytes.
+- Use Play-managed update navigation and exclude the APK installer permissions, receiver and implementation from the Play package. Retain direct distribution separately.
+- Add Play-only black launch/scoreboard backgrounds, matching splash icon, native distribution/state tests, both-channel verification, store/privacy drafts and an explicit launch/test checklist. Account setup, final privacy publication, upload-key enrollment, physical upgrade acceptance, closed testing and Store review remain pending.
+
+## Live streaming feature section — 2026-11-11 (watch v0.16.4 unchanged)
+
+- Give live result streaming a dedicated landing-page section with navigation/hero links, watch-to-QR-to-share setup, an illustrative audience scoreboard, previous-meeting details and ten-minute final results. Explain connection and link-access requirements alongside the feature.
+- Add responsive portrait/landscape QA frames, check mobile layout and links, and refresh documentation/source artifacts. This website-only update preserves the watch release and retained APK bytes.
+
+## Website explanations — 2026-11-11 (watch v0.16.4 unchanged)
+
+- Add result-filter reset and live-sharing instructions to the landing page. Align privacy wording with encrypted head-to-head/last-meeting summaries, the live window and ten-minute final results. Keep the current v0.16.4 download and all release bytes.
+- Validate documentation/export parity, landing-page links and a fresh website build; native release checks are not rerun for this copy-only change.
+
+## 0.16.4 — 2026-11-11
+
+- Make Reset all filters the first watch filter action and show a direct reset row in filtered/empty Results. Clear player/date/mode, retain the sport and return to page one/top despite remembered scrolling.
+- Fix phone reset to clear Singles/Doubles as well as player/dates and refresh scoped statistics without discarding staged edits. Use the same Reset all filters label.
+- Verify 331 core + 191 native UI + 64 web/relay cases (586), combined native filters/pagination/scroll and storage/session preservation, browser reset behavior, original signing/metadata/alignment and retained APK hashes. Refresh current guides and source/download artifacts.
+
+## 0.16.3 — 2026-11-11
+
+- Sort sport choices and badges alphabetically on watch and phone. Preserve selected/current sport IDs and unfinished-match locks.
+- Share previous head-to-head and the latest meeting date/result for the same saved opponent or complete doubles teams in this sport/mode. Exclude the current match and unknown identities; keep aggregates and one result encrypted without publishing unrelated history or player IDs.
+- Replace audience link controls with accessible share/copy icons. Show a final winner, game/set score breakdown, retirement outcome and remaining availability in portrait/landscape layouts.
+- Expire final links ten minutes after completion, including delayed offline completion. Repeated updates never extend the final deadline; Undo restores the original live deadline. Preserve and retry final results across rematch/task dismissal while the process survives. Add a compatible live-deadline column migration.
+- Verify 331 core + 190 native UI + 64 web/relay cases (585), native renders, browser layout previews, original signer/package/SDK/alignment and all retained APK hashes. Physical watch acceptance remains separate.
+
+## 0.16.2 — 2026-11-11
+
+- Use Keep Score as the identity on shared menus, Players, Settings and their subpages, replacing the misleading All Sports badge. Use the same app name on the sport selector and app section headings; sport-specific screens retain their sport name/icon/accent and contextual Back/swipe.
+- Verify the full 325 core + 185 native UI + 58 web/relay release suite (568), native renders, original package/signer/SDK/alignment and all retained APK hashes. Refresh release downloads, current guides and sanitized source export; physical watch acceptance remains separate.
+
+## 0.16.1 — 2026-11-11
+
+- Group Settings by purpose. Keep vibration/reminder/display/palette selectors open after saving, with selected ticks, scroll retention and explicit Back to Settings. Reselecting an active option no longer implicitly goes Back. Preserve contextual hardware/swipe navigation and score/session data.
+- Automatically reconcile live-sharing controls and open Audience QR when ready from the visible waiting page. Restore Start after failure; ignore late callbacks on other/background screens. Preserve one-minute QR screen retention.
+- After a committed discard, replace the shared match with an encrypted anonymous notice containing no names/scores, retry it on reconnect and show Match discarded to viewers. Stop refreshing terminal views. Revoked/expired links also clear stale Playing scores. Cancelling discard preserves the match/broadcast. No scoring or storage schema changes.
+- Verify 325 core + 185 native UI + 58 web/relay cases (568), original package/signer/SDK/alignment and retained APKs. Update native patch, viewer cache versions, release/source artifacts and all current guides. Physical device acceptance remains separate.
+
+
+## 0.16.0 — 2026-11-11
+
+- Rename the app display and current downloads to Keep Score while preserving package, preferences, original signer, existing data, repository/site URLs and all historical APK bytes. Add optional Your name in Players and reviewed phone editing, used on watch/live/result images without creating an opponent identity.
+- Add pickleball singles/doubles, 11/15/21 points and one/BO3/BO5 games. Keep traditional side-out, 2025 rally win-on-serve and 2026 rally either-side finish explicit. Track doubles server/court/call and genuine non-point rallies in Undo. Preserve legacy readers and validated CSV schema 3.
+- Adapt round/square/rectangular menus, full-width headings, 48dp targets and system text scaling. Add Classic, Neon Lime and high-contrast Sunlight scoreboard presets with a preview list; preserve monochrome ambient and system brightness, with a Display-settings shortcut.
+- Add quick rematch of the last completed current match, named favourite formats, configurable point/game/set/match haptics, optional non-blocking interval/change-ends prompts and event-updated read-only Wear OS tile/score complications.
+- Add complete checksummed JSON backup/restore through a private encrypted phone link: all sports, current rallies/Undo, players, own name, favourites and settings. Validate/stale-guard before atomic replacement, pause restored unfinished matches and retain a downloadable pre-restore copy. Preserve ordinary envelope 1 and add bounded AAD-bound envelope 2 for full backups.
+- Add explicit encrypted eight-hour live score mirroring with separate read-only audience links, event-driven watch pushes/latest-score reconnect, guarded revisions, expiry/revoke, bounded/rate-limited D1 storage and visible-only browser refresh. Local scoring stays offline; offline stop honestly reports delayed expiry. Add selected-result PNG download/sharing from the phone view.
+- Refresh the six-sport landing page, privacy, current APK/source links and native previews. Update all current guides, dependency locks/notices and synthetic tests; retain historical device reports. Release checks cover 325 core + 170 native UI + 56 web/relay cases (551), nine size/shape/font profiles, three palettes, signer/package/SDK/alignment and retained hashes. Physical watch acceptance remains separate.
+
+
+## 0.15.1 — 2026-11-10
+
+- Keep serving visible with a dedicated pale-gold badge and score-card outline. Fit names by measured pixel width; fixed doubles role labels keep the serve cue independent of long or missing names. Preserve known service in ambient and full names in accessibility text; hide serve cues after a game/match finishes.
+- Refresh the landing page around the five sports, native example previews, supported modes/rules, shared players/separate results, clearer navigation, installation/update guidance and transfer privacy. Preserve blue score/red playing branding and the single current APK version. Native radio/CSS preview switching needs no JavaScript. Update page metadata and export PNG source assets.
+- Verify 299 core + 135 native UI + 43 web/relay checks = 477, native renders across four sizes, original signing identity/package/API/alignment and all 15 retained APK hashes. Update documentation and the matching public source package.
+
+
+## 0.15.0 — 2026-11-10
+
+- Identify each sport with its own vector mark and accent in the selector, menu badges and live scoreboard; retain blue/red scoring sides. Separate sport actions and app-wide controls, with shared purple Players, grey Settings, red discard/delete and contextual Back/Cancel.
+- Lock other sports while a match is unfinished, including paused and explicitly created unplayed matches. Finish or cancel first. Preserve the lock across restart and reject stale sport-selection/new-match callbacks. Completed or discarded matches unlock selection.
+- Add Current match → Cancel match → Discard match to quit without saving a result, retirement or win/loss. Commit the replacement state, abandoned role-link removal and cleared session/pause/prepared flags together; retain saved history, shared names and daily counters. Undo/resume cannot restore discarded rallies. Keep retirement as the separate Save retirement result action.
+- Replace cycling mode/scoring/deuce/decider/result-mode controls with explicit selected lists. Put match length in its own picker and provide explicit screen-policy choices. Back/swipe/cancellation and reselecting the same choice keep the draft and serving choices.
+- Return shared Players/Settings to the sport selector or sport Menu that opened them, prevent unrelated score shortcuts, and label tennis/padel’s next opposing server correctly. Make new-match replacement commits atomic before replacing the in-memory state.
+- Put choices before help text, preserve setup/options/settings/serving scroll on picker return, and omit the Scoreboard shortcut from confirmation questions. Verify 299 core + 130 native UI + 43 web checks = 472, inspect round-screen native renders, and retain original signer/package/API/alignment and historical APK hashes. Physical watch acceptance remains separate.
+
+
+## 0.14.0 — 2026-11-10
+
+- Add the five-sport entry selector: squash, tennis, badminton, padel and table tennis. Keep one current match, explicit replacement confirmation, independent sport/mode history and statistics, and shared Players/Settings. Keep the original Squash Tap name, package and release signer.
+- Support singles/doubles where applicable, two team scoring cards, shared optional opponent/partner identities and derived vector sport badges for every saved role. Removing/reopening results updates badges; bulk deletion is scoped to the selected sport.
+- Preserve squash PAR-11/BO3/BO5; add badminton 21/30 and 15/21, tennis advantage/No-Ad, padel Advantage/Golden/Star, and table tennis BO3/BO5/BO7. Add nested games/sets, standard tie-breaks, optional ten-point deciding match tie-breaks and Undo across boundaries. Freeze each match's rules.
+- Keep one-tap point scoring without first/second serve, let or stroke recording. Add optional server guidance, squash Game Ball/Match Ball cues and sport-specific rules/help. Do not infer missing initial service choices or automate conduct/injury rulings.
+- Add B5/M4 and separate O2 team-role metadata while reading legacy B1–B4/M1–M3/O1, retaining once-only B4/O1 recovery backups, counters, timing, UUIDs and deletion markers. Preserve true rally order and unknown manual timing.
+- Add CSV schema 3 with sport/mode/rules, extra participants, seven-game scores, known rally/tie-break and partial tennis retirement details. Keep schemas 1/2, reject unsupported old-watch imports, and extend phone filtering/statistics/partner records/player badges without changing relay encryption or expiry.
+- Verify 294 core + 113 native UI + 43 web checks = 450; inspect native round-screen Canvas renders and synthetic phone flows. Java 17 release build, original certificate/package/API/alignment and all retained APK hashes are checked. Physical OnePlus acceptance remains separate.
+
 ## Documentation and GitHub source — 2026-11-09 (watch v0.13.0/code 14 unchanged)
 
 - Publish the sanitized watch/site source, tests and documentation to andrew01ait/squash-tap after repository write authorization succeeds; verify all 221 imported file blobs.
@@ -86,7 +351,6 @@
 - Replaced inherited styling with explicit roles: blue match actions, neutral-grey Settings (including its root entry), red delete actions and confirmations, and outlined Back/Cancel controls, including the QR return control.
 - Clarified diagnostic package-update/state-change exits, added page/window state to reports and pre-pause events, and kept compact traces on complete lines.
 - Added 8 Robolectric tests of real Android navigation, role colours/states, deletion confirmations, result cards and format/persistence wiring. The default release builder runs these alongside the 140 core tests.
-- Recorded user-confirmed v0.4 installation, diagnostic QR export and working foreground retention since v0.3. Raw diagnostic logs are not published. No changes to scoring, match storage or session policy.
 
 ## Public website — 2026-11-03
 
@@ -117,13 +381,6 @@
 - Added bounded lifecycle/session/crash/process-exit diagnostics and QR transfer to a phone-side page with TXT save/share/copy. No automatic upload.
 - Added pinned AndroidX/ZXing dependencies, notices and a source-packaging helper. 127 automated core tests pass; original signer, metadata, alignment and historical APK hashes checked. No emulator/Robolectric run claimed.
 
-## Device verification — 2026-11-03
-
-- User confirmed phone-only installation and working operation on the OnePlus Watch 2R with Wear OS 5.
-- User enabled allow-updates and successfully used the in-app updater to install v0.2.0 over v0.1.0.
-- The existing score was retained. Undo-history retention and full device regression remain unconfirmed.
-- Recorded results in DEVICE_TESTS.json and updated the public verification notes. APKs and version codes are unchanged.
-
 ## Distribution change — 2026-11-03
 
 - Enabled public access to the release page, APKs and update feed at the user's explicit request.
@@ -140,4 +397,4 @@
 - Persistent score/undo history, optional keep-awake mode and visible version/menu.
 - Built-in release checks, verified APK downloads, install-source setup, PackageInstaller handoff, phone fallback help and diagnostics.
 - 64 local tests and verified signed APK packaging.
-- Direct installation/update and score retention were subsequently confirmed by the user on the OnePlus (see device verification above). The download site was made public by explicit user approval.
+- The direct download site became publicly available.

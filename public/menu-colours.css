@@ -1,0 +1,23 @@
+/* Destination accents shared by the phone journal and watch menu guide. */
+:root {
+  --menu-new-match: #95e5b8;
+  --menu-current-match: #9fc9ff;
+  --menu-sports: #ffb17f;
+  --menu-results: #7fe5dc;
+  --menu-players: #dab0f3;
+  --menu-statistics: #f4d46f;
+  --menu-sharing: #e8c5d9;
+  --menu-favourites: #bac3ff;
+  --menu-rules: #d7e58c;
+  --menu-settings: #d3d3d3;
+}
+[data-menu-colour="new-match"] { --menu-accent: var(--menu-new-match); }
+[data-menu-colour="current-match"] { --menu-accent: var(--menu-current-match); }
+[data-menu-colour="sports"] { --menu-accent: var(--menu-sports); }
+[data-menu-colour="results"] { --menu-accent: var(--menu-results); }
+[data-menu-colour="players"] { --menu-accent: var(--menu-players); }
+[data-menu-colour="statistics"] { --menu-accent: var(--menu-statistics); }
+[data-menu-colour="sharing"] { --menu-accent: var(--menu-sharing); }
+[data-menu-colour="favourites"] { --menu-accent: var(--menu-favourites); }
+[data-menu-colour="rules"] { --menu-accent: var(--menu-rules); }
+[data-menu-colour="settings"] { --menu-accent: var(--menu-settings); }

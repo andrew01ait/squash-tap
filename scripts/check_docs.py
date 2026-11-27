@@ -5,7 +5,7 @@ import argparse
 import re
 import sys
 from urllib.parse import unquote, urlsplit
-from package_source import DOCS
+from package_source import DOCS, source_bytes
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -31,7 +31,7 @@ def check(compare=None):
                 errors.append(name + ': missing/nonportable link ' + target)
         if compare is not None:
             exported = Path(compare) / name
-            if not exported.is_file() or exported.read_bytes() != file.read_bytes():
+            if not exported.is_file() or exported.read_bytes() != source_bytes(file):
                 errors.append('Documentation differs in export: ' + name)
     release = dict(line.split('=', 1) for line in
                    (ROOT / 'public/release.properties').read_text().splitlines() if '=' in line)
