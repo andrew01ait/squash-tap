@@ -97,13 +97,14 @@ public class WatchLanguageUiTest {
     }
 
     @Test public void localeOverridesSurviveRestartAndCanReturnToAutomatic(){
+        prefs.edit().putString("my_name","Alex Meyer").commit();
         launch();
-        assertNotNull(find("Startseite"));
+        assertNotNull(find("Hi Alex"));
         click("Einstellungen");click("Sprache");click("Français");
         assertEquals("fr",prefs.getString(WatchLanguage.PREFERENCE,""));
         assertNotNull(find("✓ Français"));
         click("Retour");assertNotNull(find("Réglages"));
-        close();launch();assertNotNull(find("Accueil"));
+        close();launch();assertNotNull(find("Salut Alex"));
         click("Réglages");click("Langue");click("Español");
         assertNotNull(find("Idioma"));
         click("Automático (reloj)");click("Zurück");

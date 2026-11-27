@@ -193,11 +193,15 @@ public class MenuRevisionUiTest {
     @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) @Config(qualifiers="w192dp-h192dp-round-xhdpi")
     public void idleGermanHomeShowsNewMatchAndRoutesStraightToResults() throws Exception{
         close();saveFixture(new MatchBook(new MatchState("idle",3)));
-        preferences.edit().putString(WatchLanguage.PREFERENCE,"de").commit();mainLaunch();layout();
+        preferences.edit().putString(WatchLanguage.PREFERENCE,"de").putString("my_name","Alex Weber").commit();
+        mainLaunch();layout();
         assertTrue(hasButton("Neue Partie"));assertTrue(hasButton("Spieler"));assertTrue(hasButton("Ergebnisse"));
         View screen=dialog().getWindow().getDecorView();
         captureRoundScreen(screen,screen.getWidth(),"home-round-192-de");
         assertBrandedHomeFits(screen);
+        assertHomeGreeting(screen,"Hi Alex");
+        assertFalse(has("Alex Weber"));
+        assertFalse(has("Startseite"));
         for(String label:new String[]{"Neue Partie","Ergebnisse","Spieler","Sportarten"}){
             Button tile=button(label);
             assertInsideRound(screen,tile);
@@ -212,7 +216,19 @@ public class MenuRevisionUiTest {
         captureRoundScreen(screen,screen.getWidth(),"home-settings-round-192-de");
         click("Einstellungen");back();layout();
         click("Ergebnisse");assertTrue(hasButton("Frühere Partie eintragen"));click("Zur Startseite");
+        click("Spieler");
+        click("Dein Name: Alex Weber");
+        EditText ownName=(EditText)all().stream().filter(v->v instanceof EditText).findFirst().get();
+        ownName.setText("");
+        click("Namen speichern");back();layout();
+        assertHomeGreeting(dialog().getWindow().getDecorView(),"Hi!");
         click("Neue Partie");click("Padel");assertTrue(hasButton("Partie anlegen"));
+        assertTrue(sections().contains("Spielvorlagen"));
+        assertTrue(has("Spielmodus, Regeln und Satzanzahl für spätere Partien."));
+        assertTrue(hasButton("Als Vorlage speichern"));
+        click("Vorlage laden");
+        assertTrue(has("Speichere im Menü Neue Partie eine Vorlage"));
+        back();assertTrue(hasButton("Partie anlegen"));
     }
 
     private void assertInsideRound(View screen,Button button){
@@ -228,7 +244,7 @@ public class MenuRevisionUiTest {
             assertTrue(message,Math.hypot(left-screen.getWidth()/2f,top-screen.getHeight()/2f)<radius);
     }
 
-    private void assertLabelInsideRound(View screen,Button button){
+    private void assertLabelInsideRound(View screen,TextView button){
         int[] origin=new int[2],point=new int[2];
         screen.getLocationOnScreen(origin);
         button.getLocationOnScreen(point);
@@ -255,22 +271,33 @@ public class MenuRevisionUiTest {
             for(float x:new float[]{pos[0],pos[0]+v.getWidth()})for(float y:new float[]{pos[1],pos[1]+v.getHeight()})
                 assertTrue(v.getClass().getSimpleName()+" at "+x+", "+y+" for radius "+radius,Math.hypot(x-radius,y-radius)<radius);
         }
-        View header=(View)name.getParent().getParent();
-        assertTrue(header.getContentDescription().toString().startsWith("Keep Score. "));
+    }
+
+    private void assertHomeGreeting(View screen,String text){
+        TextView greeting=(TextView)all().stream()
+            .filter(v->v instanceof TextView && text.contentEquals(((TextView)v).getText()))
+            .findFirst().orElseThrow(()->new AssertionError("Missing greeting: "+text));
+        assertTrue(greeting.isAccessibilityHeading());
+        assertTrue(greeting.isShown());
+        android.graphics.Rect visible=new android.graphics.Rect();
+        assertTrue(greeting.getLocalVisibleRect(visible));
+        assertEquals(greeting.getHeight(),visible.height());
+        assertEquals(1,greeting.getLayout().getLineCount());
+        assertEquals(0,greeting.getLayout().getEllipsisCount(0));
+        assertLabelInsideRound(screen,greeting);
     }
     @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) @Config(qualifiers="w192dp-h192dp-round-xhdpi")
-    public void brandAndMenuPathFitWithLargerTextOnSmallRoundWatches() throws Exception{
+    public void brandAndGreetingFitWithLargerTextOnSmallRoundWatches() throws Exception{
         close();RuntimeEnvironment.setFontScale(1.3f);saveFixture(new MatchBook(new MatchState("brand-large",3)));
-        preferences.edit().putString(WatchLanguage.PREFERENCE,"de").commit();mainLaunch();layout();
+        preferences.edit().putString(WatchLanguage.PREFERENCE,"de").putString("my_name","Müller, Marie-Louise").commit();
+        mainLaunch();layout();
         View screen=dialog().getWindow().getDecorView();
         captureRoundScreen(screen,screen.getWidth(),"home-brand-round-192-de-large");assertBrandedHomeFits(screen);
-        View header=menuPathControl();
-        header.performClick();
-        assertTrue(all().stream().anyMatch(v->v instanceof TextView && v.getVisibility()==View.VISIBLE
-                && "Startseite".contentEquals(((TextView)v).getText())));
-        header.performClick();
+        assertHomeGreeting(screen,"Hi Marie-Louise");
+        assertFalse(has("Müller"));
         scroll().scrollTo(0,scroll().getChildAt(0).getHeight());
         assertInsideRound(screen,button("Einstellungen"));
+        click("Einstellungen");assertMenuPath("Startseite › Einstellungen");back();
         click("Ergebnisse");assertEquals(MenuSection.RESULTS,location().section);
     }
 
@@ -806,7 +833,7 @@ public class MenuRevisionUiTest {
         shadowOf(Looper.getMainLooper()).idle();
     }
 
-    @Test public void rootGroupsSportHistoryAndSharedAppDestinations(){root();List<String> labels=new ArrayList<>();for(View v:all())if(v instanceof Button)labels.add(((Button)v).getText().toString());assertEquals(Arrays.asList("Current match","Players","Live sharing & referee","Results (17)","Statistics","Favourite formats","Scoring rules","Change sport","Settings","Back to score"),labels);assertFalse(hasButton("Manage on phone"));assertMenuLink(button("Players"));}
+    @Test public void rootGroupsSportHistoryAndSharedAppDestinations(){root();List<String> labels=new ArrayList<>();for(View v:all())if(v instanceof Button)labels.add(((Button)v).getText().toString());assertEquals(Arrays.asList("Current match","Players","Live sharing & referee","Results (17)","Statistics","Match presets","Scoring rules","Change sport","Settings","Back to score"),labels);assertFalse(hasButton("Manage on phone"));assertMenuLink(button("Players"));}
     @Test public void currentMatchPutsTheSessionActionBeforeSecondaryControls(){match();List<String> labels=new ArrayList<>();for(View v:all())if(v instanceof Button&&!((Button)v).getText().toString().equals("Scoreboard"))labels.add(((Button)v).getText().toString());assertEquals(Arrays.asList("Pause match","Enter set score","Match details","Opponent: Alice","Match options","Live sharing & referee","Save retirement result","Cancel match","Back to Menu"),labels);click("Pause match");assertFalse(awake());match();assertTrue(hasButton("Resume match"));assertFalse(hasButton("Pause match"));}
     @Test public void finishedCurrentMatchHidesSetupAndScoringActions(){close();MatchBook b=book();b.retire(1);preferences.edit().putString("match_book",b.encode()).remove(MatchDisplayPolicy.ACTIVE_MATCH).commit();launch();match();assertTrue(hasButton("View result"));assertTrue(hasButton("New match"));assertFalse(hasButton("Enter set score"));assertFalse(hasButton("Match options"));assertFalse(hasButton("Start match"));assertFalse(hasButton("Resume match"));}
     @Test public void choosingANewFormatStagesItUntilCreateIsExplicit(){String before=book().encode();match();click("Match options");click("New match");click("Match length: Best of 3");click("Best of 5 · first to 3");assertTrue(hasButton("Match length: Best of 5"));assertEquals(before,book().encode());click("Create match");assertTrue(has("Replace this match?"));assertEquals(before,book().encode());click("Replace & create match");assertEquals(5,book().current().bestOf());assertFalse(book().current().hasPoints());assertFalse(preferences.contains(MatchDisplayPolicy.ACTIVE_MATCH));}

@@ -17,7 +17,22 @@ public class KeepScoreFeaturesUiTest {
  @Test public void ownNameIsOptionalAndDoesNotCreateAnOpponent(){String before=p.getString("opponent_book","");click("Players");click("Your name: Me");input().setText("André");click("Save your name");assertEquals("André",p.getString("my_name",""));assertEquals(before,p.getString("opponent_book",""));ScoreView score=ReflectionHelpers.getField(a,"counter");assertTrue(score.getContentDescription().toString().contains("André"));click("Your name: André");input().setText("");click("Save your name");assertEquals("",p.getString("my_name",""));}
  @Test public void pickleballDefaultAndRuleChoicePersistWithServeAwareUndo(){pickle();click("Scoring: Traditional side-out");click("Rally 2025 · win on serve");click("Match length: Best of 3");click("Best of 1 · first to 1");click("Create match");assertEquals("rally-2025",book().current().format().deuce);assertEquals(1,book().current().bestOf());assertEquals(0,book().current().server());a.action(TouchTargets.RED);assertEquals(1,book().current().game().red());a.action(TouchTargets.UNDO);assertEquals(0,book().current().game().red());assertEquals(0,book().current().server());}
  @Test public void traditionalReceivingWinChangesServerWithoutPoint(){pickle();click("Create match");a.action(TouchTargets.RED);assertEquals(0,book().current().game().red());assertEquals(1,book().current().server());assertEquals(1,book().current().game().rallies());}
- @Test public void favouriteFormatDoesNotCreateOrReplaceTheCurrentMatch(){click("Current match");click("Match options");click("New match");String before=book().encode();click("Save as favourite");input().setText("Weekly squash");click("Save favourite");assertEquals(before,book().encode());assertEquals(1,MatchPresets.decode(p.getString("favourite_formats","")).list("squash").size());click("Cancel");}
+ @Test public void savingAndLoadingAPresetOnlyChangesTheNewMatchDraft(){
+  click("Current match");click("Match options");click("New match");
+  String before=book().encode();
+  click("Match length: Best of 3");click("Best of 5 · first to 3");
+  click("Save as preset");
+  input().setText("Weekly squash");
+  click("Save preset");
+  List<MatchPresets.Entry> saved=MatchPresets.decode(p.getString("favourite_formats","")).list("squash");
+  assertEquals(1,saved.size());assertEquals(5,saved.get(0).best);
+  assertEquals(before,book().encode());
+  click("Match length: Best of 5");click("Best of 3 · first to 2");
+  click("Load preset");click("Weekly squash");
+  assertNotNull(button("Match length: Best of 5"));
+  assertEquals(before,book().encode());
+  click("Cancel");
+ }
  @Test public void quickRematchKeepsHistoryPlayersAndRulesWithFreshIdentity(){MatchBook b=ReflectionHelpers.getField(a,"book");OpponentDirectory d=ReflectionHelpers.getField(a,"opponents");String opponent=d.add("Pat");d.assign(b.current().id(),opponent);b.retire(1);ReflectionHelpers.callInstanceMethod(a,"afterMatchChange");ReflectionHelpers.callInstanceMethod(a,"showResult",ReflectionHelpers.ClassParameter.from(String.class,b.current().id()),ReflectionHelpers.ClassParameter.from(int.class,0));String id=b.current().id();click("Quick rematch");assertNotEquals(id,book().current().id());assertEquals(1,book().count());assertEquals("Pat",OpponentDirectory.decode(p.getString("opponent_book","")).nameFor(book().current().id()));assertEquals(0,book().currentStartedAt());assertFalse(book().current().hasPoints());}
  @Test public void openingBackupOrLiveOptionsDoesNotTransmitOrChangeScore(){String before=book().encode();click("Settings");click("Backup & restore");assertNotNull(button("Create or restore backup"));assertEquals(before,book().encode());click("Back to Settings");click("Back to Menu");click("Current match");click("Live sharing & referee");click("Audience live link");assertNotNull(button("Start live sharing"));assertNull(LiveScoreClient.get(a).session());assertEquals(before,book().encode());}
  @Test public void widgetShortcutPreservesPauseAndNeverAwardsPoints(){p.edit().putBoolean("match_paused",true).remove(MatchDisplayPolicy.ACTIVE_MATCH).commit();String before=book().encode();Intent intent=new Intent(a,MainActivity.class).putExtra("keep_score_widget","match");controller.newIntent(intent);assertEquals(before,book().encode());assertTrue(p.getBoolean("match_paused",false));assertNotNull(button("Resume match"));}

@@ -12,7 +12,7 @@ final class SpokenScore {
     private SpokenScore() {}
 
     /** Names are stored as free text. Accept given-name-first and explicit "family, given" entries. */
-    private static String forename(String displayName) {
+    static String forename(String displayName) {
         Matcher word = NAME_WORD.matcher(displayName);
         int comma = displayName.indexOf(',');
         if (comma >= 0 && word.find(comma + 1) && !NAME_SUFFIX.matcher(word.group()).matches()) return word.group();

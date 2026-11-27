@@ -6,8 +6,8 @@ import argparse, os, subprocess, sys, zipfile
 ROOT=Path(__file__).resolve().parents[1]
 PKG='at.andrew.squashtap'
 SITE='https://squash-tap-andrew.endruuu.chatgpt.site'
-RELEASES=((49,'0.23.10'),)
-RELEASE_NOTES='Secondary actions, submenu buttons and unselected options across the watch use a subtle dark fill.'
+RELEASES=((50,'0.23.11'),)
+RELEASE_NOTES='Home greets you by first name. Match presets make it clear which settings you can save and reuse.'
 
 def run(args, env=None):
     result=subprocess.run([str(x) for x in args],cwd=ROOT,env=env,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)

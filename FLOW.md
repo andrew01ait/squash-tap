@@ -1,4 +1,4 @@
-# Navigation and match flows — v0.23.10
+# Navigation and match flows — v0.23.11
 
 The separate Play preparation candidate retains these scoring/navigation flows. Its Settings → Check for updates opens a Google Play explanation, Open Google Play and Back to Settings. All website update/download/install/setup entry points route there in that build; a missing Store produces an actionable message and keeps the match. The public direct-APK release keeps its existing updater. See [PLAY_RELEASE.md](PLAY_RELEASE.md).
 
@@ -14,7 +14,7 @@ Keep the devices together until the watch confirms the link or invitation was re
 
 ## Sport entry and scope
 
-The idle launcher shows the Keep Score logo and name above the Home tiles. The Wear OS Tile also uses the launcher artwork. New match opens sport selection followed by setup. Results opens the last selected sport; Players and Settings are shared. Prepared and running matches open the scoreboard, paused matches open Resume, and a saved finished match opens its result until marked as done or inactive for three hours. Home → Sports opens Choose sport with distinct icons/colours for Squash, Tennis, Badminton, Padel, Table tennis and Pickleball, with a direct Players row immediately after the sports, followed by Sharing and App. An unfinished current match locks every other sport, including when paused or explicitly created but unplayed. The selector explains the lock and disables the other sport rows; stale selection/create callbacks also enforce it. Finish or cancel the match to unlock selection. A completed match permits another sport. Close app exits without silently opening another sport’s scoreboard. Each sport remembers its new-match rules and length.
+The idle launcher shows the Keep Score logo, app name and a first-name greeting above the Home tiles. The Wear OS Tile also uses the launcher artwork. New match opens sport selection followed by setup. Results opens the last selected sport; Players and Settings are shared. Prepared and running matches open the scoreboard, paused matches open Resume, and a saved finished match opens its result until marked as done or inactive for three hours. Home → Sports opens Choose sport with distinct icons/colours for Squash, Tennis, Badminton, Padel, Table tennis and Pickleball, with a direct Players row immediately after the sports, followed by Sharing and App. An unfinished current match locks every other sport, including when paused or explicitly created but unplayed. The selector explains the lock and disables the other sport rows; stale selection/create callbacks also enforce it. Finish or cancel the match to unlock selection. A completed match permits another sport. Close app exits without silently opening another sport’s scoreboard. Each sport remembers its new-match rules and length.
 
 Results and Statistics use the chosen sport. Eligible sports offer All modes / Singles / Doubles. Result player filters include all team roles; date/player filters do not narrow Statistics. Delete all results deletes the selected sport only and preserves other sports, current state, daily counters and deletion markers. Phone Results/Statistics have their own shared sport/mode selectors; the Players catalog is global.
 
@@ -50,7 +50,7 @@ The scoreboard stays focused on Me/Opponent scoring, Undo and Next/New. Its head
 | Players | Shared player list, accessible directly below the match action | Purple person row |
 | Live sharing & referee | Audience QR, phone referee, watch invitations and connected devices | Raspberry entry button, soft rose menu accents |
 | Results | Saved history, filters, past matches, CSV and phone viewing | Teal |
-| Favourite formats | Choose a saved sport preset or manage favourites in setup | Indigo |
+| Match presets | Load, save and manage reusable match settings | Indigo |
 | Statistics | All-result match/set/point balances | Gold |
 | Change sport | Return to the six-sport selector | Orange |
 | Scoring rules | Sport presets, service guidance and limits | Olive |
@@ -154,7 +154,7 @@ The serving side has a pale-gold outline and dedicated badge, independent of the
 
 ## Keep Score additions
 
-Players → Your name → Save your name (blank means Me) changes your display name independently of saved opponents. Phone editing also requires receive/review/apply. New match → Save as favourite stores a named format/length; Favourite formats reuses it in setup before Create. A current completed result → Quick rematch creates a new identity with the same rules and available players; no score or start time is copied.
+Players → Your name → Save your name (blank means Me) changes your display name independently of saved opponents. Phone editing also requires receive/review/apply. In New match, Save as preset stores the current mode, scoring rules and match length under a name. Load preset fills in these options in the draft before Create. A current completed result → Quick rematch creates a new identity with the same rules and available players; no score or start time is copied.
 
 Settings → Colour scheme opens an explicit list with both card colours previewed: Classic (blue/red), Neon Lime (lime/pink), Sunlight (white/yellow with black scores). Choosing saves for all sports and keeps this selector open with the current tick. Back to Settings returns explicitly. Ambient stays monochrome. Brightness: watch system → Open watch display settings delegates brightness to Wear OS; no app override or light sensing is added. Vibrations and Court/interval reminders have separate selected lists.
 

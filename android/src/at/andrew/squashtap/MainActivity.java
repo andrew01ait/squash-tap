@@ -349,7 +349,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         navigationButton(menu,tr("Results (")+sportResults(-1).size()+")",()->openResults(this::showMenu,"Back to Menu"));
         navigationButton(menu,tr("Statistics"),this::showStatistics);
         section(menu,"Sport");
-        navigationButton(menu,tr("Favourite formats"),()->showPresets(false));
+        navigationButton(menu,tr("Match presets"),()->showPresets(false));
         navigationButton(menu,tr("Scoring rules"),this::showSportRules);
         navigationButton(menu,tr("Change sport"),this::showSports);
         section(menu,"App");
@@ -756,15 +756,50 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     private String availablePlayer(String id){OpponentDirectory.Entry e=opponents.get(id);return e==null||e.archived?"":id;}
     private MatchPresets presets(){return MatchPresets.decode(preferences.getString("favourite_formats",""));}
     private void showPresets(boolean setup){
-        LinearLayout c=panel("Favourite formats",null,MenuSection.FAVOURITES);java.util.List<MatchPresets.Entry> list=presets().list(selectedSport);if(list.isEmpty())paragraph(c,tr("Save a favourite from New match to reuse its scoring rules and match length."));
-        for(MatchPresets.Entry e:list)navigationButton(c,e.name+"\n"+ui.rules(e.format)+tr(" · BO")+e.best,()->{if(!allowSport(e.format.sport))return;if(!setup)showNewMatch(this::showMenu);newMatchFormat=e.format;newMatchBestOf=e.best;newFirstServer=e.format.pickleball()?0:-1;newFirstReceiver=e.format.pickleball()?1:-1;if(!e.format.doubles){newMatchPartner=newMatchOther="";}showNewMatchOptions();});
-        if(!list.isEmpty())navigationButton(c,tr("Remove a favourite"),()->removePreset(setup));backButton(c,setup?"Back to setup":"Back to Menu",setup?this::showNewMatchOptions:this::showMenu);
+        LinearLayout content=panel("Match presets",null,MenuSection.FAVOURITES);
+        java.util.List<MatchPresets.Entry> list=presets().list(selectedSport);
+        if(list.isEmpty())paragraph(content,tr("Save a preset from New match to reuse its scoring rules and match length."));
+        for(MatchPresets.Entry entry:list){
+            navigationButton(content,entry.name+"\n"+ui.rules(entry.format)+tr(" · BO")+entry.best,()->{
+                if(!allowSport(entry.format.sport))return;
+                if(!setup)showNewMatch(this::showMenu);
+                newMatchFormat=entry.format;
+                newMatchBestOf=entry.best;
+                newFirstServer=entry.format.pickleball()?0:-1;
+                newFirstReceiver=entry.format.pickleball()?1:-1;
+                if(!entry.format.doubles)newMatchPartner=newMatchOther="";
+                showNewMatchOptions();
+            });
+        }
+        if(!list.isEmpty())navigationButton(content,tr("Remove a preset"),()->removePreset(setup));
+        backButton(content,setup?"Back to setup":"Back to Menu",setup?this::showNewMatchOptions:this::showMenu);
     }
-    private void removePreset(boolean setup){LinearLayout c=panel("Remove favourite");for(MatchPresets.Entry e:presets().list(selectedSport))deleteButton(c,e.name,()->{MatchPresets p=presets();p.remove(e.id);if(preferences.edit().putString("favourite_formats",p.encode()).commit())showPresets(setup);else message(tr("Save failed"),tr("Favourite was kept."),()->showPresets(setup));});backButton(c,tr("Cancel"),()->showPresets(setup));}
+    private void removePreset(boolean setup){
+        LinearLayout content=panel("Remove a preset");
+        for(MatchPresets.Entry entry:presets().list(selectedSport)){
+            deleteButton(content,entry.name,()->{
+                MatchPresets saved=presets();
+                saved.remove(entry.id);
+                if(preferences.edit().putString("favourite_formats",saved.encode()).commit())showPresets(setup);
+                else message(tr("Save failed"),tr("The preset is still saved."),()->showPresets(setup));
+            });
+        }
+        backButton(content,tr("Cancel"),()->showPresets(setup));
+    }
     private void savePreset(){
-        LinearLayout c=panel("Save favourite",null,MenuSection.FAVOURITES);EditText input=menuInput(c,tr("Favourite name"),tr("Favourite name"),android.text.InputType.TYPE_CLASS_TEXT);
+        LinearLayout content=panel("Save preset",null,MenuSection.FAVOURITES);
+        EditText input=menuInput(content,tr("Preset name"),tr("Preset name"),android.text.InputType.TYPE_CLASS_TEXT);
         input.setText(tr(newMatchFormat.name())+" "+tr(newMatchFormat.mode())+" BO"+newMatchBestOf);
-        primaryButton(c,tr("Save favourite"),()->{try{MatchPresets p=presets();p.add(input.getText().toString(),newMatchFormat,newMatchBestOf);if(!preferences.edit().putString("favourite_formats",p.encode()).commit())throw new IllegalStateException(tr("Favourite was not saved"));showNewMatchOptions();}catch(Exception e){input.setError(safe(e));}});backButton(c,tr("Cancel"),this::showNewMatchOptions);
+        primaryButton(content,tr("Save preset"),()->{
+            try{
+                MatchPresets saved=presets();
+                saved.add(input.getText().toString(),newMatchFormat,newMatchBestOf);
+                if(!preferences.edit().putString("favourite_formats",saved.encode()).commit())
+                    throw new IllegalStateException(tr("Could not save the preset"));
+                showNewMatchOptions();
+            }catch(Exception e){input.setError(safe(e));}
+        });
+        backButton(content,tr("Cancel"),this::showNewMatchOptions);
     }
     private void showNewMatch(){
         if(panel==null)selectSport(book.current().format().sport);
@@ -800,9 +835,10 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         if(newMatchFormat.doubles&&newFirstServer>=0)navigationButton(content,(newMatchFormat.nested()||newMatchFormat.pickleball()?tr("Next opposing server: "):tr("First receiver: "))+slotName(newFirstReceiver,null),()->chooseReceiver(newMatchFormat,null,newFirstServer,newFirstReceiver,slot->{newFirstReceiver=slot;showNewMatchOptions();},this::showNewMatchOptions));
         primaryButton(content,newMatchCreateLabel==null?tr("Create match"):newMatchCreateLabel,()->confirmNewMatch(newMatchBestOf));
         paragraph(content,tr("Tap the first point to start play and timing."));
-        section(content,"Favourite formats");
-        navigationButton(content,tr("Use favourite format"),()->showPresets(true));
-        navigationButton(content,tr("Save as favourite"),this::savePreset);
+        section(content,"Match presets");
+        paragraph(content,tr("Mode, scoring rules and match length for future matches."));
+        navigationButton(content,tr("Load preset"),()->showPresets(true));
+        navigationButton(content,tr("Save as preset"),this::savePreset);
         backButton(content,tr("Cancel"),newMatchReturn);
     }
     private void confirmNewMatch(int bestOf){
@@ -1041,7 +1077,11 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         sharedArea=true;scoreMenu=false;
         scrollPositions.remove("home");
         LinearLayout content=panel("Home","home",PanelTitle.CUSTOM,MenuSection.HOME);
-        LinearLayout heading=locationHeader(content,null,null,false);
+        String firstName=SpokenScore.forename(preferences.getString("my_name",""));
+        String greeting=firstName.isEmpty()?ui.pick("Hi!","Hi!","Salut !","¡Hola!")
+            :ui.format("Hi {0}","Hi {0}","Salut {0}","Hola {0}",firstName);
+        content.setAccessibilityPaneTitle(greeting);
+        LinearLayout heading=homeHeader(content,greeting);
         LinearLayout first=ManualEntryUi.row(content);
         Button start=homeTile(first,MenuSection.NEW_MATCH,tr("New match"),this::chooseHomeSport);
         Button results=homeTile(first,MenuSection.RESULTS,tr("Results"),()->{sharedArea=false;openResults(this::showHome,"Back to Home");});
@@ -1394,7 +1434,8 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         return name.isEmpty()?(translate?tr("Opponent"):"Opponent"):name;
     }
     private void editOwnName(Runnable back){
-        LinearLayout content=panel("Your name",null,MenuSection.PLAYERS);paragraph(content,tr("Shown on your score card and shared scoreboards. Leave blank to use Me."));
+        LinearLayout content=panel("Your name",null,MenuSection.PLAYERS);
+        paragraph(content,tr("Your first name appears on Home. Your display name appears on scoreboards. Leave blank to use Me."));
         nameInput=menuInput(content,tr("Your name"),tr("Your name"),android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS);
         nameInput.setText(preferences.getString("my_name",""));
         final EditText input=nameInput;
@@ -2015,50 +2056,60 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         heading.setAccessibilityHeading(true);
         return heading;
     }
-    private void addHomeBrand(LinearLayout header){
+    private LinearLayout homeHeader(LinearLayout content,String greeting){
+        LinearLayout header=new LinearLayout(this);
+        header.setOrientation(LinearLayout.VERTICAL);
+        header.setGravity(Gravity.CENTER_HORIZONTAL);
+        content.addView(header,new LinearLayout.LayoutParams(-1,-2));
+
         LinearLayout brand=new LinearLayout(this);
         brand.setGravity(Gravity.CENTER);
         header.addView(brand,new LinearLayout.LayoutParams(-1,-2));
 
+        int logoSize=dp(16);
         ImageView logo=new ImageView(this);
         logo.setImageResource(R.drawable.ic_launcher);
         logo.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-        brand.addView(logo,new LinearLayout.LayoutParams(dp(20),dp(20)));
+        brand.addView(logo,new LinearLayout.LayoutParams(logoSize,logoSize));
 
         TextView name=new TextView(this);
         name.setText(R.string.app_name);
-        name.setTextSize(15);
+        name.setTextSize(12);
         name.setTextColor(Color.WHITE);
         name.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
         name.setPadding(dp(3),0,0,0);
         brand.addView(name,new LinearLayout.LayoutParams(-2,-2));
 
+        TextView hello=panelHeading(header,greeting,true);
+        hello.setTextSize(16);
+        hello.setPadding(0,0,0,0);
+        hello.setIncludeFontPadding(false);
+        hello.setMaxLines(1);
+        hello.setEllipsize(android.text.TextUtils.TruncateAt.END);
         if(roundMenu()){
             float labelWidth=name.getPaint().measureText(name.getText().toString());
-            float width=dp(20)+name.getPaddingLeft()+labelWidth;
+            float width=logoSize+name.getPaddingLeft()+labelWidth;
             if(width>menuWidth()){
                 brand.setOrientation(LinearLayout.VERTICAL);
                 name.setPadding(0,0,0,0);
                 width=Math.min(labelWidth,menuWidth());
             }
-            // At this inset the circle is wide enough for both ends of the wordmark.
-            brand.setPadding(0,roundInsetForWidth(width),0,dp(3));
+            brand.setPadding(0,roundInsetForWidth(width),0,0);
+            brand.measure(View.MeasureSpec.makeMeasureSpec(menuWidth(),View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0,View.MeasureSpec.UNSPECIFIED));
+            hello.setLayoutParams(new LinearLayout.LayoutParams(
+                Math.min(menuWidth(),roundWidthAt(brand.getMeasuredHeight())),ViewGroup.LayoutParams.WRAP_CONTENT));
         }
+        return header;
     }
-    private LinearLayout locationHeader(LinearLayout content,String sport,String title,boolean compact){
+    private void locationHeader(LinearLayout content,String sport,String title,boolean compact){
         LinearLayout header=new LinearLayout(this);
         header.setOrientation(LinearLayout.VERTICAL);header.setGravity(Gravity.CENTER);
         header.setMinimumHeight(dp(48));
         content.addView(header,new LinearLayout.LayoutParams(-1,-2));
-        if(title==null){
-            addHomeBrand(header);
-            title=getString(R.string.app_name)+". "+tr("Home");
-        }else{
-            sportBadge(header,sport);
-            panelHeading(header,title,compact);
-        }
+        sportBadge(header,sport);
+        panelHeading(header,title,compact);
         bindMenuPath(header,header,title);
-        return header;
     }
     private void bindMenuPath(LinearLayout content,View heading,String title){
         String path=location.path(this::tr);

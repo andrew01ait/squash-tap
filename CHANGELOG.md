@@ -1,5 +1,10 @@
 # Releases
 
+## v0.23.11 · 2026-11-27 · direct APK code 50
+
+- Home greets the watch owner by first name above the tiles.
+- Match presets explain which settings can be saved and loaded for future matches.
+
 ## v0.23.10 · 2026-11-27 · direct APK code 49
 
 - Secondary watch menu buttons that had no surface now use the subtle dark fill. This includes submenu links, direct actions and unselected options. Chevrons lead into submenus and ticks mark the selected options.
