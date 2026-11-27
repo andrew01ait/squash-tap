@@ -1,8 +1,8 @@
 # Keep Score components
 
-Keep Score v0.23.4 runs on Wear OS and supports six racket sports. The watch stores match history, scoring rules and player names. Phones and tablets can open a match journal, follow an audience scoreboard or score a match as referee.
+Keep Score v0.23.5 runs on Wear OS and supports six racket sports. The watch stores match history, scoring rules and player names. Phones and tablets can open a match journal, follow an audience scoreboard or score a match as referee.
 
-The idle Home header and Wear OS Tile use the app name and launcher artwork. MenuLocation carries the section for every watch panel. Main destinations have explicit colours, and secondary links, headings and depth bars inherit the section accent. The phone journal uses the corresponding accents for its tabs and headings.
+The idle Home header and Wear OS Tile use the app name and launcher artwork. MenuLocation carries the section for every watch panel. Main destinations have explicit colours, and secondary links and headings inherit the section accent. The phone journal uses the corresponding accents for its tabs and headings.
 
 ## Watch app
 
@@ -15,7 +15,7 @@ The idle Home header and Wear OS Tile use the app name and launcher artwork. Men
 
 FinishedMatchReview ties the last user interaction and the closed marker to the saved match ID and finish time. While foregrounded, the watch schedules one deadline. Resume, launcher and widget reads evaluate the same persisted times. A legacy result with no known finish time starts its review clock when first opened. Closing review preserves the scorebook and sharing state. A confirmed, saved shared result can be reviewed while the local watch is idle. Unclaimed remote results keep their explicit save and seat selection.
 
-The transient menu path records the actual caller, stable screen key and title. Its depth supplies a stack of horizontal bars and the spoken accessibility level. Results renders the first matching card before its adaptive tool row and restores the prior reading position on return from details. Returning to the player directory restores that visit’s search and page. Player recency is derived from match dates and role assignments and uses the same identities as the directory. No per-player timestamps are stored.
+The transient menu path records the actual caller, stable screen key and title. Tapping the title shows the path and announces it to the screen reader. Results renders the first matching card before its adaptive Filter and Options controls and restores the prior reading position on return from details. Returning to the player directory restores that visit’s search and page. Player recency is derived from match dates and role assignments and uses the same identities as the directory. No per-player timestamps are stored.
 
 ## Diagnostic QR
 

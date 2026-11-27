@@ -9,7 +9,6 @@ final class MenuLocation {
     final MenuLocation parent;
     final String key;
     String title;
-    final int depth;
     final MenuSection section;
     String playerQuery = "";
     int playerPage;
@@ -20,7 +19,6 @@ final class MenuLocation {
         this.key = key;
         this.title = title;
         this.section = section != null ? section : parent == null ? MenuSection.CURRENT_MATCH : parent.section;
-        this.depth = parent == null ? 1 : parent.depth + 1;
     }
 
     static MenuLocation open(MenuLocation from, String key, String title, MenuSection section) {

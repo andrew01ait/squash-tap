@@ -147,19 +147,46 @@ public class MenuRevisionUiTest {
         assertBrandedHomeFits(screen);
         for(String label:new String[]{"Neue Partie","Ergebnisse","Spieler","Sportarten"}){
             Button tile=button(label);
-            android.text.Layout lines=tile.getLayout();
-            assertTrue(label,lines.getLineCount()<=(label.contains(" ")?2:1));
-            android.graphics.Rect visible=new android.graphics.Rect();assertTrue(label,tile.getGlobalVisibleRect(visible));
-            assertTrue(label,tile.getHeight()>=48*activity.getResources().getDisplayMetrics().density);
-            int[] pos=new int[2];tile.getLocationOnScreen(pos);float radius=screen.getWidth()/2f;
-            float left=pos[0]+tile.getTotalPaddingLeft();
-            float top=pos[1]+tile.getTotalPaddingTop();
-            for(int n=0;n<lines.getLineCount();n++)for(float x:new float[]{lines.getLineLeft(n),lines.getLineRight(n)})
-                for(float y:new float[]{lines.getLineTop(n),lines.getLineBottom(n)})
-                    assertTrue(label+" touches the round edge",Math.hypot(left+x-radius,top+y-radius)<radius);
+            assertInsideRound(screen,tile);
+            assertTrue(label,tile.getLayout().getLineCount()<=(label.contains(" ")?2:1));
         }
+        Button settings=button("Einstellungen");
+        assertEquals(1,settings.getLayout().getLineCount());
+        assertLabelInsideRound(screen,settings);
+        scroll().scrollTo(0,scroll().getChildAt(0).getHeight());
+        assertInsideRound(screen,settings);
+        assertEquals(1,settings.getLayout().getLineCount());
+        captureRoundScreen(screen,screen.getWidth(),"home-settings-round-192-de");
+        click("Einstellungen");back();layout();
         click("Ergebnisse");assertTrue(hasButton("Frühere Partie eintragen"));click("Zur Startseite");
         click("Neue Partie");click("Padel");assertTrue(hasButton("Partie anlegen"));
+    }
+
+    private void assertInsideRound(View screen,Button button){
+        int[] origin=new int[2],point=new int[2];
+        screen.getLocationOnScreen(origin);
+        button.getLocationOnScreen(point);
+        float x=point[0]-origin[0],y=point[1]-origin[1];
+        float radius=Math.min(screen.getWidth(),screen.getHeight())/2f;
+        String message=button.getText()+" at "+x+","+y+" size "+button.getWidth()+"×"+button.getHeight();
+        assertTrue(message,button.getWidth()>=48*activity.getResources().getDisplayMetrics().density);
+        assertTrue(message,button.getHeight()>=48*activity.getResources().getDisplayMetrics().density);
+        for(float left:new float[]{x,x+button.getWidth()})for(float top:new float[]{y,y+button.getHeight()})
+            assertTrue(message,Math.hypot(left-screen.getWidth()/2f,top-screen.getHeight()/2f)<radius);
+    }
+
+    private void assertLabelInsideRound(View screen,Button button){
+        int[] origin=new int[2],point=new int[2];
+        screen.getLocationOnScreen(origin);
+        button.getLocationOnScreen(point);
+        float radius=Math.min(screen.getWidth(),screen.getHeight())/2f;
+        float left=point[0]-origin[0]+button.getTotalPaddingLeft()-screen.getWidth()/2f;
+        float top=point[1]-origin[1]+button.getTotalPaddingTop()-screen.getHeight()/2f;
+        android.text.Layout text=button.getLayout();
+        for(int n=0;n<text.getLineCount();n++)
+            for(float x:new float[]{text.getLineLeft(n),text.getLineRight(n)})
+                for(float y:new float[]{text.getLineTop(n),text.getLineBottom(n)})
+                    assertTrue(button.getText()+" at "+(left+x)+", "+(top+y),Math.hypot(left+x,top+y)<radius);
     }
 
     private void assertBrandedHomeFits(View screen){
@@ -184,7 +211,14 @@ public class MenuRevisionUiTest {
         preferences.edit().putString(WatchLanguage.PREFERENCE,"de").commit();mainLaunch();layout();
         View screen=dialog().getWindow().getDecorView();
         captureRoundScreen(screen,screen.getWidth(),"home-brand-round-192-de-large");assertBrandedHomeFits(screen);
-        assertTrue(has("Startseite"));click("Ergebnisse");assertEquals(MenuSection.RESULTS,location().section);
+        View header=menuPathControl();
+        header.performClick();
+        assertTrue(all().stream().anyMatch(v->v instanceof TextView && v.getVisibility()==View.VISIBLE
+                && "Startseite".contentEquals(((TextView)v).getText())));
+        header.performClick();
+        scroll().scrollTo(0,scroll().getChildAt(0).getHeight());
+        assertInsideRound(screen,button("Einstellungen"));
+        click("Ergebnisse");assertEquals(MenuSection.RESULTS,location().section);
     }
 
     @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) @Config(qualifiers="w192dp-h192dp-round-xhdpi")
@@ -200,17 +234,15 @@ public class MenuRevisionUiTest {
         assertEquals(original,book().encode());
     }
 
-    @Test public void depthTracksTheActualEntryAndBackIncludingPagesWithTheSameTitleAsAPlayer(){
+    @Test public void pathTracksTheActualEntryAndBackIncludingPagesWithTheSameTitleAsAPlayer(){
         close();OpponentDirectory d=OpponentDirectory.decode(preferences.getString("opponent_book",""));d.add("Settings");
         preferences.edit().putString("opponent_book",d.encode()).commit();launch();activity.showSports();
-        assertEquals(1,location().depth);click("Settings");assertEquals(2,location().depth);back();
-        click("Squash");assertEquals(2,location().depth);click("Settings");assertEquals(3,location().depth);
-        assertEquals("Choose sport › Squash › Settings",location().path(s->s));
-        for(View v:all())if(v.getContentDescription()!=null&&v.getContentDescription().toString().endsWith("Show menu path")){v.performClick();break;}
-        boolean pathVisible=false;for(View v:all())if(v instanceof TextView&&"Choose sport › Squash › Settings".contentEquals(((TextView)v).getText())&&v.getVisibility()==View.VISIBLE)pathVisible=true;
-        assertTrue(pathVisible);click("Language · English");assertEquals(4,location().depth);assertEquals(MenuSection.SETTINGS,location().section);
-        click("Back to Settings");assertEquals(3,location().depth);back();click("Players");click("Settings");
-        assertEquals(4,location().depth);assertEquals(MenuSection.PLAYERS,location().section);assertTrue(hasButton("Rename"));back();assertEquals(3,location().depth);
+        assertMenuPath("Choose sport");click("Settings");assertMenuPath("Choose sport › Settings");back();
+        click("Squash");assertMenuPath("Choose sport › Squash");click("Settings");assertMenuPath("Choose sport › Squash › Settings");
+        click("Language · English");assertMenuPath("Choose sport › Squash › Settings › Language");assertEquals(MenuSection.SETTINGS,location().section);
+        click("Back to Settings");assertMenuPath("Choose sport › Squash › Settings");back();click("Players");click("Settings");
+        assertMenuPath("Choose sport › Squash › Players › Settings");assertEquals(MenuSection.PLAYERS,location().section);
+        assertTrue(hasButton("Rename"));back();assertMenuPath("Choose sport › Squash › Players");
     }
 
     @Test @Config(qualifiers="w192dp-h192dp-round-xhdpi") public void finishedResultOffersVisibleNewMatchFirstAndRetainsTheSavedResultOnCancel(){
@@ -368,6 +400,45 @@ public class MenuRevisionUiTest {
         }
         click("Optionen");assertTrue(hasButton("Frühere Partie eintragen"));
     }
+
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) @Config(qualifiers="w192dp-h192dp-round-xhdpi")
+    public void badmintonResultToolsFitInsideTheRoundScreenWhenScrolledIntoView() throws Exception{
+        close();RuntimeEnvironment.setFontScale(1.3f);
+        MatchBook matches=new MatchBook(new MatchState("idle-badminton",3,MatchFormat.defaults("badminton")));
+        for(int day=1;day<=3;day++){
+            MatchState score=new MatchState("badminton-"+day,3,MatchFormat.defaults("badminton"));
+            score.enterCompletedSet(21,18);score.enterCompletedSet(21,16);
+            matches.importResult(MatchResult.from(score,"2026-11-0"+day,day));
+        }
+        saveFixture(matches);
+        preferences.edit().putString(WatchLanguage.PREFERENCE,"de").putString("selected_sport","badminton").commit();
+        mainLaunch();click("Ergebnisse");layout();
+        View screen=dialog().getWindow().getDecorView();
+        Button filter=button("Filter"),options=button("Optionen");
+        assertTrue(all().indexOf(historyCards().get(0))<all().indexOf(filter));
+        View tools=(View)filter.getParent();
+        int[] position=new int[2],window=new int[2];
+        tools.getLocationOnScreen(position);screen.getLocationOnScreen(window);
+        scroll().scrollTo(0,position[1]-window[1]+tools.getHeight()/2-screen.getHeight()/2);
+        assertInsideRound(screen,filter);assertInsideRound(screen,options);
+        assertEquals(1,filter.getLayout().getLineCount());assertEquals(1,options.getLayout().getLineCount());
+        captureRoundScreen(screen,screen.getWidth(),"badminton-result-tools-round-192-de");
+        click("Filter");back();layout();assertInsideRound(dialog().getWindow().getDecorView(),button("Filter"));
+        click("Optionen");assertTrue(hasButton("Frühere Partie eintragen"));
+    }
+
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) @Config(qualifiers="w192dp-h192dp-round-xhdpi")
+    public void openGermanMenuPathShowsItsRouteOnTheRoundDisplay() throws Exception{
+        close();saveFixture(new MatchBook(new MatchState("idle-path",3)));
+        preferences.edit().putString(WatchLanguage.PREFERENCE,"de").commit();
+        mainLaunch();click("Sportarten");click("Einstellungen");
+        menuPathControl().performClick();layout();
+        View screen=dialog().getWindow().getDecorView();
+        String path="Startseite › Sportart wählen › Einstellungen";
+        assertTrue(all().stream().anyMatch(v->v instanceof TextView && v.getVisibility()==View.VISIBLE
+                && path.contentEquals(((TextView)v).getText())));
+        captureRoundScreen(screen,screen.getWidth(),"watch-menu-path-round-192-de");
+    }
     @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) @Config(qualifiers="w180dp-h180dp-round-xhdpi")
     public void historyToolsStackWhenTheTwoLabelsDoNotFitAtLargeType(){
         RuntimeEnvironment.setFontScale(1.8f);
@@ -380,36 +451,35 @@ public class MenuRevisionUiTest {
         assertTrue(filters.getWidth()>=48*activity.getResources().getDisplayMetrics().density);
         click("Optionen");assertTrue(hasButton("Frühere Partie eintragen"));
     }
-    @Test public void horizontalBarsRepresentEveryLevelAndOnlyTheHeaderSpeaksTheNumber(){
-        readyTransfer();activity.showSports();assertDepthBars(1);
-        click("Squash");click("Results (17)");assertDepthBars(3);
-        click("Options");click("Import CSV");assertDepthBars(5);
+    @Test public void nestedMenuDisclosesItsPathWhileQrShowsTheCode(){
+        readyTransfer();activity.showSports();
+        click("Squash");click("Results (17)");assertMenuPath("Choose sport › Squash › Results");
+        click("Options");click("Import CSV");
+        String transfer=location().path(activity::tr);
+        assertTrue(transfer.startsWith("Choose sport › Squash › Results › Result options › "));
+        assertMenuPath(transfer);
         click("Show phone QR");
-        assertEquals(6,location().depth);
-        for(View view:all())assertFalse(String.valueOf(view.getContentDescription()).contains("Level 6"));
-        back();assertDepthBars(5);
+        for(View view:all())assertFalse(String.valueOf(view.getContentDescription()).endsWith("Show menu path"));
+        back();assertMenuPath(transfer);
     }
-    private void assertDepthBars(int depth){
-        assertEquals(depth,location().depth);
-        String level="Level "+depth;
-        LinearLayout indicator=null;
-        for(View v:all())if(v instanceof LinearLayout && level.contentEquals(v.getContentDescription()==null?"":v.getContentDescription()))
-            indicator=(LinearLayout)v;
-        assertNotNull(indicator);
-        assertEquals(LinearLayout.VERTICAL,indicator.getOrientation());
-        assertEquals(depth,indicator.getChildCount());
-        for(int n=0;n<depth;n++){
-            View bar=indicator.getChildAt(n);
-            assertFalse(bar instanceof TextView);
-            LinearLayout.LayoutParams p=(LinearLayout.LayoutParams)bar.getLayoutParams();
-            assertTrue(p.width>p.height && p.height>0);
-            if(n>0)assertTrue(p.topMargin>0);
-        }
-        assertEquals(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS,indicator.getImportantForAccessibility());
-        View header=(View)indicator.getParent().getParent();
-        assertTrue(header.getContentDescription().toString().contains(level+"."));
-        for(View v:all(header))if(v instanceof TextView)
-            assertFalse(String.valueOf(depth).contentEquals(((TextView)v).getText()));
+
+    private View menuPathControl(){
+        return all().stream().filter(v->String.valueOf(v.getContentDescription()).endsWith(activity.tr("Show menu path")))
+                .findFirst().orElseThrow(()->new AssertionError("Missing menu path control"));
+    }
+
+    private void assertMenuPath(String path){
+        assertEquals(path,location().path(activity::tr));
+        View header=menuPathControl();
+        assertFalse(header.getContentDescription().toString().matches(".*Level [0-9]+.*"));
+        if(header instanceof LinearLayout)assertTrue(((LinearLayout)header).getChildCount()<=3);
+        TextView trail=(TextView)all(header).stream().filter(v->v instanceof TextView && path.contentEquals(((TextView)v).getText())
+                && v.getVisibility()==View.GONE).findFirst().orElseThrow(()->new AssertionError("Missing collapsed menu path"));
+        header.performClick();
+        assertEquals(View.VISIBLE,trail.getVisibility());
+        assertTrue(header.getContentDescription().toString().contains(path));
+        header.performClick();
+        assertEquals(View.GONE,trail.getVisibility());
     }
     @Test public void emptyHistoryOffersEntryAndFilteredEmptyOffersReset(){
         close();

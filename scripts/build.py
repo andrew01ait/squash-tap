@@ -6,8 +6,8 @@ import argparse, os, subprocess, sys, zipfile
 ROOT=Path(__file__).resolve().parents[1]
 PKG='at.andrew.squashtap'
 SITE='https://squash-tap-andrew.endruuu.chatgpt.site'
-RELEASES=((43,'0.23.4'),)
-RELEASE_NOTES='QR screens leave room for scanning. Share with watches separates pairing and connected devices. After discarding a match, back returns through sport selection to Home.'
+RELEASES=((44,'0.23.5'),)
+RELEASE_NOTES='Tap the menu title to see your path. Home tiles, Settings and the Results controls fit round watch screens better.'
 
 def run(args, env=None):
     result=subprocess.run([str(x) for x in args],cwd=ROOT,env=env,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)

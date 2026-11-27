@@ -1,4 +1,4 @@
-# Navigation and match flows — v0.23.4
+# Navigation and match flows — v0.23.5
 
 The separate Play preparation candidate retains these scoring/navigation flows. Its Settings → Check for updates opens a Google Play explanation, Open Google Play and Back to Settings. All website update/download/install/setup entry points route there in that build; a missing Store produces an actionable message and keeps the match. The public direct-APK release keeps its existing updater. See [PLAY_RELEASE.md](PLAY_RELEASE.md).
 
@@ -24,7 +24,7 @@ Players shows small vector sport badges only for associated saved results as par
 
 ## Watch menus by match stage
 
-The [interactive menu map](public/watch-menus.html) lists the paths and conditional actions in English and German. The menu title and horizontal depth bars use the destination colour. Each level adds one bar. The heading announces the level to screen readers. Tap it to reveal the full path. Home → Settings shows two bars. Home → Sports → Settings shows three.
+The [interactive menu map](public/watch-menus.html) lists the paths and conditional actions in English and German. The menu title uses the destination colour. Tap the title to show the full menu path, for example Home → Choose sport → Settings. Tap it again to collapse the path.
 
 | Where you are | What to use | What Back does |
 | --- | --- | --- |
@@ -56,7 +56,7 @@ The scoreboard stays focused on Me/Opponent scoring, Undo and Next/New. Its head
 | Scoring rules | Sport presets, service guidance and limits | Olive |
 | Settings | Version, updates, screen/notification options and diagnostics | Grey |
 
-The sport Menu returns to its own current scoreboard when available; an idle sport Menu returns to Choose sport. A sport icon/name badge identifies the scope. App-wide Players/Settings and their subpages use a Keep Score badge and return to their originating Menu or sport selector. QR pages omit the depth bars to leave room for the code. Every subpage has a named Back or Cancel action. Hardware Back and native right-swipe dismissal invoke that same return. During active or resumable play, compatible subpages have a Scoreboard shortcut for the actual match sport; it changes no session state. Dialog replacement, backgrounding and ambient transitions do not act as a user Back.
+The sport Menu returns to its own current scoreboard when available; an idle sport Menu returns to Choose sport. A sport icon/name badge identifies the scope. App-wide Players/Settings and their subpages use a Keep Score badge and return to their originating Menu or sport selector. Every subpage has a named Back or Cancel action. Hardware Back and native right-swipe dismissal invoke that same return. During active or resumable play, compatible subpages have a Scoreboard shortcut for the actual match sport; it changes no session state. Dialog replacement, backgrounding and ambient transitions do not act as a user Back.
 
 ## Current match
 

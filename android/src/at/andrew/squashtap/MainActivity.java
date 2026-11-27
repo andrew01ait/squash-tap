@@ -919,7 +919,11 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
             if(page>0)navigationButton(content,tr("Newer results"),()->showResultsFromTop(page-1));
             if(page+1<pages)navigationButton(content,tr("Older results"),()->showResultsFromTop(page+1));
         }
-        backButton(content,resultsReturnLabel,resultsReturn);
+        Button back=backButton(content,resultsReturnLabel,resultsReturn);
+        if(roundMenu()){
+            int width=fitMenuButton(back,roundControlWidth());
+            reserveRoundEnd(width);
+        }
     }
     private void resultTools(LinearLayout content,boolean filtered){
         LinearLayout row=ManualEntryUi.row(content);
@@ -929,11 +933,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         filters.setSelected(filtered);
         if(filtered)filters.setStateDescription(tr("Filters active"));
         options.setContentDescription(tr("Result options"));
-        int available=getResources().getDisplayMetrics().widthPixels-panelScroll.getPaddingLeft()-panelScroll.getPaddingRight();
-        float labelWidth=Math.max(filters.getPaint().measureText(filters.getText().toString()),options.getPaint().measureText(options.getText().toString()));
-        int required=Math.max(dp(48),(int)Math.ceil(labelWidth)+filters.getPaddingLeft()+filters.getPaddingRight());
-        if((available-dp(6))/2>=required)ManualEntryUi.equal(filters,options);
-        else row.setOrientation(LinearLayout.VERTICAL);
+        fitMenuPair(row,filters,options,roundControlWidth(),false);
     }
     private void showResultOptions(){
         LinearLayout content=panel("Result options",null,MenuSection.RESULTS);
@@ -1030,33 +1030,130 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         sharedArea=true;scoreMenu=false;
         scrollPositions.remove("home");
         LinearLayout content=panel("Home","home",PanelTitle.CUSTOM,MenuSection.HOME);
-        locationHeader(content,null,null);
+        LinearLayout heading=locationHeader(content,null,null,false);
         LinearLayout first=ManualEntryUi.row(content);
         Button start=newMatchButton(first,tr("New match"),this::chooseHomeSport);
         Button results=destinationButton(first,MenuSection.RESULTS,tr("Results"),()->{sharedArea=false;openResults(this::showHome,"Back to Home");});
         results.setContentDescription(tr("Results")+" · "+tr(MatchFormat.name(selectedSport)));
-        fitHomeTiles(first,start,results);
         LinearLayout second=ManualEntryUi.row(content);
         Button players=personButton(second,tr("Players"),()->openPlayers(this::showHome,"Back to Home"));
         Button sports=destinationButton(second,MenuSection.SPORTS,tr("Sports"),this::showSports);
-        fitHomeTiles(second,players,sports);
-        settingsButton(content,tr("Settings"),()->openSettings(this::showHome,"Back to Home"));
+        int width=roundControlWidth();
+        if(roundMenu()){
+            heading.measure(View.MeasureSpec.makeMeasureSpec(menuWidth(),View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0,View.MeasureSpec.UNSPECIFIED));
+            // The two initial tile rows sit between the brand and the lower curve.
+            int lastTileEdge=heading.getMeasuredHeight()+dp(2*48+4);
+            width=Math.min(menuWidth(),Math.max(width,roundWidthAt(lastTileEdge)));
+        }
+        for(Button tile:new Button[]{start,results,players,sports})centerHomeAction(tile,3);
+        fitMenuPair(first,start,results,width,true);
+        fitMenuPair(second,players,sports,width,true);
+        Button settings=settingsButton(content,tr("Settings"),()->openSettings(this::showHome,"Back to Home"));
+        centerHomeAction(settings,8);
+        int settingsWidth=fitMenuButton(settings,roundControlWidth());
+        if(roundMenu()&&first.getOrientation()==LinearLayout.HORIZONTAL&&second.getOrientation()==LinearLayout.HORIZONTAL)
+            fitHomeSettings(settings,settingsWidth,heading.getMeasuredHeight()+measureMenuRow(first)+measureMenuRow(second));
+        reserveRoundEnd(settingsWidth);
         bindBack(this::finish);
     }
 
-    private void fitHomeTiles(LinearLayout row,Button left,Button right){
-        int available=getResources().getDisplayMetrics().widthPixels-panelScroll.getPaddingLeft()-panelScroll.getPaddingRight();
-        // Allow two lines where a translated title wraps at a space, and keep each word intact.
-        float longest=0;
-        for(Button tile:new Button[]{left,right}){
-            tile.setGravity(Gravity.CENTER);
-            tile.setCompoundDrawablesRelative(null,null,null,null);
-            tile.setCompoundDrawablePadding(0);
-            tile.setPadding(dp(3),dp(4),dp(3),dp(4));
-            for(String word:tile.getText().toString().split(" "))longest=Math.max(longest,tile.getPaint().measureText(word));
+    private void centerHomeAction(Button button,int sidePadding){
+        button.setGravity(Gravity.CENTER);
+        button.setCompoundDrawablesRelative(null,null,null,null);
+        button.setCompoundDrawablePadding(0);
+        button.setPadding(dp(sidePadding),dp(4),dp(sidePadding),dp(4));
+    }
+
+    private int measureMenuRow(LinearLayout row){
+        int width=row.getLayoutParams().width;
+        row.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(0,View.MeasureSpec.UNSPECIFIED));
+        return row.getMeasuredHeight();
+    }
+
+    private void fitHomeSettings(Button settings,int width,int top){
+        int height=getResources().getDisplayMetrics().heightPixels;
+        int available=height-roundInsetForWidth(width)-top;
+        android.graphics.Paint.FontMetricsInt font=settings.getPaint().getFontMetricsInt();
+        int line=font.bottom-font.top;
+        if(available>=dp(48)||available<line)return;
+        // Fit the visible pill to the lower curve and keep a 48 dp touch target.
+        int inset=dp(48)-Math.min(dp(40),available+dp(3));
+        int left=settings.getPaddingLeft(),right=settings.getPaddingRight();
+        settings.setBackground(new android.graphics.drawable.InsetDrawable(settings.getBackground(),0,0,0,inset));
+        settings.setPadding(left,0,right,inset);
+    }
+
+    private boolean roundMenu(){return getResources().getConfiguration().isScreenRound();}
+
+    private int menuWidth(){
+        return getResources().getDisplayMetrics().widthPixels-panelScroll.getPaddingLeft()-panelScroll.getPaddingRight();
+    }
+
+    private int roundControlWidth(){
+        if(!roundMenu())return menuWidth();
+        return Math.min(menuWidth(),Math.round(getResources().getDisplayMetrics().widthPixels*.73f));
+    }
+
+    private double safeScreenRadius(){
+        android.util.DisplayMetrics screen=getResources().getDisplayMetrics();
+        return Math.min(screen.widthPixels,screen.heightPixels)/2.0-dp(2);
+    }
+
+    private int roundWidthAt(int y){
+        double radius=safeScreenRadius();
+        double offset=y-getResources().getDisplayMetrics().heightPixels/2.0;
+        return (int)(2*Math.sqrt(Math.max(0,radius*radius-offset*offset)));
+    }
+
+    private int roundInsetForWidth(float width){
+        double radius=safeScreenRadius();
+        return (int)Math.ceil(getResources().getDisplayMetrics().heightPixels/2.0-
+            Math.sqrt(Math.max(0,radius*radius-width*width/4.0)));
+    }
+
+    private void reserveRoundEnd(int visibleWidth){
+        if(!roundMenu())return;
+        panelScroll.setPadding(panelScroll.getPaddingLeft(),panelScroll.getPaddingTop(),panelScroll.getPaddingRight(),
+            Math.max(panelScroll.getPaddingBottom(),roundInsetForWidth(visibleWidth)+dp(5)));
+    }
+
+    private int buttonLabelWidth(Button button,boolean allowWrap){
+        float width=0;
+        String label=button.getText().toString();
+        for(String line:allowWrap?label.split(" "):new String[]{label})
+            width=Math.max(width,button.getPaint().measureText(line));
+        return Math.max(dp(48),(int)Math.ceil(width)+button.getCompoundPaddingLeft()+button.getCompoundPaddingRight());
+    }
+
+    private int fitMenuButton(Button button,int maximum){
+        int width=Math.min(maximum,buttonLabelWidth(button,false));
+        LinearLayout.LayoutParams position=(LinearLayout.LayoutParams)button.getLayoutParams();
+        position.width=width;
+        position.gravity=Gravity.CENTER_HORIZONTAL;
+        button.setLayoutParams(position);
+        return width;
+    }
+
+    private void fitMenuPair(LinearLayout row,Button left,Button right,int width,boolean allowWrap){
+        LinearLayout.LayoutParams position=(LinearLayout.LayoutParams)row.getLayoutParams();
+        position.width=width;
+        position.gravity=Gravity.CENTER_HORIZONTAL;
+        row.setLayoutParams(position);
+        int required=Math.max(buttonLabelWidth(left,allowWrap),buttonLabelWidth(right,allowWrap));
+        if((width-dp(6))/2<required){
+            row.setOrientation(LinearLayout.VERTICAL);
+            return;
         }
-        if((available-dp(6))/2>=Math.max(dp(48),Math.ceil(longest)+dp(6)))ManualEntryUi.equal(left,right);
-        else row.setOrientation(LinearLayout.VERTICAL);
+        ManualEntryUi.equal(left,right);
+        if(allowWrap){
+            for(Button tile:new Button[]{left,right}){
+                LinearLayout.LayoutParams tilePosition=(LinearLayout.LayoutParams)tile.getLayoutParams();
+                tilePosition.bottomMargin=dp(4);
+                tile.setLayoutParams(tilePosition);
+            }
+        }
     }
 
     private void chooseHomeSport(){
@@ -1576,13 +1673,15 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         if(BuildConfig.PLAY_DISTRIBUTION){showPlayUpdates();return;}
         LinearLayout content = panel("App updates", null, downloading ? PanelTitle.CUSTOM : PanelTitle.STANDARD);
         updatePanel = true;
-        if (downloading) panelHeading(content, tr("App updates"), true);
+        if (downloading) {
+            TextView title=panelHeading(content,tr("App updates"),true);
+            bindMenuPath(content,title,tr("App updates"));
+        }
         updateBar = (ProgressBar) getLayoutInflater().inflate(R.layout.update_progress, content, false);
         content.addView(updateBar);
         updateText = paragraph(content, "");
         renderUpdateStatus();
         if (downloading) {
-            locationHeader(content,null,null);
             backButton(content, "Back to Settings", this::showSettings);
             return;
         }
@@ -1854,13 +1953,13 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         ScrollView scroll=new ScrollView(this);scroll.setBackgroundColor(MENU_SURFACE);scroll.setClipToPadding(false);
         android.util.DisplayMetrics metrics=getResources().getDisplayMetrics();boolean round=getResources().getConfiguration().isScreenRound();
         int horizontal=round?Math.round(metrics.widthPixels*.095f):dp(12),top=round?Math.round(metrics.heightPixels*.105f):dp(14);
-        if(round&&route.equals("home"))top=Math.round(metrics.heightPixels*.05f);
+        if(round&&route.equals("home"))top=0;
         scroll.setPadding(horizontal,top,horizontal,round?Math.round(metrics.heightPixels*.14f):dp(18));
         LinearLayout content=new LinearLayout(this);content.setOrientation(LinearLayout.VERTICAL);content.setGravity(Gravity.CENTER_HORIZONTAL);
         scroll.addView(content,new ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT));
         boolean customTitle=titleKind==PanelTitle.CUSTOM;
         if(!customTitle){
-            locationHeader(content,sharedArea?null:selectedSport,titleKind==PanelTitle.PLAYER_NAME?title:tr(title));
+            locationHeader(content,sharedArea?null:selectedSport,titleKind==PanelTitle.PLAYER_NAME?title:tr(title),route.equals("results")&&round);
         }
         content.setAccessibilityPaneTitle(titleKind==PanelTitle.PLAYER_NAME?title:tr(title));
         panelShortcut=!customTitle&&(titleKind==PanelTitle.PLAYER_NAME||!title.equals("Menu")&&!title.equals("Choose sport")&&!title.endsWith("?"))&&book.current().format().sport.equals(selectedSport)&&(sessionOngoing()||needsResume());
@@ -1894,7 +1993,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         ImageView logo=new ImageView(this);
         logo.setImageResource(R.drawable.ic_launcher);
         logo.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-        brand.addView(logo,new LinearLayout.LayoutParams(dp(24),dp(24)));
+        brand.addView(logo,new LinearLayout.LayoutParams(dp(20),dp(20)));
 
         TextView name=new TextView(this);
         name.setText(R.string.app_name);
@@ -1904,66 +2003,44 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         name.setPadding(dp(3),0,0,0);
         brand.addView(name,new LinearLayout.LayoutParams(-2,-2));
 
-        if(getResources().getConfiguration().isScreenRound()){
-            float radius=getResources().getDisplayMetrics().widthPixels/2f;
+        if(roundMenu()){
             float labelWidth=name.getPaint().measureText(name.getText().toString());
-            float width=dp(24)+name.getPaddingLeft()+labelWidth;
-            int side=panelScroll.getPaddingLeft();
-            if(width>2*(radius-side)){
+            float width=dp(20)+name.getPaddingLeft()+labelWidth;
+            if(width>menuWidth()){
                 brand.setOrientation(LinearLayout.VERTICAL);
                 name.setPadding(0,0,0,0);
-                width=Math.min(labelWidth,2*(radius-side));
+                width=Math.min(labelWidth,menuWidth());
             }
             // At this inset the circle is wide enough for both ends of the wordmark.
-            float half=width/2f;
-            int safeTop=(int)Math.ceil(radius-Math.sqrt(Math.max(0,radius*radius-half*half)))+dp(2);
-            panelScroll.setPadding(side,Math.max(panelScroll.getPaddingTop(),safeTop),panelScroll.getPaddingRight(),panelScroll.getPaddingBottom());
+            brand.setPadding(0,roundInsetForWidth(width),0,dp(3));
         }
     }
-    private void locationHeader(LinearLayout content,String sport,String title){
-        final MenuLocation here=location;
+    private LinearLayout locationHeader(LinearLayout content,String sport,String title,boolean compact){
         LinearLayout header=new LinearLayout(this);
         header.setOrientation(LinearLayout.VERTICAL);header.setGravity(Gravity.CENTER);
-        header.setMinimumHeight(dp(48));header.setFocusable(true);
+        header.setMinimumHeight(dp(48));
         content.addView(header,new LinearLayout.LayoutParams(-1,-2));
-        LinearLayout strip=new LinearLayout(this);strip.setGravity(Gravity.CENTER);
-        boolean homeHeader=here.key.equals("home");
-        if(homeHeader)addHomeBrand(header);
-        header.addView(strip,new LinearLayout.LayoutParams(-1,-2));
-        if(title!=null)sportBadge(strip,sport);
-        else if(homeHeader){
-            TextView home=panelHeading(strip,tr("Home"),true);
-            home.setLayoutParams(new LinearLayout.LayoutParams(-2,-2));
-            home.setTextSize(11);home.setPadding(0,0,0,0);
+        if(title==null){
+            addHomeBrand(header);
+            title=getString(R.string.app_name)+". "+tr("Home");
+        }else{
+            sportBadge(header,sport);
+            panelHeading(header,title,compact);
         }
-        String level=ui.format("Level {0}","Ebene {0}","Niveau {0}","Nivel {0}",here.depth);
-        LinearLayout indicator=new LinearLayout(this);
-        indicator.setOrientation(LinearLayout.VERTICAL);
-        indicator.setGravity(Gravity.CENTER);
-        indicator.setPadding(dp(6),0,0,0);
-        strip.addView(indicator);
-        for(int i=0;i<here.depth;i++){
-            View bar=new View(this);
-            GradientDrawable ink=new GradientDrawable();
-            ink.setCornerRadius(dp(1));ink.setColor(here.section.accent);
-            bar.setBackground(ink);
-            LinearLayout.LayoutParams size=new LinearLayout.LayoutParams(dp(12),dp(2));
-            if(i>0)size.topMargin=dp(2);
-            indicator.addView(bar,size);
-        }
-        indicator.setContentDescription(level);
-        indicator.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
-        if(title!=null)panelHeading(header,title,false);
-        String path=here.path(this::tr);
-        TextView trail=paragraph(header,path);
+        bindMenuPath(header,header,title);
+        return header;
+    }
+    private void bindMenuPath(LinearLayout content,View heading,String title){
+        String path=location.path(this::tr);
+        TextView trail=paragraph(content,path);
         trail.setTextSize(12);trail.setVisibility(View.GONE);
-        String spokenTitle=(homeHeader?getString(R.string.app_name)+". ":"")+(title==null?tr(here.title):title)+". ";
-        header.setContentDescription(spokenTitle+level+". "+tr("Show menu path"));
-        header.setOnClickListener(v->{
+        heading.setFocusable(true);
+        heading.setContentDescription(title+". "+tr("Show menu path"));
+        heading.setOnClickListener(v->{
             boolean reveal=trail.getVisibility()!=View.VISIBLE;
             trail.setVisibility(reveal?View.VISIBLE:View.GONE);
-            header.setContentDescription(spokenTitle+level+". "+(reveal?path+". "+tr("Hide menu path"):tr("Show menu path")));
-            if(reveal)header.announceForAccessibility(path);
+            heading.setContentDescription(title+". "+(reveal?path+". "+tr("Hide menu path"):tr("Show menu path")));
+            if(reveal)heading.announceForAccessibility(path);
         });
     }
     private void trackPanelDismiss(){

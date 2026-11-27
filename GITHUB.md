@@ -1,6 +1,6 @@
 # Keep Score on GitHub
 
-The official watch release is **0.23.4 (43)**. Its public source includes the four-language About me screen, the illustrated website, the voluntary Buy Me a Coffee and PayPal options, and the imprint. Published app and website changes are mirrored together in the [GitHub review branch](https://github.com/andrew01ait/squash-tap/pull/1). The same source is available as a [ZIP download](https://squash-tap-andrew.endruuu.chatgpt.site/KeepScore-source.zip).
+The official watch release is **0.23.5 (44)**. Its public source includes the round-display controls, tappable menu paths and the illustrated watch menu guide. Published app and website changes are mirrored together in the [GitHub review branch](https://github.com/andrew01ait/squash-tap/pull/1). The same source is available as a [ZIP download](https://squash-tap-andrew.endruuu.chatgpt.site/KeepScore-source.zip).
 
 ## Finding the source
 

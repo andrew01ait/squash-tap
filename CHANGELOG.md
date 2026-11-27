@@ -1,5 +1,10 @@
 # Releases
 
+## v0.23.5 · 2026-11-27 · direct APK code 44
+
+- Tap the watch menu title to show or hide the current path. The depth bars are gone.
+- Home tiles, Settings and the result Filter and Options controls have more room at the edges of round displays. Controls stack when the labels need more width.
+
 ## v0.23.4 · 2026-11-27 · direct APK code 43
 
 - QR screens show the code and its instructions without the menu depth indicator.
