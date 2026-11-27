@@ -6,4 +6,16 @@ public class BackupArchiveTest {
     @Test public void untrustedSettingsAndSessionCredentialsCannotEnterBackup(){Map<String,String> s=new HashMap<>();s.put("active_match_id","secret-session");assertThrows(IllegalArgumentException.class,()->BackupArchive.create(new MatchBook(new MatchState("empty",3)),new OpponentDirectory(),s));}
     @Test public void invalidPresetsAndPreparedIdentityAreRejected(){Map<String,String> s=new HashMap<>();s.put("favourite_formats","corrupt");assertThrows(IllegalArgumentException.class,()->BackupArchive.create(new MatchBook(new MatchState("empty",3)),new OpponentDirectory(),s));s.clear();s.put("match_ready_id","another-match");assertThrows(IllegalArgumentException.class,()->BackupArchive.create(new MatchBook(new MatchState("empty",3)),new OpponentDirectory(),s));}
     @Test public void everySportAndPreferenceCanBeBackedUpTogether(){Map<String,String> s=new TreeMap<>();for(String sport:MatchFormat.SPORTS){s.put("last_format_"+sport,MatchFormat.defaults(sport).encode());s.put("last_best_"+sport,"3");}s.put("haptic_mode","milestones");s.put("match_reminders","true");String j=BackupArchive.create(new MatchBook(new MatchState("empty",3)),new OpponentDirectory(),s);assertEquals(s,BackupArchive.parse(j).settings);}
+    @Test public void fullBackupIncludesActiveAndSavedNotes(){
+        MatchBook b=new MatchBook(new MatchState("active",3));
+        b.importResult(new MatchResult("record","2026-11-05",1,3,new int[][]{{11,6},{11,8}}));
+        MatchNotes active=new MatchNotes("Try a shorter serve","","");
+        MatchNotes saved=new MatchNotes("First round","Club Nord","Tuesday tournament");
+        b.setNotes("active",active);
+        b.setNotes("record",saved);
+        BackupArchive backup=BackupArchive.parse(BackupArchive.create(b,new OpponentDirectory(),Collections.emptyMap()));
+        assertEquals(active,backup.book.notes("active"));
+        assertEquals(saved,backup.book.notes("record"));
+        assertEquals(b.encode(),backup.book.encode());
+    }
 }

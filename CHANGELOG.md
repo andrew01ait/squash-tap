@@ -1,5 +1,10 @@
 # Releases
 
+## v0.23.12 · 2026-11-27 · direct APK code 51
+
+- Add optional personal notes, opposing club or team, and one event or league to the current match or a saved result.
+- Edit notes for saved matches in the private phone journal and confirm the changes on the watch. Full backups carry the notes.
+
 ## v0.23.11 · 2026-11-27 · direct APK code 50
 
 - Home greets the watch owner by first name above the tiles.

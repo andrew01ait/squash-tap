@@ -5,9 +5,9 @@ import {mountLanguage,language} from './locale.mjs';
 import {validateBackup,datedFile} from './backup.mjs?v=0.16.0';
 import {SPORTS,sportMarkup,rowSport} from './sports.mjs?v=0.16.3';
 import {open,seal,name,parseCsv,writeCsv,HEADER,statistics,localDate,rowWinner} from './interchange.mjs?v=0.16.0';
-import {addName,incomingPayload,checkRetirementSupport,initialView,filteredRows,sportsByPlayer,inScope,filterPlayers,recentPlayerRanks,playersInLast30Days} from './transfer-state.mjs?v=4';
+import {addName,incomingPayload,checkRetirementSupport,initialView,filteredRows,sportsByPlayer,inScope,filterPlayers,recentPlayerRanks,playersInLast30Days,EMPTY_MATCH_NOTES,normalizeMatchNotes,sameMatchNotes,notesFromSnapshot,matchNoteEdits} from './transfer-state.mjs?v=5';
 import {newest,resultCard,shortRecord,renderStatistics,orderedSports,node} from './transfer-view.mjs?v=6';
-import {tx,errorText,sportText,momentText} from './transfer-copy.mjs?v=7';
+import {tx,errorText,sportText,momentText} from './transfer-copy.mjs?v=8';
 
 const $=id=>document.getElementById(id);
 const PAGE_SIZE=25;
@@ -21,6 +21,9 @@ let importCsv='', importRows=[], restoreBackup='', restoreDate=null, sent=false,
 let myName='', invalidOwnName=false, current='', changeCurrent=false, editPerson=null, editValue='';
 let notice=['On your watch, open Results → Options → View results on phone, or Players → Edit names on phone. Scan the QR code.'], error=false;
 const originals=new Map(),pendingResults=new Map();
+let originalNotes=new Map(),noteMatchId=null;
+const pendingNotes=new Map(),noteDialog=$('notes-editor');
+const noteFields={text:$('notes-text'),team:$('notes-team'),event:$('notes-event')};
 let recentRanks=new Map();
 const editor=mountResultEditor($('result-editor'),row=>{
   if(!link||!snapshot||Date.now()>=expiry||sent||sending)throw Error('This transfer has expired. Scan a new QR code on your watch.');
@@ -81,6 +84,44 @@ function exportNames(row) {
   for(const index of row[0]==='3'?[4,32,34]:[4]) if(copy[index]) copy[index+1]=playerName(copy[index],copy[index+1]);
   return copy;
 }
+function notesForMatch(id) {
+  return pendingNotes.get(id)||originalNotes.get(id)||EMPTY_MATCH_NOTES;
+}
+function reopenResult(id) {
+  for(const detail of document.querySelectorAll('details.result'))
+    if(detail.dataset.matchId===id){detail.open=true;break;}
+}
+function openNotesEditor(id) {
+  const notes=notesForMatch(id);
+  noteMatchId=id;
+  for(const [key,input] of Object.entries(noteFields)) input.value=notes[key];
+  $('notes-error').hidden=true;
+  noteDialog.showModal();$('notes-title').focus();
+}
+function renderMatchNotes(card,actions,id) {
+  const notes=notesForMatch(id);
+  const present=!sameMatchNotes(notes,EMPTY_MATCH_NOTES);
+  if(notes.event) card.querySelector('.match-meta').append(node('span',notes.event,'match-event'));
+  if(present){
+    const details=node('dl',undefined,'match-note-details');
+    for(const [key,label] of [['event','Event or league'],['team',"Opponent's club or team"],['text','Note']]){
+      if(!notes[key]) continue;
+      const field=node('div');
+      field.append(node('dt',tx(label)),node('dd',notes[key]));
+      details.append(field);
+    }
+    actions.before(details);
+  }
+  if(!sent&&!sending&&snapshot.matchNotes!==undefined&&originals.has(id)){
+    const edit=node('button',tx(present?'Edit match notes':'Add match notes'),'secondary');
+    edit.type='button';edit.onclick=()=>openNotesEditor(id);actions.prepend(edit);
+    if(pendingNotes.has(id)){
+      const discard=node('button',tx('Discard note edit'),'quiet');discard.type='button';
+      discard.onclick=()=>{pendingNotes.delete(id);renderResults(false);reopenResult(id);renderDraft();};
+      actions.append(discard);
+    }
+  }
+}
 function renderResults(reset=true) {
   const f=filters(),list=$('result-list'),context=contextRows(),active=[f.id!=='*',Boolean(f.id!=='*'&&f.role!=='all'),f.outcome!=='all',!!f.from,!!f.to,$('mode-select').value!=='all'].filter(Boolean).length;
   $('role-field').hidden=f.id==='*';
@@ -116,7 +157,8 @@ function renderResults(reset=true) {
         undo.onclick=()=>{pendingResults.delete(id);refreshEntries();};actions.append(undo);
       }
     }
-    if(pendingResults.has(id)&&!sent)card.querySelector('.match-meta').append(node('span',tx('Staged'),'entry-queued'));
+    renderMatchNotes(card,actions,id);
+    if((pendingResults.has(id)||pendingNotes.has(id))&&!sent)card.querySelector('.match-meta').append(node('span',tx('Staged'),'entry-queued'));
     group.append(card);
   }
   if(!selected.length) list.append(node('p',tx(rows.length?'No matches fit these filters.':'No saved matches in this transfer.'),'empty'));
@@ -148,12 +190,12 @@ function stagedNames() {
 }
 function renderDraft() {
   if(!snapshot) return;
-  const names=stagedNames(),modified=!!(names||importCsv||pendingResults.size),renaming=unfinishedRename();
+  const names=stagedNames(),modified=!!(names||importCsv||pendingResults.size||pendingNotes.size),renaming=unfinishedRename();
   const sendBar=$('send-changes');
   sendBar.hidden=tabId==='backup'||(!(tabId==='opponents'||tabId==='import')&&!modified&&!renaming&&!sent);
   sendBar.classList.toggle('pending',(modified||renaming)&&!sent);
   const conflictingOpponent=changeCurrent&&pendingResults.has(snapshot.currentMatchId)&&pendingResults.get(snapshot.currentMatchId)[4]!==current;
-  const edits=[pendingResults.size?tx('Results ready to send: {0}',pendingResults.size):'',names?tx('These names or assignments have been edited.'):'',importCsv?tx('CSV results ready to send: {0}',importRows.length):''].filter(Boolean).join(' ');
+  const edits=[pendingResults.size?tx('Results ready to send: {0}',pendingResults.size):'',pendingNotes.size?tx('Match notes ready to send: {0}',pendingNotes.size):'',names?tx('These names or assignments have been edited.'):'',importCsv?tx('CSV results ready to send: {0}',importRows.length):''].filter(Boolean).join(' ');
   $('changes').textContent=sent?tx('Changes sent.'):renaming?tx('Save or cancel the open name edit before sending.'):conflictingOpponent?tx('Choose the same opponent in Players and in the edited result.'):edits||tx('No changes prepared.');
   $('send').textContent=tx(renaming?'Review name':'Send changes');
   $('send').disabled=sent||sending||!renaming&&(!modified||invalidOwnName||conflictingOpponent);
@@ -294,6 +336,8 @@ async function api(path,options={}) {
 }
 function expire(){
   editor.close();originals.clear();pendingResults.clear();link=null;snapshot=null;catalog=[];rows=[];directory.clear();sportsIndex.clear();restoreBackup='';restoreDate=null;
+  if(noteDialog.open) noteDialog.close();
+  originalNotes.clear();pendingNotes.clear();noteMatchId=null;$('notes-form').reset();
   myName='';editPerson=null;editValue='';importCsv='';importRows=[];current='';changeCurrent=false;expiry=0;
   $('workspace').replaceChildren();$('workspace').hidden=true;$('expiry').hidden=true;renderHeading();
   setNotice('This transfer has expired. Scan a new QR code on your watch.');
@@ -306,6 +350,7 @@ async function sendIncoming(backup=false) {
     const batch=entryChanges(pendingResults,originals,importRows);
     const payload=backup?{schema:1,sessionId:session.id,baseDirectory:snapshot.baseDirectory,currentMatchId:snapshot.currentMatchId,restoreBackup}:incomingPayload({snapshot,catalog,current,changeCurrent,csv:batch.csv||importCsv,sessionId:session.id,myName});
     if(!backup&&batch.edits)payload.resultEdits=batch.edits;
+    if(!backup&&pendingNotes.size)payload.matchNoteEdits=matchNoteEdits(originalNotes,pendingNotes);
     const cipher=await seal(session.id,'in',session.key,JSON.stringify(payload),undefined,backup);
     if(link!==session) return;
     await api('/incoming',{method:'POST',body:JSON.stringify({cipher})});
@@ -316,6 +361,22 @@ async function sendIncoming(backup=false) {
   finally {sending=false;if(link===session){renderDraft();renderPeople();renderResults(false);}}
 }
 $('add-result').addEventListener('click',()=>openEntry());
+$('notes-cancel').addEventListener('click',()=>noteDialog.close());
+noteDialog.addEventListener('close',()=>{noteMatchId=null;$('notes-form').reset();});
+$('notes-form').addEventListener('submit',event=>{
+  event.preventDefault();
+  const id=noteMatchId;
+  if(!snapshot||!originals.has(id)||sent||sending||Date.now()>=expiry)return;
+  try {
+    const notes=normalizeMatchNotes(Object.fromEntries(Object.entries(noteFields).map(([key,input])=>[key,input.value])));
+    if(sameMatchNotes(notes,originalNotes.get(id)||EMPTY_MATCH_NOTES)) pendingNotes.delete(id);
+    else pendingNotes.set(id,notes);
+    noteDialog.close();renderResults(false);reopenResult(id);renderDraft();
+  } catch(err){
+    const message=$('notes-error');
+    message.hidden=false;message.textContent=errorText(err);
+  }
+});
 for(const b of document.querySelectorAll('[data-tab]')) b.addEventListener('click',()=>showTab(b.dataset.tab));
 document.addEventListener('click',ev=>{
   const tools=$('journal-tools');if(tools?.open&&!tools.contains(ev.target))tools.open=false;
@@ -412,6 +473,7 @@ async function initialize(){
     if(incoming.schema!==1||incoming.sessionId!==link.id||!Array.isArray(incoming.opponents)||incoming.opponents.length>1000||!Number.isFinite(data.expiresAt))throw Error('unsupported');
     const names=incoming.opponents.map(e=>({...e,name:name(e.name),archived:!!e.archived})),matches=parseCsv(incoming.csv);
     if(data.expiresAt<=Date.now()){expire();return;}
+    originalNotes=notesFromSnapshot(incoming.matchNotes,new Set(matches.map(row=>row[1])));
     for(const row of matches)originals.set(row[1],row);
     snapshot=incoming;expiry=data.expiresAt;catalog=names;rows=matches;sportsIndex=sportsByPlayer(rows);recentRanks=recentPlayerRanks(rows);current=snapshot.currentOpponentId||'';
     myName=snapshot.myName||'';$('my-name').value=myName;$('my-initial').textContent=initials(myName)||'●';

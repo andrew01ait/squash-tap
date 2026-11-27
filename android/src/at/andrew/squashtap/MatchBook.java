@@ -9,12 +9,16 @@ import java.util.*;
 /** One atomic persistence unit: active match, immutable results and daily numbering. */
 public final class MatchBook {
     public static final int MAX_RESULTS=10000;
+    private static final int MAX_BOOK_SIZE=5_000_000;
+    private static final int MAX_NOTES_BYTES=512*1024;
+    static final int MAX_ENCODED_SIZE=MAX_BOOK_SIZE+4*((MAX_NOTES_BYTES+4)/3+1);
     private MatchState current;
     private final Clock clock;
     private long startedAt,finishedAt;
     private String zoneId="";
     private boolean timingEligible;
     private final LinkedHashMap<String,MatchResult> results=new LinkedHashMap<>();
+    private final LinkedHashMap<String,MatchNotes> notes=new LinkedHashMap<>();
     private final TreeMap<String,Integer> dailyNumbers=new TreeMap<>();
     private String completionDate="";
     private int completionNumber;
@@ -28,6 +32,18 @@ public final class MatchBook {
     public MatchState current(){return current;}
     public int count(){return results.size();}
     public MatchResult result(String id){return results.get(id);}
+    public boolean canAnnotate(String id){return results.containsKey(id)||current.id().equals(id)&&!deletedCurrent;}
+    public MatchNotes notes(String id){return notes.getOrDefault(id,MatchNotes.EMPTY);}
+    public void setNotes(String id,MatchNotes value){
+        if(!canAnnotate(id))throw new IllegalArgumentException("This match is no longer available.");
+        if(value.isEmpty()){notes.remove(id);return;}
+        int bytes=4+noteBytes(id,value);
+        for(Map.Entry<String,MatchNotes> e:notes.entrySet())
+            if(!e.getKey().equals(id))bytes+=noteBytes(e.getKey(),e.getValue());
+        if(bytes>MAX_NOTES_BYTES)throw new IllegalArgumentException("Match notes storage is full.");
+        notes.put(id,value);
+    }
+    private static int noteBytes(String id,MatchNotes value){return 2+id.length()+value.storageEstimate();}
     public List<MatchResult> newestFirst(){List<MatchResult> list=new ArrayList<>(results.values());Collections.reverse(list);return Collections.unmodifiableList(list);}
     public boolean currentDeleted(){return deletedCurrent;}
     public boolean add(int player){Instant now=clock.instant();return addAt(player,now.atZone(clock.getZone()).toLocalDate(),now);}
@@ -91,15 +107,21 @@ public final class MatchBook {
     public void newMatch(String id,int bestOf,MatchFormat format){
         if(id.equals(current.id())||results.containsKey(id))throw new IllegalArgumentException("Match identifier already used");
         MatchState replacement=new MatchState(id,bestOf,format);
+        if(!results.containsKey(current.id()))notes.remove(current.id());
         current=replacement;completionDate="";completionNumber=0;deletedCurrent=false;startedAt=0;finishedAt=0;zoneId="";timingEligible=true;
     }
     public boolean delete(String id){
         MatchResult removed=results.remove(id);
         if(removed==null)return false;
+        notes.remove(id);
         if(id.equals(current.id()))deletedCurrent=true;
         return true;
     }
-    public void deleteAll(){results.clear();if(!completionDate.isEmpty())deletedCurrent=true;}
+    public void deleteAll(){
+        results.clear();
+        if(!completionDate.isEmpty())deletedCurrent=true;
+        notes.keySet().removeIf(id->!canAnnotate(id));
+    }
     /** Merge a foreign completed result without touching the current match or reusing a reference. */
     public MatchResult importResult(MatchResult result){
         if(result.id.equals(current.id())||results.containsKey(result.id))throw new IllegalArgumentException("Match ID already exists");
@@ -140,19 +162,35 @@ public final class MatchBook {
             ByteArrayOutputStream bytes=new ByteArrayOutputStream();DataOutputStream out=new DataOutputStream(bytes);
             String currentState=current.encode();
             boolean multi=currentState.startsWith("M4|")||currentState.startsWith("M5|");for(MatchResult result:results.values())if(!result.format.legacy())multi=true;
+            boolean annotated=!notes.isEmpty();
+            if(annotated)out.writeBoolean(multi);
             if(multi){byte[] state=currentState.getBytes(java.nio.charset.StandardCharsets.UTF_8);out.writeInt(state.length);out.write(state);}else out.writeUTF(currentState);out.writeUTF(completionDate);out.writeInt(completionNumber);out.writeBoolean(deletedCurrent);
             out.writeLong(startedAt);out.writeLong(finishedAt);out.writeUTF(zoneId);out.writeBoolean(timingEligible);
             out.writeInt(dailyNumbers.size());for(Map.Entry<String,Integer> entry:dailyNumbers.entrySet()){out.writeUTF(entry.getKey());out.writeInt(entry.getValue());}
-            out.writeInt(results.size());for(MatchResult result:results.values()){if(multi)result.writeExtended(out);else result.write(out);}out.flush();
-            return (multi?"B5:":"B4:")+Base64.getEncoder().encodeToString(bytes.toByteArray());
+            out.writeInt(results.size());for(MatchResult result:results.values()){if(multi)result.writeExtended(out);else result.write(out);}
+            if(annotated){
+                out.writeInt(notes.size());
+                for(Map.Entry<String,MatchNotes> entry:notes.entrySet()){
+                    out.writeUTF(entry.getKey());
+                    entry.getValue().write(out);
+                }
+            }
+            out.flush();
+            String prefix=annotated?"B6:":multi?"B5:":"B4:";
+            return prefix+Base64.getEncoder().encodeToString(bytes.toByteArray());
         }catch(IOException error){throw new IllegalStateException("Cannot serialize match history",error);}
     }
     public static MatchBook decode(String encoded){return decode(encoded,Clock.systemDefaultZone());}
     public static MatchBook decode(String encoded,Clock clock){
         try{
-            if(encoded==null||!(encoded.startsWith("B1:")||encoded.startsWith("B2:")||encoded.startsWith("B3:")||encoded.startsWith("B4:")||encoded.startsWith("B5:"))||encoded.length()>5000000)throw new IOException("Unknown or oversized match history");
-            boolean multi=encoded.startsWith("B5:"),entered=multi||encoded.startsWith("B4:"),retirements=entered||encoded.startsWith("B3:"),timed=!encoded.startsWith("B1:");
+            if(encoded==null||encoded.length()<3||encoded.charAt(0)!='B'||encoded.charAt(1)<'1'
+                ||encoded.charAt(1)>'6'||encoded.charAt(2)!=':')throw new IOException("Unknown match history");
+            boolean annotated=encoded.startsWith("B6:");
+            if(encoded.length()>(annotated?MAX_ENCODED_SIZE:MAX_BOOK_SIZE))throw new IOException("Oversized match history");
             DataInputStream in=new DataInputStream(new ByteArrayInputStream(Base64.getDecoder().decode(encoded.substring(3))));
+            boolean multi=annotated?in.readBoolean():encoded.startsWith("B5:");
+            boolean entered=annotated||multi||encoded.startsWith("B4:");
+            boolean retirements=entered||encoded.startsWith("B3:"),timed=!encoded.startsWith("B1:");
             String state;if(multi){int size=in.readInt();if(size<1||size>75000)throw new IOException("Invalid current match length");byte[] data=new byte[size];in.readFully(data);state=new String(data,java.nio.charset.StandardCharsets.UTF_8);}else state=in.readUTF();
             MatchBook book=new MatchBook(MatchState.decode(state),clock);book.completionDate=in.readUTF();book.completionNumber=in.readInt();book.deletedCurrent=in.readBoolean();
             if(!retirements&&book.current.retired())throw new IOException("Retirement requires B3 storage");
@@ -177,9 +215,22 @@ public final class MatchBook {
             if(book.completionNumber>0&&(!book.dailyNumbers.containsKey(book.completionDate)||book.dailyNumbers.get(book.completionDate)<book.completionNumber))throw new IOException("Missing completion counter");
             MatchResult active=book.result(book.current.id());
             if(active!=null&&(book.deletedCurrent||!active.sameScores(book.current)||!active.date.equals(book.completionDate)||active.number!=book.completionNumber||active.startedAt!=book.startedAt||active.finishedAt!=book.finishedAt||!active.zoneId.equals(book.zoneId)))throw new IOException("Inconsistent current result");
+            if(annotated)book.readNotes(in);
             if(in.read()!=-1)throw new IOException("Trailing saved data");
             return book;
         }catch(Exception error){throw new IllegalArgumentException("Saved match history could not be read",error);}
+    }
+    private void readNotes(DataInputStream in)throws IOException{
+        if(in.available()>MAX_NOTES_BYTES)throw new IOException("Oversized match notes");
+        int count=in.readInt(),bytes=4;
+        if(count<1||count>results.size()+1)throw new IOException("Invalid match note count");
+        for(int i=0;i<count;i++){
+            String id=in.readUTF();
+            MatchNotes value=MatchNotes.read(in);
+            if(!canAnnotate(id)||value.isEmpty()||notes.put(id,value)!=null)throw new IOException("Invalid match note");
+            bytes+=noteBytes(id,value);
+        }
+        if(bytes>MAX_NOTES_BYTES)throw new IOException("Oversized match notes");
     }
     public static MatchBook migrateLegacy(String id,String savedScore){return new MatchBook(MatchState.fromLegacy(id,savedScore));}
 }

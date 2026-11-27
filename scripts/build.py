@@ -6,8 +6,8 @@ import argparse, os, subprocess, sys, zipfile
 ROOT=Path(__file__).resolve().parents[1]
 PKG='at.andrew.squashtap'
 SITE='https://squash-tap-andrew.endruuu.chatgpt.site'
-RELEASES=((50,'0.23.11'),)
-RELEASE_NOTES='Home greets you by first name. Match presets make it clear which settings you can save and reuse.'
+RELEASES=((51,'0.23.12'),)
+RELEASE_NOTES='Save private notes, an opposing club or team, and an event for each match.'
 
 def run(args, env=None):
     result=subprocess.run([str(x) for x in args],cwd=ROOT,env=env,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
@@ -25,7 +25,7 @@ def build(sdk,junit,hamcrest):
         if jvm.exists(): env['JAVA_HOME']=str(jvm)
     work=ROOT/'build';work.mkdir(exist_ok=True)
     test_classes=work/'test-classes';test_classes.mkdir(exist_ok=True)
-    core=[ROOT/'android/src/at/andrew/squashtap'/f'{name}.java' for name in ('SharedResult','HeadToHead','ScorePalette','BackupArchive','MatchPresets','MatchReminders','PickleballGame','ServiceOrder','MatchFormat','ScoreState','TouchTargets','UpdatePolicy','VerifiedDownload','MatchState','MatchResult','MatchStatistics','ManualMatchEntry','MatchBook','MatchDisplayPolicy','DiagnosticTransfer','OpponentDirectory','ResultFilter','MatchCsv','TransferCrypto')]
+    core=[ROOT/'android/src/at/andrew/squashtap'/f'{name}.java' for name in ('SharedResult','HeadToHead','ScorePalette','BackupArchive','MatchPresets','MatchReminders','PickleballGame','ServiceOrder','MatchFormat','ScoreState','TouchTargets','UpdatePolicy','VerifiedDownload','MatchState','MatchResult','MatchNotes','MatchStatistics','ManualMatchEntry','MatchBook','MatchDisplayPolicy','DiagnosticTransfer','OpponentDirectory','ResultFilter','MatchCsv','TransferCrypto')]
     tests=sorted((ROOT/'android/test').rglob('*Test.java'))
     cp=os.pathsep.join((str(junit),str(hamcrest)))
     print('Compiling and running local JUnit tests',flush=True)

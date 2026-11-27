@@ -887,6 +887,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         MatchResult result=book.result(match.id());if(result!=null)navigationButton(content,tr("View result"),()->showResult(result.id,resultsPage,this::showCurrentMatch,"Back to Match details"));
         if(match.complete()&&result==null&&!book.currentDeleted())primaryButton(content,tr("Save match result"),this::saveCurrentResult);
         if(match.complete()&&book.currentDeleted())paragraph(content,tr("This result was deleted."));
+        if(book.canAnnotate(match.id()))matchNotesButton(content,match.id(),this::showCurrentMatch,"Back to Match details");
         backButton(content,"Back to Current match",this::showMatchControls);
     }
     void showSharedMatchDetails(){
@@ -985,7 +986,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     private void showResultOptions(){
         LinearLayout content=panel("Result options",null,MenuSection.RESULTS);
         primaryNavigationButton(content,tr("Add past match"),()->showAddPastMatch(this::showResultOptions));
-        navigationButton(content,tr("View results on phone"),()->openPhone("results",false,()->showResults(resultsPage),"Back to Results"));
+        navigationButton(content,tr("View results on phone"),()->openPhone("journal",false,()->showResults(resultsPage),"Back to Results"));
         section(content,"CSV");
         navigationButton(content,tr("Export CSV"),this::showCsvExport);
         navigationButton(content,tr("Import CSV"),()->openPhone("import",false,this::showResultOptions,"Back to Result options"));
@@ -1051,10 +1052,78 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         resultDetailCard(content,result);paragraph(content,tr("Set scores: ")+ownName()+"–"+opponentName(result.id));
         navigationButton(content,tr("Share result card"),()->openPhone("results",false,again,"Back to Result",id));
         section(content,"Manage result");
+        matchNotesButton(content,id,again,"Back to Result");
         matchPlayerButton(content,id,result.format.doubles,again);
         if(current)secondaryButton(content,result.retired()?tr("Undo retirement"):book.current().undoEnteredSet()?tr("Undo entered set"):tr("Undo last point"),()->undoPoint(again));
         navigationButton(content,tr("Delete this result"),()->confirmDelete(id,page,again));
         backButton(content,backLabel,back);
+    }
+    private void matchNotesButton(LinearLayout content,String id,Runnable back,String backLabel){
+        MatchNotes notes=book.notes(id);
+        navigationButton(content,tr(notes.isEmpty()?"Add match notes":"Match notes"),()->showMatchNotes(id,back,backLabel));
+    }
+    private void showMatchNotes(String id,Runnable back,String backLabel){
+        if(!book.canAnnotate(id)){back.run();return;}
+        MatchNotes notes=book.notes(id);
+        if(notes.isEmpty()){editMatchNotes(id,notes,back,backLabel);return;}
+        LinearLayout content=panel("Match notes");
+        primaryNavigationButton(content,tr("Edit match notes"),()->editMatchNotes(id,notes,back,backLabel));
+        showNoteFields(content,notes);
+        backButton(content,backLabel,back);
+    }
+    private void showNoteFields(LinearLayout content,MatchNotes notes){
+        if(!notes.event.isEmpty())showNoteField(content,"Event or league",notes.event);
+        if(!notes.team.isEmpty())showNoteField(content,"Opponent's club or team",notes.team);
+        if(!notes.text.isEmpty())showNoteField(content,"Note",notes.text);
+    }
+    private void showNoteField(LinearLayout content,String label,String value){
+        section(content,label);
+        paragraph(content,value).setGravity(Gravity.START);
+    }
+    private void editMatchNotes(String id,MatchNotes original,Runnable back,String backLabel){
+        LinearLayout content=panel("Edit match notes");
+        paragraph(content,tr("All fields are optional and apply to this match."));
+        EditText text=noteInput(content,"Note",original.text,MatchNotes.TEXT_LIMIT,true);
+        EditText team=noteInput(content,"Opponent's club or team",original.team,MatchNotes.LABEL_LIMIT,false);
+        EditText event=noteInput(content,"Event or league",original.event,MatchNotes.LABEL_LIMIT,false);
+        Runnable again=()->showMatchNotes(id,back,backLabel);
+        primaryButton(content,tr("Save match notes"),()->{
+            if(!book.canAnnotate(id)||!original.equals(book.notes(id))){
+                message(tr("Match notes changed"),tr("Open the match notes again."),again);
+                return;
+            }
+            try{
+                MatchNotes updated=new MatchNotes(text.getText().toString(),team.getText().toString(),event.getText().toString());
+                MatchBook changed=MatchBook.decode(book.encode());
+                changed.setNotes(id,updated);
+                if(!preferences.edit().putString("match_book",changed.encode()).commit())
+                    throw new IllegalStateException(tr("Match notes could not be saved."));
+                book=changed;
+                counter.match(book.current());
+                updateDisplay();
+                if(updated.isEmpty())back.run();else again.run();
+            }catch(IllegalArgumentException|IllegalStateException error){
+                event.setError(safe(error));
+            }
+        });
+        backButton(content,"Cancel",original.isEmpty()?back:again);
+        content.setFocusableInTouchMode(true);
+        content.requestFocus();
+    }
+    private EditText noteInput(LinearLayout content,String label,String value,int limit,boolean multiline){
+        section(content,label);
+        int type=android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES;
+        if(multiline)type|=android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE;
+        EditText field=menuInput(content,tr(label),tr(label),type);
+        if(multiline){
+            field.setSingleLine(false);
+            field.setMinLines(3);
+            field.setMaxLines(5);
+            field.setGravity(Gravity.TOP|Gravity.START);
+        }
+        field.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(limit)});
+        field.setText(value);
+        return field;
     }
     private void confirmDelete(String id,int page,Runnable back){
         MatchResult result=book.result(id);if(result==null){showResults(page);return;}
@@ -1646,20 +1715,22 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     }
     private void openPhone(String view,boolean filtered,Runnable back,String backLabel){openPhone(view,filtered,back,backLabel,"");}
     private void openPhone(String view,boolean filtered,Runnable back,String backLabel,String resultId){
-        transferResultId=resultId;
         if(transferBusy){message(tr("Transfer in progress"),tr("Wait for the current request, then open the phone link again."),back);return;}
+        transferResultId=resultId;
         transferView=view;transferFiltered=filtered;transferReturn=back;transferReturnLabel=backLabel;beginTransfer(filtered);
     }
     private void beginTransfer(boolean filtered){
         if(transferBusy)return;
+        final boolean includeNotes=transferView.equals("journal");
         if(transfer!=null&&!transfer.expired()){
-            if(transferSnapshotBackup!=transferView.equals("backup")||transferView.equals("backup")&&!transferBackupOverride.equals(backupOverride)||filtered||transferSnapshotFiltered&&!transferView.equals("opponents"))message(tr("Transfer already open"),tr("End the current transfer first, then export your selected results. This keeps its existing phone changes available until you finish."),this::showTransfer);
+            if(transfer.includesNotes!=includeNotes)message(tr("Transfer already open"),tr("End the current phone link to open this one."),this::showTransfer);
+            else if(transferSnapshotBackup!=transferView.equals("backup")||transferView.equals("backup")&&!transferBackupOverride.equals(backupOverride)||filtered||transferSnapshotFiltered&&!transferView.equals("opponents"))message(tr("Transfer already open"),tr("End the current transfer first, then export your selected results. This keeps its existing phone changes available until you finish."),this::showTransfer);
             else showTransfer();return;
         }
         final String saved=book.encode(),names=opponents.encode(),myName=preferences.getString("my_name","");final boolean backupMode=transferView.equals("backup");final String backupCopy=backupOverride;final java.util.Map<String,String> backupSettings=backupSettings();final List<MatchResult> selected=backupMode?java.util.Collections.emptyList():filtered?new java.util.ArrayList<>(filteredResults()):ResultFilter.select(book,opponents,null,null,null);
         transferBusy=true;LinearLayout content=panel("Preparing phone link","phone-transfer:"+transferView+(transferResultId.isEmpty()?"":":card"),phoneSection());paragraph(content,tr("Creating an encrypted ten-minute link. Both devices need internet."));backButton(content,transferReturnLabel,transferReturn);
         final Dialog waiting=panel;
-        tasks.execute(()->{try{TransferClient.Session created=TransferClient.create(MatchBook.decode(saved),OpponentDirectory.decode(names),selected,selectedSport,myName,backupMode?(backupCopy.isEmpty()?BackupArchive.create(MatchBook.decode(saved),OpponentDirectory.decode(names),backupSettings):backupCopy):null);onUi(()->transferCreated(created,filtered,backupMode,backupCopy,waiting));}catch(Exception error){onUi(()->{transferBusy=false;if(panel==waiting)message(tr("Transfer unavailable"),safe(error),transferReturn);});}});
+        tasks.execute(()->{try{TransferClient.Session created=TransferClient.create(MatchBook.decode(saved),OpponentDirectory.decode(names),selected,selectedSport,myName,backupMode?(backupCopy.isEmpty()?BackupArchive.create(MatchBook.decode(saved),OpponentDirectory.decode(names),backupSettings):backupCopy):null,includeNotes);onUi(()->transferCreated(created,filtered,backupMode,backupCopy,waiting));}catch(Exception error){onUi(()->{transferBusy=false;if(panel==waiting)message(tr("Transfer unavailable"),safe(error),transferReturn);});}});
     }
     private void transferCreated(TransferClient.Session created,boolean filtered,boolean backupMode,String backupCopy,Dialog waiting){transferBusy=false;transfer=created;transferBackupOverride=backupCopy;transferSnapshotFiltered=filtered;transferSnapshotBackup=backupMode;if(panel==waiting)showTransfer();}
     private MenuSection phoneSection(){
@@ -1669,18 +1740,22 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         return MenuSection.RESULTS;
     }
     private String phoneTitle(){return transferView.equals("backup")?tr("Backup & restore"):transferView.equals("opponents")?tr("Edit names on phone"):transferView.equals("import")?tr("Import CSV"):tr("Results on phone");}
-    private String phoneLink(){return transfer.link()+"&view="+transferView+(transferResultId.isEmpty()?"":"&match="+transferResultId);}
+    private String phoneLink(){return transfer.link()+"&view="+(transferView.equals("journal")?"results":transferView)+(transferResultId.isEmpty()?"":"&match="+transferResultId);}
     private void showTransfer(){
         LinearLayout content=panel(phoneTitle(),"phone-transfer:"+transferView+(transferResultId.isEmpty()?"":":card"),phoneSection());
         if(transfer==null||transfer.expired()){
             paragraph(content,tr("No active phone link. Create an encrypted link that expires after ten minutes."));
             primaryButton(content,tr("Create phone link"),()->{transfer=null;beginTransfer(transferFiltered);});
         }else{
-            primaryNavigationButton(content,tr("Show phone QR"),()->showQr(phoneLink(),tr("Scan with phone"),this::showTransfer,"Back to phone link"));
-            if(nfc.canSend())navigationButton(content,tr("Share page via NFC"),
-                ()->{if(transfer!=null && !transfer.expired())nfc.shareLink(phoneLink(),this::showTransfer,"Back to phone link");else showTransfer();});
-            String purpose=transferView.equals("backup")?tr("Download a complete backup, or select a backup file to restore. Restore requires a separate watch confirmation."):transferView.equals("opponents")?tr("Edit saved names in your phone browser."):transferView.equals("import")?tr("Select a Keep Score CSV in your phone browser."):tr("Add or edit results, browse statistics or download CSV in your browser.");
-            paragraph(content,purpose+tr("\n\nExpires ")+java.time.Instant.ofEpochMilli(transfer.expiresAt).atZone(java.time.ZoneId.systemDefault()).format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))+tr(". Send edits on the phone, then receive them here."));
+            if(transfer.includesNotes==transferView.equals("journal")&&transferSnapshotBackup==transferView.equals("backup")){
+                primaryNavigationButton(content,tr("Show phone QR"),()->showQr(phoneLink(),tr("Scan with phone"),this::showTransfer,"Back to phone link"));
+                if(nfc.canSend())navigationButton(content,tr("Share page via NFC"),
+                    ()->{if(transfer!=null && !transfer.expired())nfc.shareLink(phoneLink(),this::showTransfer,"Back to phone link");else showTransfer();});
+                String purpose=transferView.equals("backup")?tr("Download a complete backup, or select a backup file to restore. Restore requires a separate watch confirmation."):transferView.equals("opponents")?tr("Edit saved names in your phone browser."):transferView.equals("import")?tr("Select a Keep Score CSV in your phone browser."):transfer.includesNotes?tr("Use this link to edit results and personal match notes on your phone."):tr("Add or edit results, browse statistics or download CSV in your browser.");
+                paragraph(content,purpose+tr("\n\nExpires ")+java.time.Instant.ofEpochMilli(transfer.expiresAt).atZone(java.time.ZoneId.systemDefault()).format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))+tr(". Send edits on the phone, then receive them here."));
+            }else{
+                paragraph(content,tr("End the current phone link to open this one."));
+            }
             section(content,"On this watch");
             Button receive=navigationButton(content,transferBusy?tr("Receiving…"):tr("Receive changes"),this::receiveTransfer);receive.setEnabled(!transferBusy);
             secondaryButton(content,tr("End transfer"),()->{if(transferBusy)return;final TransferClient.Session ending=transfer;transfer=null;tasks.execute(()->{try{TransferClient.end(ending);}catch(Exception ignored){}});showTransfer();});
@@ -1695,7 +1770,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         if(payload.has("restoreBackup")){previewBackupRestore(payload,session);return;}
         final String oldMyName=preferences.getString("my_name","");final boolean changeMyName=payload.optBoolean("changeMyName",false);final String nextMyName=changeMyName?payload.getString("myName").trim():oldMyName;
         if(changeMyName){if(!oldMyName.equals(payload.getString("baseMyName")))throw new IllegalArgumentException(tr("Your name changed. Start a fresh phone link."));if(!nextMyName.isEmpty())OpponentDirectory.validName(nextMyName);}
-        final String before=book.encode(),names=opponents.encode();final MatchCsv.Plan plan=TransferClient.preview(payload,book,opponents,session.sharedResults);
+        final String before=book.encode(),names=opponents.encode();final MatchCsv.Plan plan=TransferClient.preview(payload,book,opponents,session);
         LinearLayout content=panel("Review phone changes");if(changeMyName)paragraph(content,tr("Your name: ")+(oldMyName.isEmpty()?tr("Me"):oldMyName)+" → "+(nextMyName.isEmpty()?tr("Me"):nextMyName));paragraph(content,plan.added+tr(" new results\n")+plan.duplicates+tr(" duplicates skipped\n")+plan.conflicts+tr(" conflicts skipped\n")+plan.renumbered+tr(" local references adjusted\n\n")+plan.directory.list(false).size()+(plan.editedIds.isEmpty()?tr(" saved opponent names\n\nNames may be added, renamed or removed from selection. Past results and the ongoing score are kept."):tr(" saved opponent names")));
         if (!plan.editedIds.isEmpty()) {
             paragraph(content, tr("Edited results") + " · " + plan.editedIds.size());
@@ -1703,6 +1778,17 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
                 MatchResult old = book.result(id), updated = plan.book.result(id);
                 paragraph(content, old.referenceText() + "\n" + resultReview(old, opponents) + "\n→ " + resultReview(updated, plan.directory));
             }
+        }
+        if(!plan.noteEditedIds.isEmpty()){
+            section(content,"Edited match notes");
+            paragraph(content,Integer.toString(plan.noteEditedIds.size()));
+            for(String id:plan.noteEditedIds.subList(0,Math.min(10,plan.noteEditedIds.size()))){
+                paragraph(content,ui.scoreTerms(plan.book.result(id).referenceText())+" · "+opponentName(id));
+                MatchNotes notes=plan.book.notes(id);
+                if(notes.isEmpty())paragraph(content,tr("All match note fields cleared."));
+                else showNoteFields(content,notes);
+            }
+            if(plan.noteEditedIds.size()>10)paragraph(content,tr("More match notes will also be saved."));
         }
         boolean personChanged=!opponents.opponentId(book.current().id()).equals(plan.directory.opponentId(book.current().id()));
         if(personChanged)paragraph(content,(book.current().complete()?tr("Last completed match"):tr("Current match"))+tr(" opponent change:\n")+opponentName(book.current().id())+" → "+(plan.directory.nameFor(book.current().id()).isEmpty()?tr("No name"):plan.directory.nameFor(book.current().id())));
@@ -1716,7 +1802,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
             if(!preferences.edit().putString("match_book",plan.book.encode()).putString("opponent_book",plan.directory.encode()).putString("my_name",nextMyName).commit()){message(tr("Save failed"),tr("Nothing was confirmed. Keep the app open and retry."),this::showTransfer);return;}
             book=plan.book;opponents=plan.directory;counter.match(book.current());updateDisplay();transfer=null;
             tasks.execute(()->{try{TransferClient.end(session);}catch(Exception ignored){}});
-            message(tr("Changes saved"),plan.added+tr(" results added. Opponents updated. Duplicate and conflicting results were skipped.")+(plan.editedIds.isEmpty()?"":"\n"+tr("Edited results")+" · "+plan.editedIds.size()),transferReturn);
+            message(tr("Changes saved"),plan.added+tr(" results added. Opponents updated. Duplicate and conflicting results were skipped.")+(plan.editedIds.isEmpty()?"":"\n"+tr("Edited results")+" · "+plan.editedIds.size())+(plan.noteEditedIds.isEmpty()?"":"\n"+tr("Edited match notes")+" · "+plan.noteEditedIds.size()),transferReturn);
         });backButton(content,tr("Cancel"),this::showTransfer);
     }
     private String resultReview(MatchResult result, OpponentDirectory names) {
@@ -2350,9 +2436,16 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         names.setPadding(0,0,0,dp(2));
         TextView date=paragraph(card,reference);
         date.setPadding(0,0,0,0);date.setTextSize(12);
+        String event=book.notes(result.id).event;
+        if(!event.isEmpty()){
+            TextView tag=paragraph(card,event);
+            tag.setPadding(0,dp(3),0,0);tag.setTextSize(12);
+            tag.setMaxLines(2);
+            tag.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        }
         for(int i=0;i<card.getChildCount();i++)card.getChildAt(i).setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         String decision=result.retired()?ui.scoreTerms(result.outcomeText()):outcome;
-        card.setContentDescription(ui.scoreTerms(result.title())+". "+tally+". "+decision+". "+players+tr(". Open match result."));
+        card.setContentDescription(ui.scoreTerms(result.title())+". "+tally+". "+decision+". "+players+(event.isEmpty()?"":". "+event)+tr(". Open match result."));
         card.setFocusable(true);
         card.setOnClickListener(v->{reviewInteraction();showResult(result.id,page);});
     }

@@ -49,7 +49,7 @@ def main():
     classes.mkdir()
     names = ('HeadToHead','ScorePalette','BackupArchive','MatchPresets','MatchReminders','PickleballGame',
              'ServiceOrder','MatchFormat','ScoreState','TouchTargets','UpdatePolicy','VerifiedDownload',
-             'MatchState','MatchResult','MatchStatistics','ManualMatchEntry','MatchBook','MatchDisplayPolicy',
+             'MatchState','MatchResult','MatchNotes','MatchStatistics','ManualMatchEntry','MatchBook','MatchDisplayPolicy',
              'DiagnosticTransfer','OpponentDirectory','ResultFilter','MatchCsv','TransferCrypto')
     core = [ROOT / 'android/src/at/andrew/squashtap' / (name + '.java') for name in names]
     tests = sorted((ROOT / 'android/test').rglob('*Test.java'))

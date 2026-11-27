@@ -10,6 +10,7 @@ final class TransferClient {
     static final class Session {
         final String id,key,owner,guest;long expiresAt;
         final Set<String> sharedResults = new HashSet<>();
+        boolean includesNotes;
         Session(){id=UUID.randomUUID().toString().replace("-","");key=TransferCrypto.random(32);owner=TransferCrypto.random(32);guest=TransferCrypto.random(32);}
         String link(){return BuildConfig.SITE_URL+"/transfer.html#id="+id+"&p="+guest+"&k="+key;}
         boolean expired(){return System.currentTimeMillis()>=expiresAt;}
@@ -19,10 +20,23 @@ final class TransferClient {
         JSONArray out=new JSONArray();for(OpponentDirectory.Entry e:directory.list(true))out.put(new JSONObject().put("id",e.id).put("name",e.name).put("archived",e.archived));return out;
     }
     static JSONObject snapshot(Session session,MatchBook book,OpponentDirectory directory,List<MatchResult> selected)throws Exception{
+        return snapshot(session,book,directory,selected,false);
+    }
+    static JSONObject snapshot(Session session,MatchBook book,OpponentDirectory directory,List<MatchResult> selected,boolean includeNotes)throws Exception{
         session.sharedResults.clear();
         for (MatchResult result : selected) session.sharedResults.add(result.id);
-        return new JSONObject().put("schema",1).put("sessionId",session.id).put("baseDirectory",base(book,directory))
+        session.includesNotes=includeNotes;
+        JSONObject snapshot=new JSONObject().put("schema",1).put("sessionId",session.id).put("baseDirectory",base(book,directory))
             .put("currentMatchId",book.current().id()).put("currentMatchComplete",book.current().complete()).put("supportsResultEdits",true).put("supportsMultisport",true).put("supportsPickleball",true).put("supportsYourName",true).put("supportsFullBackup",true).put("supportsRetirement",true).put("totalResults",book.count()).put("currentOpponentId",directory.opponentId(book.current().id())).put("opponents",catalogSports(directory,book)).put("csv",MatchCsv.export(selected,directory));
+        if(includeNotes){
+            JSONObject notes=new JSONObject();
+            for(MatchResult result:selected){
+                MatchNotes value=book.notes(result.id);
+                if(!value.isEmpty())notes.put(result.id,new JSONObject().put("text",value.text).put("team",value.team).put("event",value.event));
+            }
+            snapshot.put("matchNotes",notes);
+        }
+        return snapshot;
     }
     static JSONArray catalogSports(OpponentDirectory directory,MatchBook book)throws Exception{JSONArray out=catalog(directory);for(int i=0;i<out.length();i++){JSONObject e=out.getJSONObject(i);e.put("sports",new JSONArray(directory.sportsFor(e.getString("id"),book.newestFirst())));}return out;}
     static Session create(MatchBook book,OpponentDirectory directory,List<MatchResult> selected)throws Exception{return create(book,directory,selected,book.current().format().sport);}
@@ -30,7 +44,10 @@ final class TransferClient {
         return create(book,directory,selected,sport,"",null);
     }
     static Session create(MatchBook book,OpponentDirectory directory,List<MatchResult> selected,String sport,String myName,String backup)throws Exception{
-        Session session=new Session();JSONObject payload=snapshot(session,book,directory,selected).put("selectedSport",sport).put("myName",myName);
+        return create(book,directory,selected,sport,myName,backup,false);
+    }
+    static Session create(MatchBook book,OpponentDirectory directory,List<MatchResult> selected,String sport,String myName,String backup,boolean includeNotes)throws Exception{
+        Session session=new Session();JSONObject payload=snapshot(session,book,directory,selected,includeNotes).put("selectedSport",sport).put("myName",myName);
         if(backup!=null)payload.put("fullBackup",backup);
         String cipher=backup==null?TransferCrypto.seal(session.id,"out",session.key,payload.toString()):TransferCrypto.sealBackup(session.id,"out",session.key,payload.toString());
         JSONObject reply=request("POST","",null,new JSONObject().put("id",session.id).put("ownerToken",session.owner).put("guestToken",session.guest).put("cipher",cipher));
@@ -43,6 +60,12 @@ final class TransferClient {
         if(payload.getInt("schema")!=1||!payload.getString("sessionId").equals(session.id))throw new IllegalArgumentException("Invalid transfer context");return payload;
     }
     static MatchCsv.Plan preview(JSONObject payload,MatchBook book,OpponentDirectory directory,Set<String> sharedResults)throws Exception{
+        return preview(payload,book,directory,sharedResults,false);
+    }
+    static MatchCsv.Plan preview(JSONObject payload,MatchBook book,OpponentDirectory directory,Session session)throws Exception{
+        return preview(payload,book,directory,session.sharedResults,session.includesNotes);
+    }
+    private static MatchCsv.Plan preview(JSONObject payload,MatchBook book,OpponentDirectory directory,Set<String> sharedResults,boolean includeNotes)throws Exception{
         if(!payload.getString("baseDirectory").equals(base(book,directory))||!payload.getString("currentMatchId").equals(book.current().id()))throw new IllegalArgumentException("Opponents or the current match changed. Start a fresh phone transfer.");
         JSONArray catalog=payload.getJSONArray("opponents");if(catalog.length()>OpponentDirectory.MAX_OPPONENTS)throw new IllegalArgumentException("Too many opponents");
         List<OpponentDirectory.Entry> entries=new ArrayList<>();for(int i=0;i<catalog.length();i++){JSONObject e=catalog.getJSONObject(i);entries.add(new OpponentDirectory.Entry(e.getString("id"),e.getString("name"),e.getBoolean("archived")));}
@@ -61,7 +84,38 @@ final class TransferClient {
             if (Boolean.TRUE.equals(payload.opt("changeCurrentOpponent")) && !id.equals(plan.directory.opponentId(book.current().id())))
                 throw new IllegalArgumentException("Two different opponents were chosen for the same match");
         }
+        if(payload.has("matchNoteEdits")){
+            if(!includeNotes)throw new IllegalArgumentException("Open the phone journal from Results to edit match notes.");
+            applyNoteEdits(plan,book,payload.getJSONArray("matchNoteEdits"),sharedResults);
+        }
         return plan;
+    }
+    private static void applyNoteEdits(MatchCsv.Plan plan,MatchBook book,JSONArray edits,Set<String> sharedResults)throws Exception{
+        if(edits.length()>sharedResults.size())throw new IllegalArgumentException("Too many match note edits.");
+        Set<String> ids=new HashSet<>();
+        Map<String,MatchNotes> updates=new LinkedHashMap<>();
+        for(int i=0;i<edits.length();i++){
+            JSONObject edit=edits.getJSONObject(i);
+            String id=edit.getString("id");
+            if(!sharedResults.contains(id)||!ids.add(id)||book.result(id)==null)
+                throw new IllegalArgumentException("This match was not included in the phone link.");
+            MatchNotes previous=readNotes(edit.getJSONObject("before"));
+            if(!book.notes(id).equals(previous))
+                throw new IllegalArgumentException("Match notes changed. Open a new phone link.");
+            MatchNotes updated=readNotes(edit.getJSONObject("after"));
+            if(!previous.equals(updated))updates.put(id,updated);
+        }
+        for(String id:updates.keySet())plan.book.setNotes(id,MatchNotes.EMPTY);
+        for(Map.Entry<String,MatchNotes> update:updates.entrySet()){
+            plan.book.setNotes(update.getKey(),update.getValue());
+            plan.noteEditedIds.add(update.getKey());
+        }
+    }
+    private static MatchNotes readNotes(JSONObject value)throws JSONException{
+        Object text=value.get("text"),team=value.get("team"),event=value.get("event");
+        if(!(text instanceof String)||!(team instanceof String)||!(event instanceof String))
+            throw new IllegalArgumentException("Use plain text for match notes.");
+        return new MatchNotes((String)text,(String)team,(String)event);
     }
     static void end(Session session)throws Exception{request("DELETE","/"+session.id,session.owner,null);}
     private static JSONObject request(String method,String path,String token,JSONObject body)throws Exception{

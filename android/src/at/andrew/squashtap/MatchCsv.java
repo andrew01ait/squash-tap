@@ -60,6 +60,7 @@ public final class MatchCsv {
     public static final class Plan {
         public final MatchBook book;public final OpponentDirectory directory;public int added,duplicates,conflicts,renumbered;public final List<String> conflictIds=new ArrayList<>();
         public final List<String> editedIds=new ArrayList<>();
+        final List<String> noteEditedIds=new ArrayList<>();
         private Plan(MatchBook b,OpponentDirectory d){book=b;directory=d;}
     }
     static void correct(Plan plan, MatchBook original, OpponentDirectory originalNames, List<Row> before, List<Row> after) {

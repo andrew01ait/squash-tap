@@ -2,6 +2,19 @@ import {language, t} from './locale.mjs';
 import {rowWinner, localMoment} from './interchange.mjs?v=0.16.0';
 
 const messages = {
+  "Stage match notes": ["Partienotizen vormerken", "Préparer les notes", "Preparar notas"],
+  "Discard note edit": ["Notizänderung verwerfen", "Annuler la modification des notes", "Descartar cambios en las notas"],
+  "Match notes ready to send: {0}": ["Vorgemerkte Partienotizen: {0}", "Notes prêtes à envoyer : {0}", "Notas listas para enviar: {0}"],
+  "Invalid match notes.": ["Die Partienotizen sind ungültig.", "Les notes du match sont invalides.", "Las notas no son válidas."],
+  "Add match notes": ["Partienotizen hinzufügen", "Ajouter des notes", "Añadir notas del partido"],
+  "Match notes": ["Partienotizen", "Notes du match", "Notas del partido"],
+  "Edit match notes": ["Partienotizen bearbeiten", "Modifier les notes", "Editar notas del partido"],
+  "Note": ["Notiz", "Note", "Nota"],
+  "Opponent's club or team": ["Verein oder Team der Gegenseite", "Club ou équipe adverse", "Club o equipo rival"],
+  "Event or league": ["Veranstaltung oder Liga", "Événement ou ligue", "Evento o liga"],
+  "All fields are optional and apply to this match.": ["Alle Angaben sind freiwillig und gelten für diese Partie.", "Tous les champs sont facultatifs et concernent ce match.", "Todos los campos son opcionales y se aplican a este partido."],
+  "Use plain text for match notes.": ["Verwende einfachen Text für die Partienotizen.", "Utilise du texte simple pour les notes.", "Usa texto sencillo para las notas."],
+  "A match note field is too long.": ["Ein Feld der Partienotizen ist zu lang.", "Un champ des notes est trop long.", "Un campo de las notas es demasiado largo."],
   "Played in the last 30 days": ["Gespielt in den letzten 30 Tagen", "A joué ces 30 derniers jours", "Ha jugado en los últimos 30 días"],
   "No players in the last 30 days.": ["Keine Spieler mit einer Partie in den letzten 30 Tagen.", "Aucun joueur avec un match ces 30 derniers jours.", "Nadie ha jugado un partido en los últimos 30 días."],
   "Sort players": ["Spieler sortieren", "Trier les joueurs", "Ordenar jugadores"],
@@ -295,6 +308,7 @@ const errors = {
 export function errorText(error) {
   const message=String(error?.message||error||''),row=message.match(/^CSV row (\d+): (.+)$/);
   if(row) return t('CSV row {0}: {1}','CSV-Zeile {0}: {1}','Ligne CSV {0} : {1}','Fila {0} del CSV: {1}',row[1],errorText(/name|control char/i.test(row[2])?'name':'csv'));
+  if(['Invalid match notes.','Use plain text for match notes.','A match note field is too long.'].includes(message)) return tx(message);
   if(/expired or ended/.test(message)) return tx('This transfer has expired. Scan a new QR code on your watch.');
   const matches=[
     [/1–60|control characters/,'name'],[/storage is full/,'roster'],[/already sent/,'sent'],

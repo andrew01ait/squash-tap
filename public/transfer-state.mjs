@@ -3,6 +3,40 @@ import {participants, rowMode, rowSport, scorePairs, sportRows} from './sports.m
 import {name, statistics, localDate, rowWinner} from './interchange.mjs?v=0.16.0';
 
 export function initialView(value){return ['results','statistics','opponents','import','backup'].includes(value)?value:'results';}
+
+export const EMPTY_MATCH_NOTES=Object.freeze({text:'',team:'',event:''});
+
+function noteField(value,limit,multiline=false){
+  if(typeof value!=='string') throw Error('Use plain text for match notes.');
+  const normalized=multiline?value.replace(/\r\n?/g,'\n'):value;
+  const controls=multiline?/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/u:/[\u0000-\u001f\u007f-\u009f]/u;
+  if(controls.test(normalized)||/[\ud800-\udfff]/u.test(normalized)) throw Error('Use plain text for match notes.');
+  const trimmed=normalized.replace(/^[ \t\n]+|[ \t\n]+$/g,'');
+  if(trimmed.length>limit) throw Error('A match note field is too long.');
+  return trimmed;
+}
+
+export function normalizeMatchNotes(value){
+  if(!value||typeof value!=='object'||Array.isArray(value)) throw Error('Use plain text for match notes.');
+  return {text:noteField(value.text,600,true),team:noteField(value.team,80),event:noteField(value.event,80)};
+}
+
+export const sameMatchNotes=(a,b)=>a.text===b.text&&a.team===b.team&&a.event===b.event;
+
+export function notesFromSnapshot(value,matchIds){
+  if(value===undefined) return new Map();
+  if(!value||typeof value!=='object'||Array.isArray(value)) throw Error('Invalid match notes.');
+  const notes=new Map();
+  for(const [id,fields] of Object.entries(value)){
+    if(!matchIds.has(id)) throw Error('Invalid match notes.');
+    notes.set(id,normalizeMatchNotes(fields));
+  }
+  return notes;
+}
+
+export function matchNoteEdits(saved,pending){
+  return [...pending].map(([id,after])=>({id,before:saved.get(id)||EMPTY_MATCH_NOTES,after}));
+}
 /** Catalog edits never select a match opponent. Match reassignment is a separate opt-in. */
 export function addName(catalog,value){
  const n=name(value),found=catalog.find(e=>e.name.toLowerCase()===n.toLowerCase());

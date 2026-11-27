@@ -1,6 +1,6 @@
 # Keep Score on GitHub
 
-The official watch release is **0.23.11 (50)**. Its public source includes the round-display controls, tappable menu paths and the illustrated watch menu guide. Published app and website changes are mirrored together in the [GitHub review branch](https://github.com/andrew01ait/squash-tap/pull/1). The same source is available as a [ZIP download](https://squash-tap-andrew.endruuu.chatgpt.site/KeepScore-source.zip).
+The official watch release is **0.23.12 (51)**. Its public source includes the round-display controls, tappable menu paths and the illustrated watch menu guide. Published app and website changes are mirrored together in the [GitHub review branch](https://github.com/andrew01ait/squash-tap/pull/1). The same source is available as a [ZIP download](https://squash-tap-andrew.endruuu.chatgpt.site/KeepScore-source.zip).
 
 ## Finding the source
 

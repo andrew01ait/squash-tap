@@ -11,8 +11,8 @@
   <link rel="icon" href="/favicon.svg">
   <link rel="stylesheet" href="/score-outcome.css?v=1">
   <link rel="stylesheet" href="/menu-colours.css">
-  <link rel="stylesheet" href="/transfer.css?v=8">
-  <script type="module" src="/transfer.mjs?v=8"></script>
+<link rel="stylesheet" href="/transfer.css?v=9">
+<script type="module" src="/transfer.mjs?v=9"></script>
 </head>
 <body>
 <main>
@@ -176,6 +176,17 @@
         </div>
         <p id="entry-error" tabindex="-1" class="entry-error" role="alert" hidden></p>
         <div class="entry-actions"><button type="button" class="secondary" id="entry-cancel" data-i="Cancel">Cancel</button><button type="submit" data-i="Stage result">Stage result</button></div>
+      </form>
+    </dialog>
+    <dialog id="notes-editor" aria-labelledby="notes-title">
+      <form id="notes-form">
+        <h2 id="notes-title" tabindex="-1" data-i="Match notes">Match notes</h2>
+        <p class="muted" data-i="All fields are optional and apply to this match.">All fields are optional and apply to this match.</p>
+        <label><span data-i="Note">Note</span><textarea id="notes-text" rows="4" maxlength="600"></textarea></label>
+        <label><span data-i="Opponent's club or team">Opponent's club or team</span><input id="notes-team" maxlength="80"></label>
+        <label><span data-i="Event or league">Event or league</span><input id="notes-event" maxlength="80"></label>
+        <p id="notes-error" class="entry-error" role="alert" hidden></p>
+        <div class="entry-actions"><button type="button" class="secondary" id="notes-cancel" data-i="Cancel">Cancel</button><button type="submit" data-i="Stage match notes">Stage match notes</button></div>
       </form>
     </dialog>
     <aside id="send-changes" hidden>

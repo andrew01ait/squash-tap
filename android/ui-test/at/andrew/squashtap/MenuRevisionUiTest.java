@@ -148,6 +148,35 @@ public class MenuRevisionUiTest {
         preferences.edit().putString("match_book",b.encode()).remove(MatchDisplayPolicy.ACTIVE_MATCH).remove("match_ready_id")
                 .putBoolean("match_paused",false).commit();
     }
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) @Config(qualifiers="w192dp-h192dp-round-xhdpi")
+    public void notesCanBeEditedOnCurrentAndSavedMatches() throws Exception{
+        RuntimeEnvironment.setFontScale(1.3f);
+        String active=book().current().encode();
+        String directory=preferences.getString("opponent_book","");
+        match();click("Match details");click("Add match notes");
+        noteField("Note").setText("First point\nTry the backhand 📝");
+        noteField("Opponent's club or team").setText("Club Nord");
+        noteField("Event or league").setText("Landesliga");
+        click("Save match notes");
+        assertTrue(has("Try the backhand 📝"));
+        assertEquals(new MatchNotes("First point\nTry the backhand 📝","Club Nord","Landesliga"),book().notes("current"));
+        assertEquals(active,book().current().encode());
+        assertEquals(directory,preferences.getString("opponent_book",""));
+        click("Edit match notes");noteField("Note").setText("Discard this");click("Cancel");
+        assertFalse(has("Discard this"));
+        close();launch();match();click("Match details");click("Match notes");
+        assertTrue(has("Club Nord"));assertTrue(has("Landesliga"));
+        results();openFirstResult();click("Add match notes");
+        noteField("Event or league").setText("Tuesday tournament");click("Save match notes");
+        assertTrue(has("Tuesday tournament"));
+        click("Back to Result");back();
+        assertTrue(has("Tuesday tournament"));
+        assertEquals(active,book().current().encode());
+    }
+    private EditText noteField(String title){
+        return (EditText)all().stream().filter(v->v instanceof EditText&&title.equals(String.valueOf(v.getContentDescription())))
+            .findFirst().orElseThrow(()->new AssertionError("Missing note field: "+title));
+    }
     @Test public void closingResultOpensHomeAndKeepsTheSavedScoreAndAllHistory(){
         close();MatchBook b=completedAt(System.currentTimeMillis());saveFixture(b);String saved=b.encode();
         mainLaunch();assertTrue(hasButton("Quick rematch"));click("Mark match as done");assertTrue(hasButton("Sports"));
@@ -845,7 +874,27 @@ public class MenuRevisionUiTest {
     @Test public void deleteAllIsKeptInsideResultOptions(){results();assertFalse(hasButton("Delete all results"));click("Options");assertMenuLink(button("Delete all results"));click("Delete all results");int c=button("Delete all").getBackgroundTintList().getDefaultColor();assertTrue(Color.red(c)>Color.blue(c));back();assertTrue(hasButton("Export CSV"));assertEquals(17,book().count());}
     @Test public void enteredSetIsAvailableDirectlyInTheCurrentMatchAndCancelChangesNothing(){String before=book().encode();match();click("Enter set score");assertTrue(has("Set 1 score"));click("Me won");assertTrue(hasButton("Review set score"));for(View v:all())if(v instanceof NumberPicker)assertEquals(ViewGroup.FOCUS_BLOCK_DESCENDANTS,((NumberPicker)v).getDescendantFocusability());back();assertTrue(hasButton("Pause match"));assertEquals(before,book().encode());}
     @Test public void pastMatchEntryBelongsToResultsAndCancelKeepsTheLiveMatch(){String before=book().encode();match();assertFalse(hasButton("Add past match"));results();assertFalse(hasButton("Add past match"));click("Options");click("Add past match");assertTrue(hasButton("Save match result"));assertFalse(hasButton("Enter set score"));back();assertTrue(hasButton("Add past match"));assertEquals(before,book().encode());assertEquals("current",preferences.getString(MatchDisplayPolicy.ACTIVE_MATCH,""));}
-    @Test public void resultsPhoneActionSetsItsLandingViewAndReturnsToResults(){readyTransfer();results();click("Options");click("View results on phone");assertTrue(hasButton("Show phone QR"));String link=ReflectionHelpers.callInstanceMethod(activity,"phoneLink");assertTrue(link.endsWith("&view=results"));click("Show phone QR");assertEquals("Phone QR",ReflectionHelpers.getField(activity,"panelPage"));back();assertTrue(hasButton("Receive changes"));back();assertTrue(hasButton("Filters"));}
+    @Test public void resultsPhoneActionSetsItsLandingViewAndReturnsToResults(){
+        readyTransfer().includesNotes=true;
+        results();click("Options");click("View results on phone");
+        assertTrue(hasButton("Show phone QR"));
+        String link=ReflectionHelpers.callInstanceMethod(activity,"phoneLink");
+        assertTrue(link.endsWith("&view=results"));
+        click("Show phone QR");
+        assertEquals("Phone QR",ReflectionHelpers.getField(activity,"panelPage"));
+        back();assertTrue(hasButton("Receive changes"));
+        back();assertTrue(hasButton("Filters"));
+    }
+    @Test public void resultCardCannotReuseThePrivateJournalQr(){
+        readyTransfer().includesNotes=true;
+        results();openFirstResult();click("Share result card");
+        assertTrue(has("End the current phone link to open this one."));
+        click("Back");
+        assertFalse(hasButton("Show phone QR"));
+        assertFalse(hasButton("Share page via NFC"));
+        assertTrue(hasButton("Receive changes"));
+        assertTrue(hasButton("End transfer"));
+    }
     @Test public void importPhoneActionTargetsImportAndReturnsToResultOptions(){readyTransfer();results();click("Options");click("Import CSV");String link=ReflectionHelpers.callInstanceMethod(activity,"phoneLink");assertTrue(link.endsWith("&view=import"));back();assertTrue(hasButton("Delete all results"));assertTrue(hasButton("Export CSV"));}
     @Test public void namesPhoneActionPreservesItsOpponentPickerCaller(){readyTransfer();match();click("Match options");click("Opponent: Alice");click("Edit names on phone");String link=ReflectionHelpers.callInstanceMethod(activity,"phoneLink");assertTrue(link.endsWith("&view=opponents"));back();assertTrue(hasButton("No name"));assertTrue(hasButton("Bob"));back();assertTrue(hasButton("Match length: Best of 3"));}
     @Test public void aLatePhoneLinkCannotReopenPanelsAfterReturningToScoreboard(){results();click("Options");click("View results on phone");Dialog waiting=dialog();assertTrue(has("Preparing phone link"));click("Scoreboard");assertFalse(waiting.isShowing());TransferClient.Session created=new TransferClient.Session();created.expiresAt=System.currentTimeMillis()+600000;ReflectionHelpers.callInstanceMethod(activity,"transferCreated",ReflectionHelpers.ClassParameter.from(TransferClient.Session.class,created),ReflectionHelpers.ClassParameter.from(boolean.class,false),ReflectionHelpers.ClassParameter.from(boolean.class,false),ReflectionHelpers.ClassParameter.from(String.class,""),ReflectionHelpers.ClassParameter.from(Dialog.class,waiting));assertFalse(ShadowDialog.getLatestDialog().isShowing());assertEquals(created,ReflectionHelpers.getField(activity,"transfer"));assertTrue(awake());}

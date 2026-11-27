@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {addName,incomingPayload,checkRetirementSupport,opponentStatistics,initialView,recentPlayerRanks,playersInLast30Days} from '../public/transfer-state.mjs';
+import {addName,incomingPayload,checkRetirementSupport,opponentStatistics,initialView,recentPlayerRanks,playersInLast30Days,EMPTY_MATCH_NOTES,normalizeMatchNotes,notesFromSnapshot,matchNoteEdits} from '../public/transfer-state.mjs';
 import {statistics,rowWinner,rowOutcome,writeCsv,parseCsv,RETIREMENT_HEADER} from '../public/interchange.mjs';
 import {newest} from '../public/transfer-view.mjs';
 const snapshot={baseDirectory:'base',currentMatchId:'last-completed',currentOpponentId:'alice',opponents:[{id:'alice',name:'Alice',archived:false}]};
@@ -89,4 +89,19 @@ test('all-sports browsing respects mode and can filter historical identities out
   assert.deepEqual(options.find(e=>e.id==='Lee'),roster[0]);
   assert.equal(options.find(e=>e.id==='Jo').name,'Jo');
   assert.equal(roster.length,1);
+});
+test('journal notes preserve newlines and round-trip assignment, edits and clearing by match ID',()=>{
+  const original=normalizeMatchNotes({text:' Watch the backhand\r\n📝 Second line ',team:' Club Nord ',event:'Landesliga'});
+  assert.deepEqual(original,{text:'Watch the backhand\n📝 Second line',team:'Club Nord',event:'Landesliga'});
+  const saved=notesFromSnapshot({'match-id':original},new Set(['match-id','other']));
+  const added=normalizeMatchNotes({text:'',team:'',event:'Tuesday tournament'});
+  assert.deepEqual(matchNoteEdits(saved,new Map([['match-id',EMPTY_MATCH_NOTES],['other',added]])),[
+    {id:'match-id',before:original,after:EMPTY_MATCH_NOTES},
+    {id:'other',before:EMPTY_MATCH_NOTES,after:added}
+  ]);
+  assert.equal(notesFromSnapshot(undefined,new Set()).size,0);
+  assert.throws(()=>notesFromSnapshot({'wrong-id':original},new Set(['match-id'])));
+  assert.throws(()=>normalizeMatchNotes({...original,text:'x'.repeat(601)}));
+  assert.throws(()=>normalizeMatchNotes({...original,team:'club\nteam'}));
+  assert.throws(()=>normalizeMatchNotes({...original,event:'\ud800'}));
 });

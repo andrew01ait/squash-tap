@@ -20,6 +20,39 @@ public class OpponentTransferUiTest {
  private void red(Button b){int c=b.getBackgroundTintList().getDefaultColor();assertTrue(Color.red(c)>Color.blue(c));}
  private JSONObject payload(String csv)throws Exception{OpponentDirectory d=directory();JSONArray catalog=TransferClient.catalog(d);catalog.put(new JSONObject().put("id","new-person").put("name","Susi").put("archived",false));return new JSONObject().put("schema",1).put("sessionId","00112233445566778899aabbccddeeff").put("baseDirectory",TransferClient.base(book(),d)).put("currentMatchId","active").put("currentOpponentId","new-person").put("changeCurrentOpponent",true).put("opponents",catalog).put("csv",csv);}
  private TransferClient.Session preview(JSONObject payload)throws Exception{TransferClient.Session session=new TransferClient.Session();TransferClient.snapshot(session,book(),directory(),book().newestFirst());session.expiresAt=System.currentTimeMillis()+600000;ReflectionHelpers.setField(activity,"tasks",new PausedTasks());ReflectionHelpers.setField(activity,"transfer",session);ReflectionHelpers.callInstanceMethod(activity,"previewTransfer",ReflectionHelpers.ClassParameter.from(JSONObject.class,payload),ReflectionHelpers.ClassParameter.from(TransferClient.Session.class,session));return session;}
+ @Test public void notesRequireAPrivateJournalAndFreshConfirmation()throws Exception{
+    MatchBook book=book();
+    OpponentDirectory names=directory();
+    MatchNotes annotated=new MatchNotes("Serve low","Club Nord","Landesliga");
+    book.setNotes("saved",annotated);
+    preferences.edit().putString("match_book",book.encode()).commit();
+    ReflectionHelpers.setField(activity,"book",book);
+    TransferClient.Session privateLink=new TransferClient.Session(), share=new TransferClient.Session();
+    JSONObject snapshot=TransferClient.snapshot(privateLink,book,names,Collections.singletonList(book.result("saved")),true);
+    assertEquals("Landesliga",snapshot.getJSONObject("matchNotes").getJSONObject("saved").getString("event"));
+    assertFalse(TransferClient.snapshot(share,book,names,book.newestFirst()).has("matchNotes"));
+    assertFalse(MatchCsv.export(book.newestFirst(),names).contains("Club Nord"));
+    JSONObject edit=payload("").put("changeCurrentOpponent",false);
+    JSONObject before=snapshot.getJSONObject("matchNotes").getJSONObject("saved");
+    JSONObject after=new JSONObject().put("text","Practice serve").put("team","").put("event","Landesliga");
+    JSONObject noteEdit=new JSONObject().put("id","saved").put("before",before).put("after",after);
+    edit.put("matchNoteEdits",new JSONArray().put(noteEdit));
+    assertThrows(Exception.class,()->TransferClient.preview(edit,book,names,share));
+    noteEdit.put("id","older");
+    assertThrows(Exception.class,()->TransferClient.preview(edit,book,names,privateLink));
+    noteEdit.put("id","saved");
+    privateLink.expiresAt=System.currentTimeMillis()+600000;
+    ReflectionHelpers.setField(activity,"tasks",new PausedTasks());
+    ReflectionHelpers.setField(activity,"transfer",privateLink);
+    ReflectionHelpers.callInstanceMethod(activity,"previewTransfer",ReflectionHelpers.ClassParameter.from(JSONObject.class,edit),ReflectionHelpers.ClassParameter.from(TransferClient.Session.class,privateLink));
+    assertTrue(contains("Edited match notes"));assertTrue(contains("Practice serve"));
+    assertEquals(annotated,book().notes("saved"));
+    click("Apply changes");
+    MatchBook updated=book();
+    assertEquals(new MatchNotes("Practice serve","","Landesliga"),updated.notes("saved"));
+    assertEquals(book.current().encode(),updated.current().encode());
+    assertThrows(Exception.class,()->TransferClient.preview(edit,updated,names,privateLink));
+ }
  @Test public void opponentManagerIsSeparateFromGreySettingsAndSupportsPhoneEntry(){click("Players");assertTrue(contains("Players"));assertNotNull(button("Edit names on phone"));assertNotNull(button("Add player"));assertNull(button("Back to Menu").getBackgroundTintList());}
  @Test public void addingAndChoosingNameKeepsScoreAndUndo(){String before=book().encode();click("Current match");click("Match options");click("Opponent: Opponent");click("Add player");input().setText("Susi");click("Save name");assertEquals("Susi",directory().nameFor("active"));assertEquals(before,book().encode());MatchBook restored=book();assertTrue(restored.undo());assertEquals(0,restored.current().game().red());}
  @Test public void savedNamePickerAssignsAndScoreboardAccessibilityUsesName(){click("Current match");click("Match options");click("Opponent: Opponent");click("Martin");assertEquals(martin,directory().opponentId("active"));click("Scoreboard");ScoreView view=ReflectionHelpers.getField(activity,"counter");assertTrue(view.getContentDescription().toString().contains("Martin"));}
