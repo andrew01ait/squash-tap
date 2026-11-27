@@ -245,6 +245,36 @@ public class MenuRevisionUiTest {
         assertTrue(hasButton("Rename"));back();assertMenuPath("Choose sport › Squash › Players");
     }
 
+    @Test public void newMatchPathNamesTheSelectedSportAndClearsSetupAfterCreation(){
+        close();
+        saveFixture(new MatchBook(new MatchState("idle-setup",3)));
+        preferences.edit().putString(WatchLanguage.PREFERENCE,"de").commit();
+        mainLaunch();
+
+        click("Neue Partie");assertMenuPath("Startseite › Neue Partie");
+        click("Squash");assertMenuPath("Startseite › Squash › Neue Partie");
+        click(activity.tr("Match length: Best of ")+3);
+        assertMenuPath("Startseite › Squash › Neue Partie › Partielänge");
+        back();assertMenuPath("Startseite › Squash › Neue Partie");
+        back();assertMenuPath("Startseite › Neue Partie");
+        click("Tennis");assertMenuPath("Startseite › Tennis › Neue Partie");
+        back();assertMenuPath("Startseite › Neue Partie");
+        click("Squash");click("Partie anlegen");
+
+        root();assertMenuPath("Squash");
+        click("Aktuelle Partie");assertMenuPath("Squash › Aktuelle Partie");
+        assertTrue(hasButton("Partie starten"));
+        click("Partie starten");
+        activity.action(TouchTargets.BLUE);
+        root();click("Aktuelle Partie");assertMenuPath("Squash › Aktuelle Partie");
+        assertTrue(hasButton("Partie pausieren"));
+        click("Partiedetails");assertMenuPath("Squash › Aktuelle Partie › Partiedetails");
+        back();click("Partieoptionen");assertMenuPath("Squash › Aktuelle Partie › Partieoptionen");
+        back();click("Partie pausieren");
+        root();click("Aktuelle Partie");assertMenuPath("Squash › Aktuelle Partie");
+        assertTrue(hasButton("Partie fortsetzen"));
+    }
+
     @Test @Config(qualifiers="w192dp-h192dp-round-xhdpi") public void finishedResultOffersVisibleNewMatchFirstAndRetainsTheSavedResultOnCancel(){
         RuntimeEnvironment.setFontScale(1.3f);
         close();MatchBook b=book();b.retire(1);preferences.edit().putString("match_book",b.encode()).remove(MatchDisplayPolicy.ACTIVE_MATCH).commit();
@@ -302,7 +332,7 @@ public class MenuRevisionUiTest {
     }
     @Test public void mixedMenusUseTaskHeadingsAndSingleChoiceScreensStayCompact(){
         root();assertEquals(Arrays.asList("Match","Match history","Sport","App"),sections());
-        click("Current match");assertEquals(Arrays.asList("Score","Match setup","Sharing","End match"),sections());
+        click("Current match");assertEquals(Arrays.asList("Score","Players & options","Sharing","End match"),sections());
         click("Live sharing & referee");assertEquals(Arrays.asList("Share your match","Join another match"),sections());
         click("Join with watch code");assertTrue(sections().isEmpty());back();back();back();
         click("Settings");assertEquals(Arrays.asList("Language & display","Feedback","Data","Watch shortcuts","App"),sections());
@@ -589,7 +619,7 @@ public class MenuRevisionUiTest {
 
     private void matchInGerman(){
         root();click("Aktuelle Partie");
-        assertEquals(Arrays.asList("Spielstand","Partie einrichten","Teilen","Partie beenden"),sections());
+        assertEquals(Arrays.asList("Spielstand","Spieler & Optionen","Teilen","Partie beenden"),sections());
     }
     @Implements(value=UpdateClient.class, isInAndroidSdk=false)
     public static class TestUpdateClient {
@@ -621,10 +651,10 @@ public class MenuRevisionUiTest {
         TestUpdateClient client = org.robolectric.shadow.api.Shadow.extract(ReflectionHelpers.getField(activity, "updater"));
         client.release = UpdatePolicy.parse(feed, activity.getPackageName(), "example.test");
         root(); click("Einstellungen"); click("Nach Updates suchen");
-        assertTrue(updateBar().isShown());
-        assertTrue(updateBar().isIndeterminate());
+        assertMenuPath("Squash › Einstellungen › App-Updates");
+        assertUpdateProgress(false, true);
         tasks.queued.remove(0).run();
-        assertEquals(View.GONE, updateBar().getVisibility());
+        assertUpdateProgress(false, false);
         ScrollView offer = scroll();
         Button download = button("Laden und aktualisieren");
         layout();
@@ -633,6 +663,7 @@ public class MenuRevisionUiTest {
 
         click("Laden und aktualisieren");
         assertEquals(0, scroll().getScrollY());
+        assertFalse(scroll().isVerticalScrollBarEnabled());
         assertDownloadStage("Geprüftes Update wird geladen …", 0);
         client.transfer = progress -> {
             progress.update(37);
@@ -655,38 +686,42 @@ public class MenuRevisionUiTest {
         };
         client.install = () -> assertDownloadStage(WatchLanguage.get(activity).status("Verified. Requesting installation…"), -1);
         tasks.queued.remove(0).run();
-        assertEquals(View.GONE, updateBar().getVisibility());
+        assertUpdateProgress(false, false);
         assertTrue(has(WatchLanguage.get(activity).status("Installation requested. Reopen Keep Score after it finishes.")));
 
         client.transfer = progress -> { progress.update(12); throw new IllegalStateException("offline"); };
         click("Laden und aktualisieren");
         tasks.queued.remove(0).run();
-        assertEquals(View.GONE, updateBar().getVisibility());
+        assertUpdateProgress(false, false);
         assertTrue(has("offline"));
         click("Laden und aktualisieren");
         assertDownloadStage("Geprüftes Update wird geladen …", 0);
     }
 
-    private ProgressBar updateBar() {
-        for (View v : all()) if (v instanceof ProgressBar) return (ProgressBar)v;
-        throw new AssertionError("Missing update progress bar");
+    private void assertUpdateProgress(boolean barVisible, boolean spinnerVisible) {
+        ProgressBar bar = ReflectionHelpers.getField(activity,"updateBar");
+        ProgressBar spinner = ReflectionHelpers.getField(activity,"updateSpinner");
+        assertEquals(barVisible,bar.isShown());
+        assertEquals(spinnerVisible,spinner.isShown());
+        assertFalse(bar.isIndeterminate());
+        assertTrue(spinner.isIndeterminate());
     }
 
     private void assertDownloadStage(String label, int percent) {
         assertUpdateMessageVisible(label);
-        ProgressBar bar = updateBar();
-        assertTrue(bar.isShown());
-        assertEquals(percent < 0, bar.isIndeterminate());
-        if (percent >= 0) assertEquals(percent, bar.getProgress());
+        assertUpdateProgress(percent>=0,percent<0);
+        ProgressBar indicator = ReflectionHelpers.getField(activity,percent<0?"updateSpinner":"updateBar");
+        if (percent >= 0) assertEquals(percent, indicator.getProgress());
+        else assertEquals(indicator.getWidth(),indicator.getHeight());
         android.graphics.Rect bounds = new android.graphics.Rect();
-        assertTrue(bar.getGlobalVisibleRect(bounds));
-        assertEquals(bar.getWidth(), bounds.width());
-        assertEquals(bar.getHeight(), bounds.height());
+        assertTrue(indicator.getGlobalVisibleRect(bounds));
+        assertEquals(indicator.getWidth(), bounds.width());
+        assertEquals(indicator.getHeight(), bounds.height());
         View screen = dialog().getWindow().getDecorView();
         float radius = screen.getWidth() / 2f;
         for (int x : new int[]{bounds.left, bounds.right})
             for (int y : new int[]{bounds.top, bounds.bottom})
-                assertTrue("Bar clipped by round display", Math.hypot(x-radius, y-radius) <= radius);
+                assertTrue("Progress clipped by round display", Math.hypot(x-radius, y-radius) <= radius);
     }
 
     private void assertUpdateMessageVisible(String message) {

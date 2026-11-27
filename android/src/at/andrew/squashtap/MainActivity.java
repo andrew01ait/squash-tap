@@ -71,7 +71,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     private String updateStatus="Tap Check for updates to contact the release website.";
     private Dialog panel;
     private TextView updateText;
-    private ProgressBar updateBar;
+    private ProgressBar updateBar, updateSpinner;
     private int updatePercent = -1;
     private boolean updatePanel;
     private String panelPage="Scoreboard";
@@ -402,7 +402,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         navigationButton(menu,tr("Match details"),this::showCurrentMatch);
 
         if(!finished){
-            section(menu,"Match setup");
+            section(menu,"Players & options");
             matchPlayerButton(menu,match.id(),match.format().doubles,this::showMatchControls);
             navigationButton(menu,tr("Match options"),this::showMatchOptions);
         }
@@ -1162,7 +1162,10 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         LinearLayout content=panel("New match","home-new-sport",MenuSection.NEW_MATCH);
         for(String sport:ui.sortedSports()){
             Button choice=navigationButton(content,tr(MatchFormat.name(sport)),()->{
-                if(selectSport(sport)){sharedArea=false;showNewMatch(this::chooseHomeSport);}
+                if(!selectSport(sport))return;
+                location.title=MatchFormat.name(sport);
+                sharedArea=false;
+                showNewMatch(this::chooseHomeSport);
             });
             sportButton(choice,sport);
         }
@@ -1485,20 +1488,27 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         boolean audienceFinal=audience&&current.complete()&&(entry==MatchRooms.Entry.MATCH||hasAudienceLink());
         if(usable||audienceFinal){ready.run();return;}
         if(entry!=MatchRooms.Entry.SPORTS){
-            sharedArea=false;
-            showNewMatch(rooms::hub,ready,createLabel);
+            showSharingSetup(rooms::hub,ready,createLabel,location);
             return;
         }
         LinearLayout page=roomPanel(tr("Choose sport"),"sharing-sport");
         for(String sport:ui.sortedSports()){
             Button choice=navigationButton(page,tr(MatchFormat.name(sport)),()->{
                 if(!selectSport(sport))return;
-                sharedArea=false;
-                showNewMatch(()->chooseSharingMatch(entry,audience,createLabel,ready),ready,createLabel);
+                location.title=MatchFormat.name(sport);
+                showSharingSetup(()->chooseSharingMatch(entry,audience,createLabel,ready),ready,createLabel,location.parent);
             });
             sportButton(choice,sport);
         }
         backButton(page,tr("Back"),rooms::hub);
+    }
+    private void showSharingSetup(Runnable back,Runnable ready,String createLabel,MenuLocation hub){
+        sharedArea=false;
+        showNewMatch(back,()->{
+            // The setup is complete. Start the sharing screen from the hub.
+            location=hub;
+            ready.run();
+        },createLabel);
     }
     boolean roomAlreadySaved(String id){return book.result(id)!=null;}
     boolean roomLocalFinished(){return book.current().complete();}
@@ -1674,11 +1684,16 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         LinearLayout content = panel("App updates", null, downloading ? PanelTitle.CUSTOM : PanelTitle.STANDARD);
         updatePanel = true;
         if (downloading) {
+            panelScroll.setVerticalScrollBarEnabled(false);
             TextView title=panelHeading(content,tr("App updates"),true);
             bindMenuPath(content,title,tr("App updates"));
         }
         updateBar = (ProgressBar) getLayoutInflater().inflate(R.layout.update_progress, content, false);
         content.addView(updateBar);
+        updateSpinner = new ProgressBar(this, null, android.R.attr.progressBarStyleSmall);
+        updateSpinner.setIndeterminateTintList(updateBar.getIndeterminateTintList());
+        updateSpinner.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        content.addView(updateSpinner, new LinearLayout.LayoutParams(dp(24), dp(24)));
         updateText = paragraph(content, "");
         renderUpdateStatus();
         if (downloading) {
@@ -1747,9 +1762,10 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     private void renderUpdateStatus() {
         if (!updatePanel || updateBar == null) return;
         updateText.setText(ui.status(updateStatus));
-        updateBar.setVisibility(checking || downloading ? View.VISIBLE : View.GONE);
-        updateBar.setIndeterminate(updatePercent < 0);
-        if (updatePercent >= 0) updateBar.setProgress(updatePercent);
+        boolean showBar = downloading && updatePercent >= 0;
+        updateBar.setVisibility(showBar ? View.VISIBLE : View.GONE);
+        updateSpinner.setVisibility(checking || downloading && !showBar ? View.VISIBLE : View.GONE);
+        if (showBar) updateBar.setProgress(updatePercent);
     }
     private void allowUpdates(){
         if(BuildConfig.PLAY_DISTRIBUTION){showPlayUpdates();return;}
@@ -2046,7 +2062,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     private void trackPanelDismiss(){
         final Dialog shown=panel;
         Runnable releaseBack=registerPanelBack(shown);
-        panel.setOnDismissListener(d->{releaseBack.run();if(panel==shown){if(nfc!=null)nfc.clear();rememberPanelScroll();updatePanel=false;updateText=null;updateBar=null;panel=null;panelScroll=null;panelScrollKey=null;panelPage="Scoreboard";updateDisplay();}});
+        panel.setOnDismissListener(d->{releaseBack.run();if(panel==shown){if(nfc!=null)nfc.clear();rememberPanelScroll();resetUpdatePanel();panel=null;panelScroll=null;panelScrollKey=null;panelPage="Scoreboard";updateDisplay();}});
     }
     private Runnable registerPanelBack(Dialog shown){
         if(Build.VERSION.SDK_INT<33)return ()->{};
@@ -2260,5 +2276,11 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         TextView details=paragraph(card,tr("Best of ")+result.bestOf+" · "+ui.scoreTerms(result.outcomeText())+"\n"+ui.scoreTerms(result.timingText())+tr("\nDuration: ")+ui.scoreTerms(result.durationText())+tr("\nMatch ")+result.number+"\n\n"+ui.scoreTerms(result.gamesText()));
         details.setTextSize(12);details.setTextColor(0xffedf4ff);
     }
-    void closePanel(){if(nfc!=null)nfc.clear();rememberPanelScroll();if(panel!=null){panel.dismiss();panel=null;}location=null;panelScroll=null;panelScrollKey=null;panelPage="Scoreboard";updatePanel=false;updateText=null;updateBar=null;updateDisplay();}
+    private void resetUpdatePanel(){
+        updatePanel=false;
+        updateText=null;
+        updateBar=null;
+        updateSpinner=null;
+    }
+    void closePanel(){if(nfc!=null)nfc.clear();rememberPanelScroll();if(panel!=null){panel.dismiss();panel=null;}location=null;panelScroll=null;panelScrollKey=null;panelPage="Scoreboard";resetUpdatePanel();updateDisplay();}
 }

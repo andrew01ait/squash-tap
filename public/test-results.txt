@@ -1,9 +1,9 @@
-Keep Score 0.23.5 — automated direct-release verification
+Keep Score 0.23.6 — automated direct-release verification
 
 Core tests passed: 349
-Native watch UI tests passed (Robolectric): 292
+Native watch UI tests passed (Robolectric): 293
 Web and relay tests passed: 112
-Total: 753
+Total: 754
 
 Verified the APK signing certificate, package identity, version and ZIP alignment.
 Verified retained APK checksums.

@@ -126,7 +126,12 @@ public class SportNavigationUiTest {
         },(method,path,token,body)->{throw new java.io.IOException("offline");});
         ReflectionHelpers.setField(rooms,"client",client);
         cancelCurrent();click("Change sport");click("Live sharing & referee");click("Referee on phone");
-        click("Tennis");click("Create & invite referee");
+        click("Tennis");
+        MenuLocation setup=ReflectionHelpers.getField(activity,"location");
+        assertEquals("Home › Choose sport › Live sharing & referee › Tennis › New match",setup.path(activity::tr));
+        click("Create & invite referee");
+        MenuLocation referee=ReflectionHelpers.getField(activity,"location");
+        assertEquals("Home › Choose sport › Live sharing & referee › Referee on phone",referee.path(activity::tr));
         assertEquals("host",client.current().role);assertEquals("tennis",rooms.displayed().format().sport);
         String before=book().encode();
         back();click("Share with watches");click("Pair watches");click("Enable new joins");assertTrue(client.current().watchJoin);

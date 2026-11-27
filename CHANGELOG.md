@@ -1,5 +1,10 @@
 # Releases
 
+## v0.23.6 · 2026-11-27 · direct APK code 45
+
+- New match shows the selected sport in the menu path, for example Home › Squash › New match. During play, Players & options groups the player selection and match options. Referee invitations return to the sharing path after setup.
+- App updates shows a horizontal percentage bar during the download and a round spinner while checking, verifying or handing the update to the installer.
+
 ## v0.23.5 · 2026-11-27 · direct APK code 44
 
 - Tap the watch menu title to show or hide the current path. The depth bars are gone.
