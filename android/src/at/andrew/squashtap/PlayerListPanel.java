@@ -51,10 +51,10 @@ final class PlayerListPanel {
         CheckBox recency = new CheckBox(activity);
         recency.setText(activity.tr("Last 30 days"));
         recency.setContentDescription(activity.tr("Played in the last 30 days"));
-        recency.setTextColor(0xffe3edf6);
+        recency.setTextColor(MainActivity.MENU_CONTROL_TEXT);
         recency.setTextSize(14);
         recency.setMinHeight(Math.round(48 * activity.getResources().getDisplayMetrics().density));
-        recency.setButtonTintList(location.section.linkInk);
+        recency.setButtonTintList(MainActivity.MENU_CONTROL_TEXT);
         recency.setChecked(location.recentPlayersOnly);
         parent.addView(recency, new LinearLayout.LayoutParams(-1, -2));
         sort = activity.navigationButton(parent, "", this::toggleChoices);
@@ -131,8 +131,8 @@ final class PlayerListPanel {
         if (matches.isEmpty()) activity.paragraph(rows, activity.tr(location.recentPlayersOnly && query.isEmpty() ? "No players in the last 30 days." : "No matching players"));
         for (int i = page * PAGE_SIZE; i < Math.min((page + 1) * PAGE_SIZE, matches.size()); i++)
             row.add(rows, matches.get(i));
-        if (page > 0) activity.navigationButton(rows, activity.tr("Previous names"), () -> changePage(page - 1));
-        if (page < last) activity.navigationButton(rows, activity.tr("More names"), () -> changePage(page + 1));
+        if (page > 0) activity.secondaryButton(rows, activity.tr("Previous names"), () -> changePage(page - 1));
+        if (page < last) activity.secondaryButton(rows, activity.tr("More names"), () -> changePage(page + 1));
     }
 
     private void changePage(int page) {

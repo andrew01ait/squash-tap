@@ -1,4 +1,4 @@
-Keep Score 0.23.6 — automated direct-release verification
+Keep Score 0.23.7 — automated direct-release verification
 
 Core tests passed: 349
 Native watch UI tests passed (Robolectric): 293

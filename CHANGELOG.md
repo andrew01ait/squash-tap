@@ -1,5 +1,10 @@
 # Releases
 
+## v0.23.7 · 2026-11-27 · direct APK code 46
+
+- Home keeps its coloured tiles, and sport selection keeps its coloured rows and icons. Menu colours identify the titles.
+- A filled neutral button highlights the primary action. Arrows mark submenus, and Back and Cancel use a neutral outline. Red marks the action that deletes an entry or discards work.
+
 ## v0.23.6 · 2026-11-27 · direct APK code 45
 
 - New match shows the selected sport in the menu path, for example Home › Squash › New match. During play, Players & options groups the player selection and match options. Referee invitations return to the sharing path after setup.

@@ -400,6 +400,8 @@ public class SportNavigationUiTest {
         assertEquals("Share with watches",((MenuLocation)ReflectionHelpers.getField(activity,"location")).title);
         assertNotNull(button("Connected devices"));
         assertNull(find("Hand over to referee"));assertNull(find("Audience live link"));assertNull(find("Disable new joins"));
+        assertNotNull(button("Pair watches").getBackgroundTintList());
+        assertNotNull(button("Pair watches").getCompoundDrawablesRelative()[2]);
         click("Pair watches");
         assertNotNull(button("Pair a watch via NFC"));
         assertNull(find("Connected devices"));
@@ -411,6 +413,8 @@ public class SportNavigationUiTest {
         swipe();click("Show watch code");
         assertTrue(text().contains(ready.joinCode.substring(0,5)+" "+ready.joinCode.substring(5)));
         swipe();click("Pair a watch via NFC");swipe();assertNotNull(button("Show watch QR"));
+        assertNull(button("Disable new joins").getBackgroundTintList());
+        assertNull(button("Disable new joins").getCompoundDrawablesRelative()[2]);
         click("Disable new joins");assertFalse(host.current().watchJoin);assertNull(find("Show watch QR"));
         swipe();assertNotNull(button("Connected devices"));
         swipe();click("Referee on phone");assertNotNull(button("Hand over to referee"));
@@ -453,7 +457,14 @@ public class SportNavigationUiTest {
         String discarded=book().current().id();
         click("Back to sharing");click("Back to score");
         activity.action(TouchTargets.MENU);
-        click("Cancel match");click("Discard match");
+        Button cancel=button("Cancel match");
+        int fill=cancel.getBackgroundTintList().getDefaultColor();
+        assertEquals(android.graphics.Color.red(fill),android.graphics.Color.blue(fill));
+        assertNotNull(cancel.getCompoundDrawablesRelative()[2]);
+        click("Cancel match");
+        int discard=button("Discard match").getBackgroundTintList().getDefaultColor();
+        assertTrue(android.graphics.Color.red(discard)>android.graphics.Color.blue(discard));
+        click("Discard match");
         assertNull(host.current());
         assertNull(book().result(discarded));
         assertNotNull(book().result("history"));

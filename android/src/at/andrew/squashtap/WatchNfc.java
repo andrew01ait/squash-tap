@@ -86,7 +86,7 @@ final class WatchNfc {
         LinearLayout shown = activity.roomPanel(title, null);
         page = shown;
         status = activity.paragraph(shown, activity.tr(instruction));
-        retry = activity.navigationButton(shown, activity.tr("Try NFC again"),
+        retry = activity.primaryButton(shown, activity.tr("Try NFC again"),
             () -> show(title, instruction, message, join, back, backLabel));
         retry.setVisibility(View.GONE);
         activity.backButton(shown, backLabel, back);

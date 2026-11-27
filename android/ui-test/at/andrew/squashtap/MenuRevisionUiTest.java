@@ -280,7 +280,7 @@ public class MenuRevisionUiTest {
         close();MatchBook b=book();b.retire(1);preferences.edit().putString("match_book",b.encode()).remove(MatchDisplayPolicy.ACTIVE_MATCH).commit();
         launch();root();assertTrue(all().indexOf(button("New match"))<all().indexOf(button("Current match")));
         click("Current match");click("View result");layout();
-        Button primary=button("New match");int colour=primary.getBackgroundTintList().getDefaultColor();assertTrue(Color.green(colour)>Color.blue(colour));
+        Button primary=button("New match");assertPrimary(primary);assertNotNull(primary.getCompoundDrawablesRelative()[2]);
         assertTrue(all().indexOf(primary)<all().indexOf(button("Quick rematch")));
         assertTrue(all().indexOf(button("Quick rematch"))<all().indexOf(button("Share result card")));
         android.graphics.Rect visible=new android.graphics.Rect();assertTrue(primary.getLocalVisibleRect(visible));assertEquals(primary.getHeight(),visible.height());
@@ -750,7 +750,7 @@ public class MenuRevisionUiTest {
         shadowOf(Looper.getMainLooper()).idle();
     }
 
-    @Test public void rootGroupsSportHistoryAndSharedAppDestinations(){root();List<String> labels=new ArrayList<>();for(View v:all())if(v instanceof Button)labels.add(((Button)v).getText().toString());assertEquals(Arrays.asList("Current match","Players","Live sharing & referee","Results (17)","Statistics","Favourite formats","Scoring rules","Change sport","Settings","Back to score"),labels);assertFalse(hasButton("Manage on phone"));int c=button("Players").getBackgroundTintList().getDefaultColor();assertTrue(Color.red(c)>Color.green(c)&&Color.blue(c)>Color.green(c));}
+    @Test public void rootGroupsSportHistoryAndSharedAppDestinations(){root();List<String> labels=new ArrayList<>();for(View v:all())if(v instanceof Button)labels.add(((Button)v).getText().toString());assertEquals(Arrays.asList("Current match","Players","Live sharing & referee","Results (17)","Statistics","Favourite formats","Scoring rules","Change sport","Settings","Back to score"),labels);assertFalse(hasButton("Manage on phone"));assertMenuLink(button("Players"));}
     @Test public void currentMatchPutsTheSessionActionBeforeSecondaryControls(){match();List<String> labels=new ArrayList<>();for(View v:all())if(v instanceof Button&&!((Button)v).getText().toString().equals("Scoreboard"))labels.add(((Button)v).getText().toString());assertEquals(Arrays.asList("Pause match","Enter set score","Match details","Opponent: Alice","Match options","Live sharing & referee","Save retirement result","Cancel match","Back to Menu"),labels);click("Pause match");assertFalse(awake());match();assertTrue(hasButton("Resume match"));assertFalse(hasButton("Pause match"));}
     @Test public void finishedCurrentMatchHidesSetupAndScoringActions(){close();MatchBook b=book();b.retire(1);preferences.edit().putString("match_book",b.encode()).remove(MatchDisplayPolicy.ACTIVE_MATCH).commit();launch();match();assertTrue(hasButton("View result"));assertTrue(hasButton("New match"));assertFalse(hasButton("Enter set score"));assertFalse(hasButton("Match options"));assertFalse(hasButton("Start match"));assertFalse(hasButton("Resume match"));}
     @Test public void choosingANewFormatStagesItUntilCreateIsExplicit(){String before=book().encode();match();click("Match options");click("New match");click("Match length: Best of 3");click("Best of 5 · first to 3");assertTrue(hasButton("Match length: Best of 5"));assertEquals(before,book().encode());click("Create match");assertTrue(has("Replace this match?"));assertEquals(before,book().encode());click("Replace & create match");assertEquals(5,book().current().bestOf());assertFalse(book().current().hasPoints());assertFalse(preferences.contains(MatchDisplayPolicy.ACTIVE_MATCH));}
@@ -759,54 +759,76 @@ public class MenuRevisionUiTest {
     @Test public void nativeSwipeDismissUsesTheSameParentWithoutPausingPlay(){match();click("Match options");SwipeDismissFrameLayout frame=null;for(View v:all())if(v instanceof SwipeDismissFrameLayout){frame=(SwipeDismissFrameLayout)v;break;}assertNotNull(frame);assertTrue(frame.isSwipeable());ReflectionHelpers.callInstanceMethod(frame,"performDismissFinishedCallbacks");shadowOf(Looper.getMainLooper()).idle();assertTrue(hasButton("Pause match"));assertEquals("current",preferences.getString(MatchDisplayPolicy.ACTIVE_MATCH,""));}
     @Test public void diagnosticQrBackReturnsToDiagnosticsAndReleasesItsScreenFlag(){root();click("Settings");click("Diagnostics");click("Send to phone");Dialog qr=dialog();assertTrue((qr.getWindow().getAttributes().flags&WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)!=0);back();assertTrue(hasButton("Copy details"));assertEquals(0,dialog().getWindow().getAttributes().flags&WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);back();assertTrue(hasButton("Check for updates"));}
     @Test public void resultDetailsPickerAndDeleteCancelPreserveFiltersPageAndScroll(){results();click("Filters");click("Opponent: All");click("Alice");click("Back to Results");assertTrue(has("12 of 17 saved"));click("Older results");assertTrue(has("Page 2 of 2"));layout();scroll().scrollTo(0,110);int position=scroll().getScrollY();assertTrue(position>0);openFirstResult();click("Opponent: Alice");back();assertTrue(hasButton("Delete this result"));click("Delete this result");back();click("Back to Results");layout();assertTrue(has("12 of 17 saved"));assertTrue(has("Page 2 of 2"));assertEquals(position,scroll().getScrollY());}
-    @Test public void deleteAllIsKeptInsideResultOptions(){results();assertFalse(hasButton("Delete all results"));click("Options");Button delete=button("Delete all results");int c=delete.getBackgroundTintList().getDefaultColor();assertTrue(Color.red(c)>Color.blue(c));click("Delete all results");back();assertTrue(hasButton("Export CSV"));assertEquals(17,book().count());}
+    @Test public void deleteAllIsKeptInsideResultOptions(){results();assertFalse(hasButton("Delete all results"));click("Options");assertMenuLink(button("Delete all results"));click("Delete all results");int c=button("Delete all").getBackgroundTintList().getDefaultColor();assertTrue(Color.red(c)>Color.blue(c));back();assertTrue(hasButton("Export CSV"));assertEquals(17,book().count());}
     @Test public void enteredSetIsAvailableDirectlyInTheCurrentMatchAndCancelChangesNothing(){String before=book().encode();match();click("Enter set score");assertTrue(has("Set 1 score"));click("Me won");assertTrue(hasButton("Review set score"));for(View v:all())if(v instanceof NumberPicker)assertEquals(ViewGroup.FOCUS_BLOCK_DESCENDANTS,((NumberPicker)v).getDescendantFocusability());back();assertTrue(hasButton("Pause match"));assertEquals(before,book().encode());}
     @Test public void pastMatchEntryBelongsToResultsAndCancelKeepsTheLiveMatch(){String before=book().encode();match();assertFalse(hasButton("Add past match"));results();assertFalse(hasButton("Add past match"));click("Options");click("Add past match");assertTrue(hasButton("Save match result"));assertFalse(hasButton("Enter set score"));back();assertTrue(hasButton("Add past match"));assertEquals(before,book().encode());assertEquals("current",preferences.getString(MatchDisplayPolicy.ACTIVE_MATCH,""));}
     @Test public void resultsPhoneActionSetsItsLandingViewAndReturnsToResults(){readyTransfer();results();click("Options");click("View results on phone");assertTrue(hasButton("Show phone QR"));String link=ReflectionHelpers.callInstanceMethod(activity,"phoneLink");assertTrue(link.endsWith("&view=results"));click("Show phone QR");assertEquals("Phone QR",ReflectionHelpers.getField(activity,"panelPage"));back();assertTrue(hasButton("Receive changes"));back();assertTrue(hasButton("Filters"));}
     @Test public void importPhoneActionTargetsImportAndReturnsToResultOptions(){readyTransfer();results();click("Options");click("Import CSV");String link=ReflectionHelpers.callInstanceMethod(activity,"phoneLink");assertTrue(link.endsWith("&view=import"));back();assertTrue(hasButton("Delete all results"));assertTrue(hasButton("Export CSV"));}
     @Test public void namesPhoneActionPreservesItsOpponentPickerCaller(){readyTransfer();match();click("Match options");click("Opponent: Alice");click("Edit names on phone");String link=ReflectionHelpers.callInstanceMethod(activity,"phoneLink");assertTrue(link.endsWith("&view=opponents"));back();assertTrue(hasButton("No name"));assertTrue(hasButton("Bob"));back();assertTrue(hasButton("Match length: Best of 3"));}
     @Test public void aLatePhoneLinkCannotReopenPanelsAfterReturningToScoreboard(){results();click("Options");click("View results on phone");Dialog waiting=dialog();assertTrue(has("Preparing phone link"));click("Scoreboard");assertFalse(waiting.isShowing());TransferClient.Session created=new TransferClient.Session();created.expiresAt=System.currentTimeMillis()+600000;ReflectionHelpers.callInstanceMethod(activity,"transferCreated",ReflectionHelpers.ClassParameter.from(TransferClient.Session.class,created),ReflectionHelpers.ClassParameter.from(boolean.class,false),ReflectionHelpers.ClassParameter.from(boolean.class,false),ReflectionHelpers.ClassParameter.from(String.class,""),ReflectionHelpers.ClassParameter.from(Dialog.class,waiting));assertFalse(ShadowDialog.getLatestDialog().isShowing());assertEquals(created,ReflectionHelpers.getField(activity,"transfer"));assertTrue(awake());}
-    @Test public void destinationsAndSecondaryActionsKeepTheirColourAndTouchTargets(){
-        root();Button results=button("Results (17)");
-        assertEquals(MenuSection.RESULTS.surface,results.getBackgroundTintList().getDefaultColor());
-        assertNotNull(results.getCompoundDrawablesRelative()[2]);assertNull(button("Back to score").getBackgroundTintList());
-        click("Statistics");
-        assertEquals(MenuSection.RESULTS.surface,button("Results (17)").getBackgroundTintList().getDefaultColor());
+    private void assertPrimary(Button button){
+        assertNotNull(button.getBackgroundTintList());
+        for(int[] state:new int[][]{{android.R.attr.state_enabled},{android.R.attr.state_enabled,android.R.attr.state_pressed}}){
+            int fill=button.getBackgroundTintList().getColorForState(state,0);
+            int ink=button.getTextColors().getColorForState(state,0);
+            assertEquals(Color.red(fill),Color.green(fill));
+            assertEquals(Color.green(fill),Color.blue(fill));
+            assertTrue(androidx.core.graphics.ColorUtils.calculateContrast(ink,fill)>=4.5);
+        }
+    }
+
+    private void assertMenuLink(Button button){
+        assertEquals(MainActivity.MENU_CONTROL_TEXT.getDefaultColor(),button.getTextColors().getDefaultColor());
+        assertNull(button.getBackgroundTintList());
+        assertNotNull(button.getCompoundDrawablesRelative()[2]);
+    }
+
+    @Test public void submenusUseTheSameNeutralStyleAcrossDestinations(){
+        root();assertPrimary(button("Current match"));
+        assertNotNull(button("Current match").getCompoundDrawablesRelative()[2]);
+        assertMenuLink(button("Results (17)"));
+        assertMenuLink(button("Live sharing & referee"));
+        click("Statistics");assertMenuLink(button("Results (17)"));
         click("Results (17)");assertEquals(MenuSection.RESULTS,location().section);layout();
         for(String label:new String[]{"Filters","Options"}){
             Button tool=button(label);float density=activity.getResources().getDisplayMetrics().density;
+            assertMenuLink(tool);
             assertTrue(tool.getWidth()>=48*density);assertTrue(tool.getHeight()>=48*density);
-            assertEquals(MenuSection.RESULTS.accent,tool.getTextColors().getDefaultColor());
         }
-        click("Options");Button export=button("Export CSV");
-        assertNull(export.getBackgroundTintList());assertNotNull(export.getCompoundDrawablesRelative()[2]);
-        assertEquals(MenuSection.RESULTS.accent,export.getTextColors().getDefaultColor());
+        click("Options");assertMenuLink(button("Export CSV"));
+        assertPrimary(button("Add past match"));assertNotNull(button("Add past match").getCompoundDrawablesRelative()[2]);
+        assertTrue(all().stream().anyMatch(view->view instanceof TextView&&view.isAccessibilityHeading()
+            &&"Result options".contentEquals(((TextView)view).getText())
+            &&((TextView)view).getCurrentTextColor()==MenuSection.RESULTS.accent));
         back();back();assertEquals(MenuSection.STATISTICS,location().section);
     }
 
-    @Test public void allMainDestinationsHaveUniqueReadableColoursAndMatchTheirHomeShortcuts(){
+    @Test public void homeTilesAndSportRowsHaveTheirOwnReadableColours(){
         close();saveFixture(new MatchBook(new MatchState("idle-colours",3)));mainLaunch();
         String[] tiles={"New match","Results","Players","Sports","Settings"};
         MenuSection[] shortcuts={MenuSection.NEW_MATCH,MenuSection.RESULTS,MenuSection.PLAYERS,MenuSection.SPORTS,MenuSection.SETTINGS};
-        for(int i=0;i<tiles.length;i++)assertEquals(tiles[i],shortcuts[i].surface,button(tiles[i]).getBackgroundTintList().getDefaultColor());
-        root();
-        String[] labels={"New match","Current match","Change sport","Results (0)","Players","Statistics",
-                ((MatchRooms)ReflectionHelpers.getField(activity,"rooms")).title(),"Favourite formats","Scoring rules","Settings"};
-        MenuSection[] sections={MenuSection.NEW_MATCH,MenuSection.CURRENT_MATCH,MenuSection.SPORTS,MenuSection.RESULTS,MenuSection.PLAYERS,
-                MenuSection.STATISTICS,MenuSection.SHARING,MenuSection.FAVOURITES,MenuSection.RULES,MenuSection.SETTINGS};
-        int[][] states={{android.R.attr.state_enabled},{android.R.attr.state_enabled,android.R.attr.state_pressed},
-                {-android.R.attr.state_enabled}};
+        int[][] states={{android.R.attr.state_enabled},{android.R.attr.state_enabled,android.R.attr.state_pressed}};
         for(int[] state:states){
             Set<Integer> seen=new HashSet<>();
-            for(int i=0;i<labels.length;i++){
-                Button row=button(labels[i]);
-                int fill=row.getBackgroundTintList().getColorForState(state,0);
-                int ink=row.getTextColors().getColorForState(state,0);
-                assertEquals(labels[i],sections[i].fill.getColorForState(state,0),fill);
-                assertTrue(labels[i],seen.add(fill));
-                assertTrue(labels[i],androidx.core.graphics.ColorUtils.calculateContrast(ink,fill)>=4.5);
+            for(int i=0;i<tiles.length;i++){
+                Button tile=button(tiles[i]);
+                int fill=tile.getBackgroundTintList().getColorForState(state,0);
+                int ink=tile.getTextColors().getColorForState(state,0);
+                assertEquals(tiles[i],shortcuts[i].fill.getColorForState(state,0),fill);
+                assertTrue(tiles[i],seen.add(fill));
+                assertTrue(tiles[i],androidx.core.graphics.ColorUtils.calculateContrast(ink,fill)>=4.5);
             }
         }
+        click("Sports");
+        Set<Integer> sportColours=new HashSet<>();
+        for(String sport:MatchFormat.SPORTS){
+            Button row=button(MatchFormat.name(sport));
+            assertEquals(sport,SportIcons.accent(sport),row.getTextColors().getDefaultColor());
+            assertTrue(sport,sportColours.add(row.getTextColors().getDefaultColor()));
+            assertTrue(row.getCompoundDrawablesRelative()[0] instanceof SportIcons);
+            assertNotNull(row.getCompoundDrawablesRelative()[2]);
+        }
+        assertMenuLink(button("Players"));assertMenuLink(button("Settings"));
     }
 
     @Test public void scoreboardShortcutPreservesPauseAndStatisticsKeepsItsReturnRoute(){match();click("Pause match");match();click("Scoreboard");assertFalse(awake());assertFalse(preferences.contains(MatchDisplayPolicy.ACTIVE_MATCH));root();click("Statistics");click("Results (17)");assertTrue(hasButton("Back to Statistics"));back();assertTrue(has("Win rate:"));assertTrue(hasButton("Back to Menu"));}

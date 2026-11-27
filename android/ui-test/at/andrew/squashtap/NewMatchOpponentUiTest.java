@@ -3,7 +3,7 @@ package at.andrew.squashtap;
 import android.app.Application;
 import android.app.Dialog;
 import android.content.SharedPreferences;
-import android.graphics.Color;
+
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -55,11 +55,11 @@ public class NewMatchOpponentUiTest {
     private OpponentDirectory directory(){return OpponentDirectory.decode(preferences.getString("opponent_book",""));}
     private void openNew(){activity.action(TouchTargets.NEW);}
     private void chooseMartin(){click("Opponent: No name (optional)");click("Martin");}
-    private void person(Button button){int c=button.getBackgroundTintList().getColorForState(button.getDrawableState(),0);assertTrue(Color.red(c)>Color.green(c));assertTrue(Color.blue(c)>Color.green(c));assertNotNull(button.getCompoundDrawablesRelative()[0]);assertEquals(Gravity.START,button.getGravity()&Gravity.RELATIVE_HORIZONTAL_GRAVITY_MASK);}
+    private void person(Button button){assertNull(button.getBackgroundTintList());assertEquals(MainActivity.MENU_CONTROL_TEXT.getDefaultColor(),button.getTextColors().getDefaultColor());assertNotNull(button.getCompoundDrawablesRelative()[0]);assertEquals(Gravity.START,button.getGravity()&Gravity.RELATIVE_HORIZONTAL_GRAVITY_MASK);}
     private void idleNewMatch(){assertFalse(preferences.contains(MatchDisplayPolicy.ACTIVE_MATCH));assertFalse(book().current().hasPoints());assertEquals(0,book().currentStartedAt());}
 
     @Test public void savedNamesHaveDistinctPersonStyleInNormalPressedAndDisabledStates(){
-        activity.action(TouchTargets.MENU);click("Players");Button name=button("Martin"),action=button("Add player");assertNotEquals(action.getBackgroundTintList().getDefaultColor(),name.getBackgroundTintList().getDefaultColor());person(name);name.setPressed(true);person(name);name.setPressed(false);name.setEnabled(false);person(name);assertNull(button("Back to Menu").getBackgroundTintList());
+        activity.action(TouchTargets.MENU);click("Players");Button name=button("Martin"),action=button("Add player");assertNotNull(action.getBackgroundTintList());assertNotNull(name.getCompoundDrawablesRelative()[2]);person(name);name.setPressed(true);person(name);name.setPressed(false);name.setEnabled(false);person(name);assertNull(button("Back to Menu").getBackgroundTintList());
     }
     @Test public void currentAndFilterNameSelectorsUseThePersonStyle(){
         activity.action(TouchTargets.MENU);click("Current match");click("Match options");person(button("Opponent: Alice"));click("Opponent: Alice");person(button("✓ Alice"));person(button("No name"));click("Cancel");click("Back to Current match");click("Back to Menu");click("Results (1)");click("Filters");person(button("Opponent: All"));click("Opponent: All");person(button("✓ All opponents"));person(button("Unnamed"));person(button("Martin"));

@@ -207,15 +207,15 @@ final class MatchRooms {
     void menu(){
         if(s==null||blocked||joiningCode!=null){hub();return;}
         LinearLayout page=a.roomPanel("Shared match","room-menu");
-        if(finalScore())a.destinationButton(page,MenuSection.RESULTS,text("Save to my results","In meine Ergebnisse speichern","Enregistrer dans mes résultats","Guardar en mis resultados"),this::pickSeat);
-        else if(isHost())leaveButton(page,this::menu);
+        if(finalScore())a.primaryNavigationButton(page,text("Save to my results","In meine Ergebnisse speichern","Enregistrer dans mes résultats","Guardar en mis resultados"),this::pickSeat);
+        else if(isHost())a.primaryNavigationButton(page,a.tr("Cancel match"),()->confirmLeave(this::menu));
         a.section(page,"Score");
         connection=a.paragraph(page,status());
         summary=a.paragraph(page,"");
         refreshText();
         if(match!=null)a.navigationButton(page,text("Set scores","Satzstände","Scores des manches","Marcadores parciales"),a::showSharedMatchDetails);
         a.section(page,"Sharing");
-        a.destinationButton(page,MenuSection.SHARING,title(),()->open(Entry.SHARED));
+        a.navigationButton(page,title(),()->open(Entry.SHARED));
         a.section(page,"App");
         a.roomSettings(page);
         a.backButton(page,"Back to score",a::closePanel);
@@ -268,7 +268,7 @@ final class MatchRooms {
 
     private void syncButton(LinearLayout page) {
         if(s.pending || !error.isEmpty()) {
-            a.navigationButton(page,text("Sync now","Jetzt abgleichen","Synchroniser","Sincronizar"),()->{
+            a.secondaryButton(page,text("Sync now","Jetzt abgleichen","Synchroniser","Sincronizar"),()->{
                 terminalError=false;
                 schedule(0);
             });
@@ -291,7 +291,7 @@ final class MatchRooms {
         LinearLayout page=a.roomPanel(watchSharingTitle(),"room-watches");
         summary=null;
         connection=null;
-        if(!terminalError)a.navigationButton(page,pairingTitle(),this::showPairing);
+        if(!terminalError)a.primaryNavigationButton(page,pairingTitle(),this::showPairing);
         if(s.managed && s.ready)a.navigationButton(page,devicesTitle(),this::devices);
         if(!s.ready || !error.isEmpty()) {
             connection=a.paragraph(page,status());
@@ -322,9 +322,9 @@ final class MatchRooms {
         }
         if(!terminalError) {
             if(s.watchJoin) {
-                a.deleteButton(page,a.tr("Disable new joins"),this::toggleJoin);
+                a.secondaryButton(page,a.tr("Disable new joins"),this::toggleJoin);
                 a.paragraph(page,a.tr("Connected watches can keep following."));
-            } else a.button(page,a.tr("Enable new joins"),this::toggleJoin);
+            } else a.primaryButton(page,a.tr("Enable new joins"),this::toggleJoin);
         }
         if(s.pending || !error.isEmpty()) {
             connection=a.paragraph(page,status());
@@ -349,9 +349,9 @@ final class MatchRooms {
         if(isHost())leaveButton(page,this::showReferee);
         connection=a.paragraph(page,status());
         if(!terminalError) {
-            if(!isHost())a.button(page,a.tr("Hand over to referee"),()->start(true));
+            if(!isHost())a.primaryButton(page,a.tr("Hand over to referee"),()->start(true));
             else if(s.ready) {
-                a.navigationButton(page,a.tr("Referee QR"),this::refereeQr);
+                a.primaryNavigationButton(page,a.tr("Referee QR"),this::refereeQr);
                 if(a.nfc.canSend())a.navigationButton(page,a.tr("Referee page via NFC"),()->{
                     if(isHost() && s.ready && !finalScore() && !terminalError)
                         a.nfc.shareLink(s.refereeLink,this::showReferee,"Back to phone referee");
@@ -393,7 +393,7 @@ final class MatchRooms {
         field.setGravity(android.view.Gravity.CENTER);
         field.setFilters(new InputFilter[]{new InputFilter.AllCaps(),new InputFilter.LengthFilter(14)});
         field.setText(code);field.setSelection(field.length());
-        a.button(p,text("Join match","Partie beitreten","Rejoindre le match","Unirse al partido"),()->join(field.getText().toString()));
+        a.primaryButton(p,text("Join match","Partie beitreten","Rejoindre le match","Unirse al partido"),()->join(field.getText().toString()));
         a.backButton(p,backToSharing(),this::hub);
     }
     private void join(String code) {
@@ -434,7 +434,7 @@ final class MatchRooms {
                 main.post(()->{if(!a.roomPageVisible(page)||destroyed)return;
                     LinearLayout retry=a.roomPanel(devicesTitle(),"room-devices");
                     a.paragraph(retry,text("Could not load the device list.","Die Geräteliste konnte nicht geladen werden.","Impossible de charger les appareils.","No se pudieron cargar los dispositivos."));
-                    a.navigationButton(retry,text("Try again","Erneut versuchen","Réessayer","Reintentar"),this::devices);
+                    a.primaryButton(retry,text("Try again","Erneut versuchen","Réessayer","Reintentar"),this::devices);
                     a.backButton(retry,"Back to watch sharing",this::showWatchSharing);
                 });
             }
@@ -457,7 +457,7 @@ final class MatchRooms {
             }
         }
         if(count>0)a.paragraph(page,text("Time shows the last contact. Select a device to remove it.","Die Zeit zeigt den letzten Kontakt. Tippe zum Entfernen auf das Gerät.","L’heure indique le dernier contact. Touchez un appareil pour le retirer.","El tiempo indica el último contacto. Toca un dispositivo para quitarlo."));
-        a.navigationButton(page,text("Refresh","Aktualisieren","Actualiser","Actualizar"),this::devices);
+        a.secondaryButton(page,text("Refresh","Aktualisieren","Actualiser","Actualizar"),this::devices);
         a.backButton(page,"Back to watch sharing",this::showWatchSharing);
     }
     private void confirmRemoval(JSONObject member){
@@ -466,7 +466,7 @@ final class MatchRooms {
         LinearLayout page=a.roomPanel(text("Remove device?","Gerät entfernen?","Retirer l’appareil ?","¿Quitar dispositivo?"),"room-remove");
         a.paragraph(page,deviceName(member));
         a.paragraph(page,text("This device will lose access. Other devices stay connected and the watch code stays valid.","Dieses Gerät verliert den Zugriff. Der Uhrencode bleibt gültig und alle anderen Geräte bleiben verbunden.","Cet appareil perdra l’accès. Les autres appareils et le code resteront actifs.","Este dispositivo perderá el acceso. Los demás dispositivos y el código seguirán activos."));
-        a.deleteButton(page,text("Remove device","Gerät entfernen","Retirer l’appareil","Quitar dispositivo"),()->{
+        a.primaryButton(page,text("Remove device","Gerät entfernen","Retirer l’appareil","Quitar dispositivo"),()->{
             android.widget.Button action=(android.widget.Button)page.findViewWithTag("remove-device");
             if(action!=null)action.setEnabled(false);
             io.execute(()->{
@@ -482,7 +482,7 @@ final class MatchRooms {
         if(isHost() || a.roomAlreadySaved(match.id())) {save(0);return;}
         LinearLayout p=a.roomPanel(text("Who did you play as?","Als wer hast du gespielt?","Qui étiez-vous ?","¿Qué jugador eras?"),"room-seat");
         a.paragraph(p,text("Your record uses the selected player’s side.","Deine Bilanz wird aus Sicht dieser Person gespeichert.","Votre bilan suivra le côté de ce joueur.","Tu historial usará el lado de este jugador."));
-        for(int i=0;i<(match.format().doubles?4:2);i++){final int seat=i;a.button(p,label(i),()->save(seat));}
+        for(int i=0;i<(match.format().doubles?4:2);i++){final int seat=i;a.choiceButton(p,label(i),false,()->save(seat));}
         a.backButton(p,"Back to Menu",this::menu);
     }
     private void save(int seat) {
@@ -499,7 +499,7 @@ final class MatchRooms {
         if(isHost() && !finalScore())label=a.tr("Cancel match");
         else if(readOnly())label=text("Leave shared match","Geteilte Partie verlassen","Quitter le match partagé","Salir del partido compartido");
         else label=text("Stop watch sharing","Uhrenfreigabe beenden","Arrêter le partage","Dejar de compartir");
-        a.deleteButton(page,label,()->confirmLeave(back));
+        a.navigationButton(page,label,()->confirmLeave(back));
     }
     private void confirmLeave(Runnable back){
         if(s==null) return;
@@ -514,7 +514,7 @@ final class MatchRooms {
             : readOnly() ? text("The other watches will keep following the match.","Die anderen Uhren verfolgen die Partie weiter.","Les autres montres continueront à suivre le match.","Los demás relojes seguirán viendo el partido.")
             : text("The other watches will stop receiving this score. You can keep scoring locally.","Weitere Uhren erhalten keine neuen Punkte mehr. Du kannst auf deiner Uhr weiterzählen.","Les autres montres cesseront de recevoir ce score. Vous pouvez continuer à compter.","Los demás relojes dejarán de recibir este marcador. Puedes seguir anotando.");
         a.paragraph(p,message);
-        a.deleteButton(p,cancelHost?a.tr("Discard match"):text("Leave","Verlassen","Quitter","Salir"),()->{
+        Runnable leave=()->{
             if(!a.roomPageVisible(p))return;
             try{
                 if(client.leaveConfirmed(shown,a::discardRoomDraft)){
@@ -528,7 +528,9 @@ final class MatchRooms {
                     a.showSports();
                 }
             }catch(Exception e){a.roomMessage(problem(e,false),back);}
-        });
+        };
+        if(cancelHost)a.deleteButton(p,a.tr("Discard match"),leave);
+        else a.primaryButton(p,text("Leave","Verlassen","Quitter","Salir"),leave);
         a.backButton(p,cancelHost?a.tr("Keep playing"):text("Keep match","Partie behalten","Garder le match","Conservar el partido"),back);
     }
 }
