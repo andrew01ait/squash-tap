@@ -44,10 +44,14 @@ import androidx.wear.ambient.AmbientLifecycleObserver;
 import androidx.wear.ambient.AmbientLifecycleObserverKt;
 import java.io.File;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.BiConsumer;
 
 public final class MainActivity extends Activity implements ScoreView.Actions,LifecycleOwner {
     private SharedPreferences preferences;
@@ -1820,39 +1824,137 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         final String oldMyName=preferences.getString("my_name","");final boolean changeMyName=payload.optBoolean("changeMyName",false);final String nextMyName=changeMyName?payload.getString("myName").trim():oldMyName;
         if(changeMyName){if(!oldMyName.equals(payload.getString("baseMyName")))throw new IllegalArgumentException(tr("Your name changed. Start a fresh phone link."));if(!nextMyName.isEmpty())OpponentDirectory.validName(nextMyName);}
         final String before=book.encode(),names=opponents.encode();final MatchCsv.Plan plan=TransferClient.preview(payload,book,opponents,session);
-        LinearLayout content=panel("Review phone changes");if(changeMyName)paragraph(content,tr("Your name: ")+(oldMyName.isEmpty()?tr("Me"):oldMyName)+" → "+(nextMyName.isEmpty()?tr("Me"):nextMyName));paragraph(content,plan.added+tr(" new results\n")+plan.duplicates+tr(" duplicates skipped\n")+plan.conflicts+tr(" conflicts skipped\n")+plan.renumbered+tr(" local references adjusted\n\n")+plan.directory.list(false).size()+(plan.editedIds.isEmpty()?tr(" saved opponent names\n\nNames may be added, renamed or removed from selection. Past results and the ongoing score are kept."):tr(" saved opponent names")));
-        if (!plan.editedIds.isEmpty()) {
-            paragraph(content, tr("Edited results") + " · " + plan.editedIds.size());
-            for (String id : plan.editedIds.subList(0, Math.min(10, plan.editedIds.size()))) {
-                MatchResult old = book.result(id), updated = plan.book.result(id);
-                paragraph(content, old.referenceText() + "\n" + resultReview(old, opponents) + "\n→ " + resultReview(updated, plan.directory));
-            }
-        }
-        if(!plan.noteEditedIds.isEmpty()){
-            section(content,"Edited match notes");
-            paragraph(content,Integer.toString(plan.noteEditedIds.size()));
-            for(String id:plan.noteEditedIds.subList(0,Math.min(10,plan.noteEditedIds.size()))){
-                paragraph(content,ui.scoreTerms(plan.book.result(id).referenceText())+" · "+opponentName(id));
-                MatchNotes notes=plan.book.notes(id);
-                if(notes.isEmpty())paragraph(content,tr("All match note fields cleared."));
-                else showNoteFields(content,notes);
-            }
-            if(plan.noteEditedIds.size()>10)paragraph(content,tr("More match notes will also be saved."));
-        }
-        boolean personChanged=!opponents.opponentId(book.current().id()).equals(plan.directory.opponentId(book.current().id()));
-        if(personChanged)paragraph(content,(book.current().complete()?tr("Last completed match"):tr("Current match"))+tr(" opponent change:\n")+opponentName(book.current().id())+" → "+(plan.directory.nameFor(book.current().id()).isEmpty()?tr("No name"):plan.directory.nameFor(book.current().id())));
-        else paragraph(content,tr("Match opponent assignment is unchanged."));
-        java.util.ArrayList<String> changedNames=new java.util.ArrayList<>();for(OpponentDirectory.Entry e:plan.directory.list(true)){OpponentDirectory.Entry old=opponents.get(e.id);if(old==null)changedNames.add(tr("Add ")+e.name+(e.archived?tr(" (removed)"):""));else if(!old.name.equals(e.name)||old.archived!=e.archived)changedNames.add((old.name.equals(e.name)?e.name:old.name+" → "+e.name)+(e.archived?tr(" (removed)"):old.archived?tr(" (restored)"):""));}
-        if(!changedNames.isEmpty())paragraph(content,tr("Name changes:\n")+android.text.TextUtils.join("\n",changedNames.subList(0,Math.min(10,changedNames.size())))+(changedNames.size()>10?tr("\n… and ")+(changedNames.size()-10)+tr(" more"):""));
-        if(!plan.conflictIds.isEmpty())paragraph(content,tr("Conflicting IDs:\n")+android.text.TextUtils.join("\n",plan.conflictIds.subList(0,Math.min(3,plan.conflictIds.size()))));
-        primaryButton(content,tr("Apply changes"),()->{
+        Map<String,String> previousResults=new HashMap<>();
+        for(String id:plan.editedIds)previousResults.put(id,resultReview(book.result(id),opponents));
+        Map<String,MatchNotes> previousNotes=new HashMap<>();
+        for(String id:plan.noteEditedIds)previousNotes.put(id,book.notes(id));
+        List<String> players=phonePlayerChanges(plan.directory,oldMyName,nextMyName);
+        List<String> notices=phoneImportNotices(plan);
+        showPhoneReview(plan,previousResults,previousNotes,players,notices,()->{
             if(!before.equals(book.encode())||!names.equals(opponents.encode())||!oldMyName.equals(preferences.getString("my_name",""))){message(tr("Data changed"),tr("Receive again to build a fresh preview."),this::showTransfer);return;}
             if(session.expired()){message(tr("Transfer expired"),tr("Start a new transfer. Nothing was changed."),this::showTransfer);return;}
             if(!preferences.edit().putString("match_book",plan.book.encode()).putString("opponent_book",plan.directory.encode()).putString("my_name",nextMyName).commit()){message(tr("Save failed"),tr("Nothing was confirmed. Keep the app open and retry."),this::showTransfer);return;}
             book=plan.book;opponents=plan.directory;counter.match(book.current());updateDisplay();transfer=null;
             tasks.execute(()->{try{TransferClient.end(session);}catch(Exception ignored){}});
-            message(tr("Changes saved"),plan.added+tr(" results added. Opponents updated. Duplicate and conflicting results were skipped.")+(plan.editedIds.isEmpty()?"":"\n"+tr("Edited results")+" · "+plan.editedIds.size())+(plan.noteEditedIds.isEmpty()?"":"\n"+tr("Edited match notes")+" · "+plan.noteEditedIds.size()),transferReturn);
-        });backButton(content,tr("Cancel"),this::showTransfer);
+            List<String> summary=new ArrayList<>();
+            if(plan.added>0)summary.add(reviewCount("New results",plan.added));
+            if(!plan.editedIds.isEmpty())summary.add(reviewCount("Edited results",plan.editedIds.size()));
+            if(!plan.noteEditedIds.isEmpty())summary.add(reviewCount("Edited match notes",plan.noteEditedIds.size()));
+            if(!players.isEmpty())summary.add(reviewCount("Player changes",players.size()));
+            summary.addAll(notices);
+            message(tr("Changes saved"),summary.isEmpty()?tr("No changes to apply."):String.join("\n",summary),transferReturn);
+        });
+    }
+
+    private List<String> phonePlayerChanges(OpponentDirectory next,String oldName,String newName) {
+        List<String> changes=new ArrayList<>();
+        if(!oldName.equals(newName))
+            changes.add(tr("Your name")+"\n"+(oldName.isEmpty()?tr("Me"):oldName)+" → "+(newName.isEmpty()?tr("Me"):newName));
+        String match=book.current().id();
+        if(!opponents.opponentId(match).equals(next.opponentId(match))) {
+            String nextOpponent=next.nameFor(match);
+            changes.add(tr(book.current().complete()?"Last completed match opponent change":"Current match opponent change")
+                +"\n"+opponentName(match)+" → "+(nextOpponent.isEmpty()?tr("No name"):nextOpponent));
+        }
+        for(OpponentDirectory.Entry e:next.list(true)) {
+            OpponentDirectory.Entry old=opponents.get(e.id);
+            if(old==null)changes.add(tr("Add ")+e.name+(e.archived?tr(" (removed)"):""));
+            else if(!old.name.equals(e.name)||old.archived!=e.archived)
+                changes.add((old.name.equals(e.name)?e.name:old.name+" → "+e.name)
+                    +(e.archived?tr(" (removed)"):old.archived?tr(" (restored)"):""));
+        }
+        return changes;
+    }
+
+    private List<String> phoneImportNotices(MatchCsv.Plan plan) {
+        List<String> notices=new ArrayList<>();
+        if(plan.duplicates>0)notices.add(plan.duplicates+tr(" duplicates skipped"));
+        if(plan.conflicts>0)notices.add(plan.conflicts+tr(" conflicts skipped"));
+        if(plan.renumbered>0)notices.add(plan.renumbered+tr(" local references adjusted"));
+        return notices;
+    }
+
+    private void showPhoneReview(MatchCsv.Plan plan,Map<String,String> previousResults,Map<String,MatchNotes> previousNotes,
+                                 List<String> players,List<String> notices,Runnable apply) {
+        LinearLayout content=panel("Review phone changes",null,phoneSection());
+        Runnable overview=()->showPhoneReview(plan,previousResults,previousNotes,players,notices,apply);
+        reviewMatchGroup(content,"New results","Match result",plan.addedIds,plan,
+            (page,id)->reviewText(page,resultReview(plan.book.result(id),plan.directory)),overview);
+        reviewMatchGroup(content,"Edited results","Match result",plan.editedIds,plan,
+            (page,id)->reviewValues(page,previousResults.get(id),resultReview(plan.book.result(id),plan.directory)),overview);
+        reviewMatchGroup(content,"Edited match notes","Match notes",plan.noteEditedIds,plan,
+            (page,id)->reviewNotes(page,previousNotes.get(id),plan.book.notes(id)),overview);
+        if(!players.isEmpty())navigationButton(content,reviewCount("Player changes",players.size()),
+            ()->reviewPage("Player changes",players.size(),0,(page,i,back)->reviewText(page,players.get(i)),overview));
+        if(!notices.isEmpty()) {
+            section(content,"Import details");
+            for(String notice:notices)reviewText(content,notice);
+            if(!plan.conflictIds.isEmpty())navigationButton(content,reviewCount("Conflicting results",plan.conflictIds.size()),
+                ()->reviewPage("Conflicting results",plan.conflictIds.size(),0,
+                    (page,i,back)->reviewText(page,plan.conflictIds.get(i)),overview));
+        }
+        if(plan.addedIds.isEmpty()&&plan.editedIds.isEmpty()&&plan.noteEditedIds.isEmpty()&&players.isEmpty())
+            reviewText(content,tr("No changes to apply."));
+        primaryButton(content,tr("Apply changes"),apply);
+        backButton(content,"Cancel",this::showTransfer);
+    }
+
+    private String reviewCount(String label,int count) {return tr(label)+" · "+count;}
+
+    private void reviewMatchGroup(LinearLayout content,String title,String detailTitle,List<String> ids,MatchCsv.Plan plan,
+                                  BiConsumer<LinearLayout,String> fields,Runnable overview) {
+        if(ids.isEmpty())return;
+        navigationButton(content,reviewCount(title,ids.size()),()->reviewPage(title,ids.size(),0,(page,i,back)->{
+            String id=ids.get(i);
+            MatchResult match=plan.book.result(id);
+            String opponent=plan.directory.nameFor(id);
+            String label=tr("Match")+" "+match.number+" · "+LocalDate.parse(match.date).format(java.time.format.DateTimeFormatter.ofPattern("dd.MM.yyyy"))
+                +"\n"+tr(match.format.name())+(opponent.isEmpty()?"":" · "+opponent);
+            navigationButton(page,label,()->{
+                LinearLayout detail=panel(detailTitle,null,phoneSection());
+                reviewText(detail,label);
+                fields.accept(detail,id);
+                backButton(detail,"Back",back);
+            });
+        },overview));
+    }
+
+    private interface ReviewRow {void show(LinearLayout content,int index,Runnable back);}
+
+    private void reviewPage(String title,int count,int page,ReviewRow row,Runnable overview) {
+        LinearLayout content=panel(title,null,phoneSection());
+        int pageSize=5, first=page*pageSize, end=Math.min(first+pageSize,count);
+        int pages=(count+pageSize-1)/pageSize;
+        if(pages>1)reviewText(content,ui.fill(tr("Page {0} of {1}"),page+1,pages));
+        Runnable back=()->reviewPage(title,count,page,row,overview);
+        for(int i=first;i<end;i++)row.show(content,i,back);
+        if(page+1<pages)secondaryButton(content,tr("Next page"),()->reviewPage(title,count,page+1,row,overview));
+        if(page>0)secondaryButton(content,tr("Previous page"),()->reviewPage(title,count,page-1,row,overview));
+        backButton(content,"Back to review",overview);
+    }
+
+    private void reviewNotes(LinearLayout content,MatchNotes previous,MatchNotes next) {
+        if(!previous.event.equals(next.event)) {
+            section(content,"Event");
+            reviewValues(content,previous.event,next.event);
+        }
+        if(!previous.text.equals(next.text)) {
+            section(content,"Note");
+            reviewValues(content,previous.text,next.text);
+        }
+    }
+
+    private void reviewValues(LinearLayout content,String before,String after) {
+        section(content,"Before import");
+        reviewText(content,before.isEmpty()?tr("Empty"):before);
+        section(content,"After import");
+        reviewText(content,after.isEmpty()?tr("Empty"):after);
+    }
+
+    private void reviewText(LinearLayout content,String value) {
+        TextView text=paragraph(content,value);
+        text.setGravity(Gravity.START);
+        text.setPadding(dp(10),dp(3),dp(10),dp(8));
     }
     private String resultReview(MatchResult result, OpponentDirectory names) {
         java.util.ArrayList<String> scores = new java.util.ArrayList<>();

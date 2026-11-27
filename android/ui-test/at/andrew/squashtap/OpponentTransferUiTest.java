@@ -45,14 +45,61 @@ public class OpponentTransferUiTest {
     ReflectionHelpers.setField(activity,"tasks",new PausedTasks());
     ReflectionHelpers.setField(activity,"transfer",privateLink);
     ReflectionHelpers.callInstanceMethod(activity,"previewTransfer",ReflectionHelpers.ClassParameter.from(JSONObject.class,edit),ReflectionHelpers.ClassParameter.from(TransferClient.Session.class,privateLink));
-    assertTrue(contains("Edited match notes"));assertTrue(contains("Practice serve"));
+    assertFalse(contains("Practice serve"));
+    click("Edited match notes · 1");
+    click("Match 1 · 04.11.2026");
+    assertTrue(contains("Before import"));assertTrue(contains("Serve low"));
+    assertTrue(contains("After import"));assertTrue(contains("Practice serve"));
     assertEquals(annotated,book().notes("saved"));
+    click("Back");click("Back to review");
     click("Apply changes");
     MatchBook updated=book();
     assertEquals(new MatchNotes("Practice serve","Landesliga"),updated.notes("saved"));
     assertFalse(TransferClient.snapshot(privateLink,updated,names,updated.newestFirst(),true).toString().contains("Legacy club"));
     assertEquals(book.current().encode(),updated.current().encode());
     assertThrows(Exception.class,()->TransferClient.preview(edit,updated,names,privateLink));
+ }
+ @Test @Config(qualifiers="w192dp-h192dp-round-xhdpi")
+ public void largePhoneNoteBatchRemainsReviewableOnSmallGermanWatch() throws Exception {
+    RuntimeEnvironment.setFontScale(1.3f);
+    MatchBook source=book();
+    OpponentDirectory names=directory();
+    MatchNotes oldNotes=new MatchNotes("Frühere Notiz","Landesliga");
+    JSONArray edits=new JSONArray();
+    for(int day=1;day<=12;day++) {
+        String date=java.time.LocalDate.of(2026,10,day).toString();
+        String id="batch-"+day;
+        source.importResult(new MatchResult(id,date,1,3,new int[][]{{11,5},{11,8}}));
+        source.setNotes(id,oldNotes);
+        edits.put(new JSONObject().put("id",id)
+            .put("before",new JSONObject().put("text",oldNotes.text).put("event",oldNotes.event))
+            .put("after",new JSONObject().put("text","Neue Notiz "+day).put("event","")));
+    }
+    String original=source.encode();
+    preferences.edit().putString("match_book",original).putString(WatchLanguage.PREFERENCE,"de").commit();
+    ReflectionHelpers.setField(activity,"book",source);
+    ReflectionHelpers.setField(activity,"ui",WatchLanguage.get(activity));
+    TransferClient.Session session=new TransferClient.Session();
+    TransferClient.snapshot(session,source,names,source.newestFirst(),true);
+    session.expiresAt=System.currentTimeMillis()+600000;
+    ReflectionHelpers.setField(activity,"transfer",session);
+    JSONObject edit=payload("").put("changeCurrentOpponent",false).put("matchNoteEdits",edits);
+    ReflectionHelpers.callInstanceMethod(activity,"previewTransfer",ReflectionHelpers.ClassParameter.from(JSONObject.class,edit),
+        ReflectionHelpers.ClassParameter.from(TransferClient.Session.class,session));
+    assertFalse(contains("Neue Notiz"));
+    click("Bearbeitete Partienotizen · 12");
+    assertTrue(contains("Seite 1 von 3"));
+    click("Nächste Seite");click("Nächste Seite");
+    assertTrue(contains("Seite 3 von 3"));
+    assertFalse(contains("Neue Notiz"));
+    click("Partie 1 · 12.10.2026");
+    assertTrue(contains("Vor dem Import"));assertTrue(contains("Landesliga"));
+    assertTrue(contains("Nach dem Import"));assertTrue(contains("Leer"));
+    assertTrue(contains("Neue Notiz 12"));
+    click("Zurück");
+    assertTrue(contains("Seite 3 von 3"));
+    click("Zur Übersicht");click("Abbrechen");
+    assertEquals(original,book().encode());
  }
  @Test public void opponentManagerIsSeparateFromGreySettingsAndSupportsPhoneEntry(){click("Players");assertTrue(contains("Players"));assertNotNull(button("Edit names on phone"));assertNotNull(button("Add player"));assertNull(button("Back to Menu").getBackgroundTintList());}
  @Test public void addingAndChoosingNameKeepsScoreAndUndo(){String before=book().encode();click("Current match");click("Match options");click("Opponent: Opponent");click("Add player");input().setText("Susi");click("Save name");assertEquals("Susi",directory().nameFor("active"));assertEquals(before,book().encode());MatchBook restored=book();assertTrue(restored.undo());assertEquals(0,restored.current().game().red());}
@@ -62,7 +109,7 @@ public class OpponentTransferUiTest {
  @Test public void opponentAndCustomDateFiltersComposeThroughViews(){click("Results (2)");click("Filters");click("Opponent: All");click("Martin");click("Custom date range");List<EditText> inputs=new ArrayList<>();for(View v:all(root()))if(v instanceof EditText)inputs.add((EditText)v);inputs.get(0).setText("2026-11-04");inputs.get(1).setText("2026-11-04");click("Apply dates");assertTrue(contains("1 of 2 saved"));assertEquals(2,book().count());}
  @Test public void invalidDateRangeDoesNotMutateSavedData(){String before=book().encode();click("Results (2)");click("Filters");click("Custom date range");List<EditText> inputs=new ArrayList<>();for(View v:all(root()))if(v instanceof EditText)inputs.add((EditText)v);inputs.get(0).setText("2026-11-10");inputs.get(1).setText("2026-11-01");click("Apply dates");assertNotNull(inputs.get(0).getError());assertEquals(before,book().encode());}
  @Test public void speechActionOffersConfirmationBeforeSaving(){click("Players");click("Add player");click("Speak name");Intent started=shadowOf(activity).getNextStartedActivityForResult().intent;assertEquals(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH,started.getAction());activity.onActivityResult(81,Activity.RESULT_OK,new Intent().putStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS,new ArrayList<>(Collections.singletonList("Susi"))));assertEquals("Susi",input().getText().toString());assertEquals(1,directory().list(false).size());click("Save name");assertEquals(2,directory().list(false).size());}
- @Test public void applyingPhonePreviewMergesResultsAndNamesAtomicallyAndPreservesActiveSession()throws Exception{String active=book().current().encode();MatchResult r=new MatchResult("foreign","2026-11-04",1,3,new int[][]{{11,5},{11,8}});JSONObject payload=payload(MatchCsv.export(Collections.singletonList(r),directory()));TransferClient.Session s=preview(payload);assertTrue(contains("1 new results"));click("Apply changes");assertEquals(3,book().count());assertEquals(active,book().current().encode());assertEquals("Susi",directory().nameFor("active"));assertEquals("active",preferences.getString(MatchDisplayPolicy.ACTIVE_MATCH,""));String stored=preferences.getAll().toString();assertFalse(stored.contains(s.key));assertFalse(stored.contains(s.owner));assertFalse(stored.contains(s.guest));}
+ @Test public void applyingPhonePreviewMergesResultsAndNamesAtomicallyAndPreservesActiveSession()throws Exception{String active=book().current().encode();MatchResult r=new MatchResult("foreign","2026-11-04",1,3,new int[][]{{11,5},{11,8}});JSONObject payload=payload(MatchCsv.export(Collections.singletonList(r),directory()));TransferClient.Session s=preview(payload);click("New results · 1");click("Match 2 · 04.11.2026");assertTrue(contains("11–5"));assertTrue(contains("11–8"));click("Back");click("Back to review");click("Apply changes");assertEquals(3,book().count());assertEquals(active,book().current().encode());assertEquals("Susi",directory().nameFor("active"));assertEquals("active",preferences.getString(MatchDisplayPolicy.ACTIVE_MATCH,""));String stored=preferences.getAll().toString();assertFalse(stored.contains(s.key));assertFalse(stored.contains(s.owner));assertFalse(stored.contains(s.guest));}
  @Test public void cancellingPreviewAppliesNothing()throws Exception{String before=book().encode(),names=directory().encode();preview(payload(""));click("Cancel");assertEquals(before,book().encode());assertEquals(names,directory().encode());}
  @Test public void stalePhoneCatalogIsRejectedWithoutMutation()throws Exception{JSONObject p=payload("");p.put("baseDirectory","stale");String before=directory().encode();assertThrows(Exception.class,()->TransferClient.preview(p,book(),directory(),Collections.emptySet()));assertEquals(before,directory().encode());}
  @Test public void filteredExportCannotSilentlyReuseAnOlderOpenTransfer(){TransferClient.Session session=new TransferClient.Session();session.expiresAt=System.currentTimeMillis()+600000;ReflectionHelpers.setField(activity,"transfer",session);click("Results (2)");click("Options");click("Export CSV");click("Filtered results (2)");assertTrue(contains("Transfer already open"));assertTrue(contains("End the current transfer first"));assertEquals(session,ReflectionHelpers.getField(activity,"transfer"));}
@@ -78,7 +125,10 @@ public class OpponentTransferUiTest {
     payload.put("resultEdits",new JSONObject().put("before",before).put("after",after));
     assertThrows(Exception.class,()->TransferClient.preview(payload,book(),directory(),Collections.emptySet()));
     preview(payload);
-    assertTrue(contains("Edited results"));assertTrue(contains("11–4"));assertTrue(contains("11–8"));
+    assertFalse(contains("11–8"));click("Edited results · 1");click("Match 1 · 04.11.2026");
+    assertTrue(contains("Before import"));assertTrue(contains("11–4"));
+    assertTrue(contains("After import"));assertTrue(contains("11–8"));
+    click("Back");click("Back to review");
     assertEquals(previous,preferences.getString("match_book",""));
     click("Cancel");assertEquals(previous,preferences.getString("match_book",""));
     preview(payload);click("Apply changes");

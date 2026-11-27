@@ -60,6 +60,7 @@ public final class MatchCsv {
     public static final class Plan {
         public final MatchBook book;public final OpponentDirectory directory;public int added,duplicates,conflicts,renumbered;public final List<String> conflictIds=new ArrayList<>();
         public final List<String> editedIds=new ArrayList<>();
+        final List<String> addedIds=new ArrayList<>();
         final List<String> noteEditedIds=new ArrayList<>();
         private Plan(MatchBook b,OpponentDirectory d){book=b;directory=d;}
     }
@@ -88,6 +89,7 @@ public final class MatchCsv {
             if(row.result.id.equals(plan.book.current().id())){plan.conflicts++;plan.conflictIds.add(row.result.id);continue;}
             MatchResult imported=plan.book.importResult(row.result);if(imported.number!=row.result.number)plan.renumbered++;
             String id=plan.directory.importOpponent(row.opponentId,row.name);plan.directory.assignTeam(imported.id,id,plan.directory.importOpponent(row.partnerId,row.partnerName),plan.directory.importOpponent(row.otherId,row.otherName));plan.added++;
+            plan.addedIds.add(imported.id);
         }return plan;
     }
 }

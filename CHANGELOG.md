@@ -1,5 +1,15 @@
 # Releases
 
+## v0.23.14 · 2026-11-27 · direct APK code 53
+
+- Review phone imports by change type and count on the watch. Open an individual result or note to compare old and new values, and page through larger batches before applying.
+
+## Phone journal · 2026-11-27
+
+- Filter statistics by event and the last 30 days.
+- Switch the monthly chart between match totals, outcomes and measured time. See total squash playing time and the number of timed squash matches in the open journal.
+- Give match notes their own area on the result card, with a prominent note action and distinct controls for discarding a staged edit.
+
 ## v0.23.13 · 2026-11-27 · direct APK code 52
 
 - Private phone journal links last one hour from creation.

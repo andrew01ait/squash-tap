@@ -1,6 +1,6 @@
 # Keep Score components
 
-Keep Score v0.23.13 runs on Wear OS and supports six racket sports. The watch stores match history, scoring rules, player names and personal match notes. A note and optional event belong to the match ID. The event picker draws its labels from annotated matches and the history supports an event filter and alphabetical event sorting. Phones and tablets can open a match journal, follow an audience scoreboard or score a match as referee.
+Keep Score v0.23.14 runs on Wear OS and supports six racket sports. The watch stores match history, scoring rules, player names and personal match notes. A note and optional event belong to the match ID. The event picker draws its labels from annotated matches and the history supports an event filter and alphabetical event sorting. Phones and tablets can open a match journal, follow an audience scoreboard or score a match as referee.
 
 The idle Home header shows the launcher artwork and app name with a greeting using the given name from the local display name setting. The Wear OS Tile uses the logo and app name. MenuLocation carries the section for every watch panel. Home tiles, menu titles and section headings use the destination colours. Watch buttons use a shared neutral style, with a filled primary action, chevrons for submenus and an outlined Back. Secondary actions, submenu buttons and unselected options use a subtle dark fill. Selected options use a lighter surface and a tick. Deleting entries and discarding work use red. Sport selectors keep sport colours. The phone journal uses the corresponding accents for its tabs and headings.
 
@@ -28,5 +28,9 @@ The installed watch app declares both NFC Forum Type 4 NDEF identifiers (mapping
 ## Web interfaces and tests
 
 The web interfaces live in `public` and the hosted application in `app` and `worker`. The referee view can retain scoring changes while disconnected. Watch users review journal edits before applying them.
+
+The browser computes journal statistics from the decrypted matches and their event labels. Date ranges use each recorded playing day. The monthly series and squash total derive elapsed time from paired timestamps. The chart, event selection and time totals stay inside the open journal.
+
+The watch import review reads from the validated transfer plan. It lists each new or edited match and its note changes by ID, and keeps player changes and import notices separately navigable. Viewing a page or opening a detail does not apply the transfer. Final confirmation still verifies the source snapshot and expiry before saving both books.
 
 The core, native UI and web test suites exercise scoring rules, navigation and interoperability. The native suite renders round, square and rectangular displays at multiple sizes and text scales. See [watch menus](FLOW.md), [sport rules](RULES.md) and [test coverage](TESTING.md).

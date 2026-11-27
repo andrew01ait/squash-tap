@@ -1,4 +1,4 @@
-# Navigation and match flows — v0.23.13
+# Navigation and match flows — v0.23.14
 
 The separate Play preparation candidate retains these scoring/navigation flows. Its Settings → Check for updates opens a Google Play explanation, Open Google Play and Back to Settings. All website update/download/install/setup entry points route there in that build; a missing Store produces an actionable message and keeps the match. The public direct-APK release keeps its existing updater. See [PLAY_RELEASE.md](PLAY_RELEASE.md).
 
@@ -208,6 +208,13 @@ On every watch the language selector is under Settings → Language. From a read
 
 Scan the Results phone QR. **Add result** opens the sport, mode, rules, date, team and game/set fields. **Edit result** in a saved match opens its existing scores. Leave unused game rows blank. Choose a side under Match finish if someone retired. The recorded format and recorded timestamps are retained. Stage a result to see its effect in the journal and statistics. A staged result can be reopened or discarded before sending. **Send changes → Receive changes → Apply changes** saves the batch to the watch.
 
+The note action has its own area on each saved result. Use **Stage match notes** to prepare the note and event for sending. **Receive changes** on the watch opens a compact review with counts for new results, edited results, match notes and player changes. Open a group to browse its entries in pages of five. Individual edits show before and after values. **Back to review** returns to the batch, where **Apply changes** saves it and **Cancel** returns to the link.
+
+## Phone journal statistics
+
+Open **Statistics**, choose an **Event** and set **Period** to **Last 30 days** to combine both filters. The period includes today and the preceding 29 calendar days. Sport and mode select which matches appear in the record and monthly chart. The sport comparison uses the same event, period and mode across sports.
+
+Under **Month by month**, switch between matches, wins, losses, win rate, recorded playing time and average duration. Older and Newer page through long histories. **Total squash playing time** always covers the whole journal opened by the link. It counts elapsed time from recorded start to finish and shows how many squash matches have both timestamps. Use a full results link for the entire saved history.
 
 ## Pairing and removing devices
 

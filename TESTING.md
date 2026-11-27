@@ -1,6 +1,20 @@
 # Testing and verification
 
-Current watch release: **v0.23.13 / code 52**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
+Current watch release: **v0.23.14 / code 53**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
+
+## Direct v0.23.14 · 2026-11-27
+
+The direct release run passed 354 core, 299 native watch UI and 118 web and relay tests. The Play-source UI suite with compiled resources passed 315 tests.
+
+The watch tests cover moving from the import summary to individual result, note and player changes, before and after values, and explicit apply or cancel. A German round 192 dp simulation with 130% font scale checks that the twelfth changed note remains reachable on the third page and that Back returns to the same page. Physical watch acceptance is pending.
+
+## Phone journal statistics · 2026-11-27
+
+All 118 web and relay tests passed with `node --test web-test/*.test.mjs`. The new checks cover the event and date intersection, recorded local dates at the boundaries, monthly outcomes and elapsed time from valid timestamps.
+
+In the browser, synthetic journal data covered combined filters, older chart pages, win rate, missing time and the unfiltered squash total. The 320px and 393px phone views had no horizontal overflow. The Results tab kept its own filters.
+
+The phone preview also checked that adding, staging and discarding a note works on a 320px screen. The note action recovered keyboard focus after the edit was staged, and both the card and the dialog fit the viewport.
 
 ## Website support options · 2026-11-26
 

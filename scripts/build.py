@@ -6,8 +6,8 @@ import argparse, os, subprocess, sys, zipfile
 ROOT=Path(__file__).resolve().parents[1]
 PKG='at.andrew.squashtap'
 SITE='https://squash-tap-andrew.endruuu.chatgpt.site'
-RELEASES=((52,'0.23.13'),)
-RELEASE_NOTES='The phone journal stays open for one hour. Reuse, filter and sort by event. Match notes include free text and an event.'
+RELEASES=((53,'0.23.14'),)
+RELEASE_NOTES='Review phone imports by change type on the watch, with before and after details and pages for large batches.'
 
 def run(args, env=None):
     result=subprocess.run([str(x) for x in args],cwd=ROOT,env=env,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)

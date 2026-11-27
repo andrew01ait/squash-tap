@@ -1,6 +1,6 @@
 # Versions and compatibility
 
-Current official watch release: **v0.23.13**, Android version code **52**; package **`at.andrew.squashtap`**. `public/release.properties` is the machine-readable update feed; `public/builds.json` and `SHA256SUMS.txt` record retained artifacts.
+Current official watch release: **v0.23.14**, Android version code **53**; package **`at.andrew.squashtap`**. `public/release.properties` is the machine-readable update feed; `public/builds.json` and `SHA256SUMS.txt` record retained artifacts.
 
 The optional `spoken_scores` boolean is included in full backups. An older backup without the setting restores the default, Off. The app reads all earlier match books. B6 carries personal annotations, and rally encodings and CSV retain their existing formats.
 
@@ -14,6 +14,8 @@ The optional `spoken_scores` boolean is included in full backups. An older backu
 | Data/interchange schema | Persistence and CSV/transfer compatibility; must be reviewed independently of UI release numbers. |
 
 The optional backup setting `player_sort` accepts `az`, `za` and `recent`. An older backup uses the alphabetical default.
+
+The v0.23.14/code 53 watch update reorganizes the existing transfer review. Match books, backups, CSV and phone transfer payloads retain their formats. Journal statistics and note controls are delivered by the website.
 
 ## Current formats
 
