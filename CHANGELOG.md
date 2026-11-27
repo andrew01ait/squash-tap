@@ -1,5 +1,9 @@
 # Releases
 
+## v0.23.9 · 2026-11-27 · direct APK code 48
+
+- Cancel match and Save retirement result use a subtle dark fill and a chevron. Buttons that open match-ending or deletion choices share the style. Back keeps its outline, and the final discard or deletion uses red.
+
 ## v0.23.8 · 2026-11-27 · direct APK code 47
 
 - Section headings share the colour of the open menu and use larger text.

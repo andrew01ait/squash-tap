@@ -208,7 +208,7 @@ final class MatchRooms {
         if(s==null||blocked||joiningCode!=null){hub();return;}
         LinearLayout page=a.roomPanel("Shared match","room-menu");
         if(finalScore())a.primaryNavigationButton(page,text("Save to my results","In meine Ergebnisse speichern","Enregistrer dans mes résultats","Guardar en mis resultados"),this::pickSeat);
-        else if(isHost())a.primaryNavigationButton(page,a.tr("Cancel match"),()->confirmLeave(this::menu));
+        else if(isHost())leaveButton(page,this::menu);
         a.section(page,"Score");
         connection=a.paragraph(page,status());
         summary=a.paragraph(page,"");
@@ -499,7 +499,7 @@ final class MatchRooms {
         if(isHost() && !finalScore())label=a.tr("Cancel match");
         else if(readOnly())label=text("Leave shared match","Geteilte Partie verlassen","Quitter le match partagé","Salir del partido compartido");
         else label=text("Stop watch sharing","Uhrenfreigabe beenden","Arrêter le partage","Dejar de compartir");
-        a.navigationButton(page,label,()->confirmLeave(back));
+        a.secondaryNavigationButton(page,label,()->confirmLeave(back));
     }
     private void confirmLeave(Runnable back){
         if(s==null) return;

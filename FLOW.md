@@ -1,4 +1,4 @@
-# Navigation and match flows — v0.23.8
+# Navigation and match flows — v0.23.9
 
 The separate Play preparation candidate retains these scoring/navigation flows. Its Settings → Check for updates opens a Google Play explanation, Open Google Play and Back to Settings. All website update/download/install/setup entry points route there in that build; a missing Store produces an actionable message and keeps the match. The public direct-APK release keeps its existing updater. See [PLAY_RELEASE.md](PLAY_RELEASE.md).
 
@@ -24,7 +24,7 @@ Players shows small vector sport badges only for associated saved results as par
 
 ## Watch menus by match stage
 
-The [interactive menu map](public/watch-menus.html) lists the paths and conditional actions in English and German. Home tiles, menu titles and the section headings of each menu use destination colours. The sports list keeps its coloured rows and icons. A filled neutral button highlights the primary action. A trailing chevron leads into a submenu. Back and Cancel have neutral outlines. Red confirms deletion or discards work. Tap the title to show the full menu path, for example Home → Choose sport → Settings. Selecting Squash from New match shows Home › Squash › New match. Once setup is complete, the scoreboard opens the sport menu and Current match, for example Squash › Current match › Match options. Creating a match for a phone referee returns to the sharing path. Tap the title again to collapse the path.
+The [interactive menu map](public/watch-menus.html) lists the paths and conditional actions in English and German. Home tiles, menu titles and the section headings of each menu use destination colours. The sports list keeps its coloured rows and icons. A filled neutral button highlights the primary action. A trailing chevron leads into a submenu. The entry buttons for retirement, discard and deletion have a subtle dark fill and a chevron. Back and Cancel have neutral outlines. Red confirms deletion or discards work. Tap the title to show the full menu path, for example Home → Choose sport → Settings. Selecting Squash from New match shows Home › Squash › New match. Once setup is complete, the scoreboard opens the sport menu and Current match, for example Squash › Current match › Match options. Creating a match for a phone referee returns to the sharing path. Tap the title again to collapse the path.
 
 | Where you are | What to use | What Back does |
 | --- | --- | --- |

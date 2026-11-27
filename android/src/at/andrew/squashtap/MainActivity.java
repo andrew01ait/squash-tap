@@ -77,13 +77,14 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     private String panelPage="Scoreboard";
     private MenuLocation location;
     private enum ButtonKind {
-        PRIMARY, PRIMARY_LINK, NAVIGATION, SECONDARY, CHOICE, PLAYER_LINK, PLAYER_CHOICE, DELETE, BACK, RESULT_TOOL, TILE
+        PRIMARY, PRIMARY_LINK, NAVIGATION, SECONDARY, SECONDARY_LINK, CHOICE, PLAYER_LINK, PLAYER_CHOICE, DELETE, BACK, RESULT_TOOL, TILE
     }
     static final ColorStateList MENU_CONTROL_TEXT=MenuSection.text(0xffeeeeee,0xff898989);
     private static final ColorStateList PRIMARY_TEXT=MenuSection.text(0xff191919,0xff252525);
     private static final ColorStateList FILLED_TEXT=MenuSection.text(Color.WHITE,0xffc7c7c7);
     private static final ColorStateList PRIMARY_FILL=MenuSection.filled(0xffdedede);
     private static final ColorStateList DANGER_FILL=MenuSection.filled(0xffa32c46);
+    private static final ColorStateList SECONDARY_LINK_FILL=MenuSection.filled(0xff262626);
     private static final ColorStateList MENU_CONTROL_FILL=MenuSection.states(Color.TRANSPARENT,0xff272727,Color.TRANSPARENT);
     private static final int MENU_CONTROL_BORDER=0xff838383, MENU_CARD_SURFACE=0xff202020;
     private enum PanelTitle { STANDARD, PLAYER_NAME, CUSTOM }
@@ -364,7 +365,9 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     private void showSportLocked(){
         selectedSport=book.current().format().sport;sharedArea=false;LinearLayout content=panel("Match still running",null,MenuSection.CURRENT_MATCH);
         paragraph(content,ui.format("Finish or cancel your {0} match before choosing another sport. Pausing keeps the sport locked.","Beende deine Partie ({0}) oder brich sie ab, um die Sportart zu wechseln. Bei einer Pause bleibt sie gesperrt.","Termine ou annule ton match de {0} pour changer de sport. Une pause conserve le sport actuel.","Termina o cancela tu partido de {0} para cambiar de deporte. Una pausa mantiene el deporte actual.",tr(book.current().format().name())));
-        primaryNavigationButton(content,tr("Current match"),()->openMatchControls(this::showSports,"Back to sports"));navigationButton(content,tr("Cancel match"),()->showCancelMatch(this::showSportLocked));backButton(content,"Back to sports",this::showSports);
+        primaryNavigationButton(content,tr("Current match"),()->openMatchControls(this::showSports,"Back to sports"));
+        secondaryNavigationButton(content,tr("Cancel match"),()->showCancelMatch(this::showSportLocked));
+        backButton(content,"Back to sports",this::showSports);
     }
     private void openMatchControls(Runnable back,String label){
         matchControlsReturn=back;
@@ -418,8 +421,8 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         }
         if(!finished){
             section(menu,"End match");
-            navigationButton(menu,tr("Save retirement result"),()->showEndMatch(this::showMatchControls));
-            navigationButton(menu,tr("Cancel match"),this::showCancelMatch);
+            secondaryNavigationButton(menu,tr("Save retirement result"),()->showEndMatch(this::showMatchControls));
+            secondaryNavigationButton(menu,tr("Cancel match"),this::showCancelMatch);
         }
         if(matchControlsReturnLabel.equals("Back to score"))panelShortcut=false;
         backButton(menu,matchControlsReturnLabel,matchControlsReturn);
@@ -438,9 +441,9 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         paragraph(menu,tr("Scoring: ")+ui.rules(match.format())+tr("\nChoose different scoring rules when creating a new match."));
         section(menu,"Finish or replace");
         navigationButton(menu,tr("New match"),()->showNewMatch(this::showMatchOptions));
-        navigationButton(menu,tr("Save retirement result"),()->showEndMatch(this::showMatchOptions));
+        secondaryNavigationButton(menu,tr("Save retirement result"),()->showEndMatch(this::showMatchOptions));
         paragraph(menu,tr("Retirement saves a win/loss. Cancel match discards this match without a result."));
-        navigationButton(menu,tr("Cancel match"),()->showCancelMatch(this::showMatchOptions));
+        secondaryNavigationButton(menu,tr("Cancel match"),()->showCancelMatch(this::showMatchOptions));
         backButton(menu,"Back to Current match",this::showMatchControls);
     }
     private void showSettings(){
@@ -713,7 +716,8 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     private void showEndMatch(Runnable back){
         if(book.current().complete()){showMatchControls();return;}
         LinearLayout content=panel("Retirement result");paragraph(content,tr("Who is quitting? The other player wins by retirement. Scores already played are kept; no extra sets or points are awarded."));
-        navigationButton(content,book.current().format().doubles?tr("Our team retires"):tr("I quit"),()->confirmRetirement(0,back));navigationButton(content,book.current().format().doubles?tr("Opposing team retires"):tr("Opponent quit"),()->confirmRetirement(1,back));
+        secondaryNavigationButton(content,book.current().format().doubles?tr("Our team retires"):tr("I quit"),()->confirmRetirement(0,back));
+        secondaryNavigationButton(content,book.current().format().doubles?tr("Opposing team retires"):tr("Opponent quit"),()->confirmRetirement(1,back));
         backButton(content,tr("Cancel"),back);
     }
     private void showCancelMatch(){showCancelMatch(this::showMatchControls);}
@@ -951,7 +955,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         navigationButton(content,tr("Import CSV"),()->openPhone("import",false,this::showResultOptions,"Back to Result options"));
         if(!sportResults(-1).isEmpty()){
             section(content,"Delete results");
-            navigationButton(content,tr("Delete all results"),()->confirmDeleteAll(resultsPage));
+            secondaryNavigationButton(content,tr("Delete all results"),()->confirmDeleteAll(resultsPage));
         }
         backButton(content,"Back to Results",()->showResults(resultsPage));
     }
@@ -1013,7 +1017,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         section(content,"Manage result");
         matchPlayerButton(content,id,result.format.doubles,again);
         if(current)secondaryButton(content,result.retired()?tr("Undo retirement"):book.current().undoEnteredSet()?tr("Undo entered set"):tr("Undo last point"),()->undoPoint(again));
-        navigationButton(content,tr("Delete this result"),()->confirmDelete(id,page,again));
+        secondaryNavigationButton(content,tr("Delete this result"),()->confirmDelete(id,page,again));
         backButton(content,backLabel,back);
     }
     private void confirmDelete(String id,int page,Runnable back){
@@ -1373,7 +1377,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     private void showOpponent(String id){
         OpponentDirectory.Entry entry=opponents.get(id);if(entry==null){showOpponents();return;}LinearLayout content=panel(entry.name,"player:"+id,PanelTitle.PLAYER_NAME,MenuSection.PLAYERS);paragraph(content,sportsText(entry.id));
         navigationButton(content,tr("Rename"),()->showNameEditor(id,null,()->showOpponent(id)));
-        navigationButton(content,tr("Remove from player list"),()->{LinearLayout confirm=panel("Remove opponent?");paragraph(confirm,tr("Remove ")+entry.name+tr(" from future selection? Past match results keep this name and remain filterable."));deleteButton(confirm,tr("Remove name"),()->{String before=opponents.encode();opponents.archive(id);if(persistScore())showOpponents();else{opponents=OpponentDirectory.decode(before);message(tr("Save failed"),tr("The name was not removed."),()->showOpponent(id));}});backButton(confirm,tr("Cancel"),()->showOpponent(id));});
+        secondaryNavigationButton(content,tr("Remove from player list"),()->{LinearLayout confirm=panel("Remove opponent?");paragraph(confirm,tr("Remove ")+entry.name+tr(" from future selection? Past match results keep this name and remain filterable."));deleteButton(confirm,tr("Remove name"),()->{String before=opponents.encode();opponents.archive(id);if(persistScore())showOpponents();else{opponents=OpponentDirectory.decode(before);message(tr("Save failed"),tr("The name was not removed."),()->showOpponent(id));}});backButton(confirm,tr("Cancel"),()->showOpponent(id));});
         backButton(content,"Back to Players",this::showOpponents);
     }
     private void showNameEditor(String id,String matchId,Runnable back){
@@ -2172,6 +2176,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     Button primaryButton(LinearLayout content,String text,Runnable action){return styledButton(content,text,action,ButtonKind.PRIMARY);}
     Button primaryNavigationButton(LinearLayout content,String text,Runnable action){return styledButton(content,text,action,ButtonKind.PRIMARY_LINK);}
     Button secondaryButton(LinearLayout content,String text,Runnable action){return styledButton(content,text,action,ButtonKind.SECONDARY);}
+    Button secondaryNavigationButton(LinearLayout content,String text,Runnable action){return styledButton(content,text,action,ButtonKind.SECONDARY_LINK);}
     private Button homeTile(LinearLayout content,MenuSection section,String text,Runnable action){
         return styledButton(content,text,action,ButtonKind.TILE,section);
     }
@@ -2201,10 +2206,14 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         boolean tool=kind==ButtonKind.RESULT_TOOL;
         boolean player=kind==ButtonKind.PLAYER_LINK||kind==ButtonKind.PLAYER_CHOICE;
         boolean choice=kind==ButtonKind.CHOICE||kind==ButtonKind.PLAYER_CHOICE;
-        boolean submenu=kind==ButtonKind.NAVIGATION||kind==ButtonKind.PRIMARY_LINK||kind==ButtonKind.PLAYER_LINK||tool;
-        boolean filled=primary||danger||kind==ButtonKind.TILE;
-        ColorStateList fill=tileSection!=null?tileSection.fill:primary?PRIMARY_FILL:danger?DANGER_FILL:MENU_CONTROL_FILL;
-        ColorStateList ink=primary?PRIMARY_TEXT:filled?FILLED_TEXT:MENU_CONTROL_TEXT;
+        boolean secondaryLink=kind==ButtonKind.SECONDARY_LINK;
+        boolean submenu=kind==ButtonKind.NAVIGATION||kind==ButtonKind.PRIMARY_LINK||kind==ButtonKind.PLAYER_LINK||secondaryLink||tool;
+        boolean prominent=primary||danger||kind==ButtonKind.TILE;
+        ColorStateList fill=secondaryLink?SECONDARY_LINK_FILL:MENU_CONTROL_FILL;
+        if(tileSection!=null)fill=tileSection.fill;
+        else if(primary)fill=PRIMARY_FILL;
+        else if(danger)fill=DANGER_FILL;
+        ColorStateList ink=primary?PRIMARY_TEXT:prominent?FILLED_TEXT:MENU_CONTROL_TEXT;
         Button button=new Button(this);
         button.setText(text);
         button.setTextSize(player?15:14);
@@ -2231,7 +2240,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
             if(tool)button.setPadding(dp(6),dp(4),dp(6),dp(4));
         }
         button.setBackground(new RippleDrawable(ColorStateList.valueOf(0x40ffffff),shape,null));
-        if(filled){
+        if(prominent){
             button.setBackgroundTintList(fill);
             button.setBackgroundTintMode(android.graphics.PorterDuff.Mode.SRC_IN);
         }

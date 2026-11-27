@@ -458,8 +458,12 @@ public class SportNavigationUiTest {
         click("Back to sharing");click("Back to score");
         activity.action(TouchTargets.MENU);
         Button cancel=button("Cancel match");
-        int fill=cancel.getBackgroundTintList().getDefaultColor();
+        assertNull(cancel.getBackgroundTintList());
+        android.graphics.drawable.RippleDrawable background=(android.graphics.drawable.RippleDrawable)cancel.getBackground();
+        int fill=((android.graphics.drawable.GradientDrawable)background.getDrawable(0)).getColor().getDefaultColor();
+        assertEquals(255,android.graphics.Color.alpha(fill));
         assertEquals(android.graphics.Color.red(fill),android.graphics.Color.blue(fill));
+        assertTrue(android.graphics.Color.luminance(fill)<.1f);
         assertNotNull(cancel.getCompoundDrawablesRelative()[2]);
         click("Cancel match");
         int discard=button("Discard match").getBackgroundTintList().getDefaultColor();

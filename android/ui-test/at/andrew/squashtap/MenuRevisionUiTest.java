@@ -831,6 +831,65 @@ public class MenuRevisionUiTest {
         assertNotNull(button.getCompoundDrawablesRelative()[2]);
     }
 
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) @Config(qualifiers="w192dp-h192dp-round-xhdpi")
+    public void matchEndingButtonsHaveAFilledSecondaryStyleOnASmallRoundWatch() throws Exception {
+        close();
+        RuntimeEnvironment.setFontScale(1.3f);
+        preferences.edit().putString(WatchLanguage.PREFERENCE,"de").commit();
+        launch();root();click("Aktuelle Partie");
+
+        Button retire=button("Aufgabe werten"),cancel=button("Partie abbrechen");
+        Button back=button("Zurück zum Menü"),pause=button("Partie pausieren");
+        assertEquals(Color.TRANSPARENT,buttonFill(back).getDefaultColor());
+        assertNull(back.getCompoundDrawablesRelative()[2]);
+        assertPrimary(pause);
+        for(Button action:new Button[]{retire,cancel}){
+            assertSecondaryLink(action);
+            assertTrue(Color.luminance(buttonFill(action).getDefaultColor())<Color.luminance(buttonFill(pause).getDefaultColor()));
+        }
+        assertEquals(buttonFill(retire).getDefaultColor(),buttonFill(cancel).getDefaultColor());
+        layout();
+        View screen=dialog().getWindow().getDecorView();
+        for(Button action:new Button[]{retire,cancel}){
+            centerOnScreen(screen,action);
+            assertInsideRound(screen,action);
+            assertLabelInsideRound(screen,action);
+        }
+        scroll().scrollBy(0,-(cancel.getHeight()+activity.dp(5))/2);
+        captureRoundScreen(screen,screen.getWidth(),"end-match-round-192-de");
+
+        String before=book().encode();
+        click("Partie abbrechen");
+        int discard=button("Partie verwerfen").getBackgroundTintList().getDefaultColor();
+        assertTrue(Color.red(discard)>Color.blue(discard));
+        click("Weiterspielen");
+        click("Aufgabe werten");
+        assertSecondaryLink(button(activity.tr("I quit")));
+        back();
+        click(activity.tr("Match options"));
+        assertSecondaryLink(button("Partie abbrechen"));
+        assertSecondaryLink(button("Aufgabe werten"));
+        assertEquals(before,book().encode());
+    }
+
+    private android.content.res.ColorStateList buttonFill(Button button){
+        android.graphics.drawable.RippleDrawable background=(android.graphics.drawable.RippleDrawable)button.getBackground();
+        return ((android.graphics.drawable.GradientDrawable)background.getDrawable(0)).getColor();
+    }
+
+    private void assertSecondaryLink(Button button){
+        assertMenuLink(button);
+        android.content.res.ColorStateList surface=buttonFill(button);
+        int fill=surface.getDefaultColor();
+        assertEquals(255,Color.alpha(fill));
+        assertEquals(Color.red(fill),Color.green(fill));
+        assertEquals(Color.green(fill),Color.blue(fill));
+        assertTrue(Color.luminance(fill)<.1f);
+        assertTrue(androidx.core.graphics.ColorUtils.calculateContrast(button.getTextColors().getDefaultColor(),fill)>=4.5);
+        int pressed=surface.getColorForState(new int[]{android.R.attr.state_enabled,android.R.attr.state_pressed},fill);
+        assertTrue(Color.luminance(pressed)>Color.luminance(fill));
+    }
+
     @Test public void submenusUseTheSameNeutralStyleAcrossDestinations(){
         root();assertPrimary(button("Current match"));
         assertNotNull(button("Current match").getCompoundDrawablesRelative()[2]);
