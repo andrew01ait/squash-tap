@@ -1,5 +1,9 @@
 # Releases
 
+## v0.23.10 · 2026-11-27 · direct APK code 49
+
+- Secondary watch menu buttons that had no surface now use the subtle dark fill. This includes submenu links, direct actions and unselected options. Chevrons lead into submenus and ticks mark the selected options.
+
 ## v0.23.9 · 2026-11-27 · direct APK code 48
 
 - Cancel match and Save retirement result use a subtle dark fill and a chevron. Buttons that open match-ending or deletion choices share the style. Back keeps its outline, and the final discard or deletion uses red.

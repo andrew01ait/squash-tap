@@ -91,6 +91,7 @@ public class MenuRevisionUiTest {
         launch();root();click("Spieler");
 
         Button sort=button("Sortierung: A–Z"), player=button("Alice");
+        assertSecondaryLink(sort);
         View tools=(View)sort.getParent();
         assertSame(tools,playerSearch().getParent());
         assertSame(tools,button(activity.tr("Last 30 days")).getParent());
@@ -109,6 +110,13 @@ public class MenuRevisionUiTest {
         assertEquals(0,sort.getCompoundDrawablesRelative()[2].getLevel());
         click("Sortierung: A–Z");
         assertEquals(10000,sort.getCompoundDrawablesRelative()[2].getLevel());
+        Button recent=button(activity.tr("Most recent activity"));
+        assertSecondaryFill(recent);
+        assertNull(recent.getCompoundDrawablesRelative()[2]);
+        Button selected=button("✓ A–Z");
+        assertTrue(selected.isSelected());
+        int selectedFill=buttonFill(selected).getColorForState(selected.getDrawableState(),Color.TRANSPARENT);
+        assertTrue(Color.luminance(selectedFill)>Color.luminance(buttonFill(recent).getDefaultColor()));
         click("Sortierung: A–Z");
         assertEquals(0,sort.getCompoundDrawablesRelative()[2].getLevel());
         layout();
@@ -826,8 +834,7 @@ public class MenuRevisionUiTest {
     }
 
     private void assertMenuLink(Button button){
-        assertEquals(MainActivity.MENU_CONTROL_TEXT.getDefaultColor(),button.getTextColors().getDefaultColor());
-        assertNull(button.getBackgroundTintList());
+        assertSecondaryFill(button);
         assertNotNull(button.getCompoundDrawablesRelative()[2]);
     }
 
@@ -877,32 +884,46 @@ public class MenuRevisionUiTest {
         return ((android.graphics.drawable.GradientDrawable)background.getDrawable(0)).getColor();
     }
 
-    private void assertSecondaryLink(Button button){
-        assertMenuLink(button);
+    private void assertSecondaryFill(Button button){
+        String label=button.getText().toString();
+        assertEquals(MainActivity.MENU_CONTROL_TEXT.getDefaultColor(),button.getTextColors().getDefaultColor());
+        assertNull(button.getBackgroundTintList());
         android.content.res.ColorStateList surface=buttonFill(button);
-        int fill=surface.getDefaultColor();
-        assertEquals(255,Color.alpha(fill));
+        int fill=surface.getColorForState(button.getDrawableState(),surface.getDefaultColor());
+        assertEquals(label,255,Color.alpha(fill));
         assertEquals(Color.red(fill),Color.green(fill));
         assertEquals(Color.green(fill),Color.blue(fill));
         assertTrue(Color.luminance(fill)<.1f);
         assertTrue(androidx.core.graphics.ColorUtils.calculateContrast(button.getTextColors().getDefaultColor(),fill)>=4.5);
+    }
+
+    private void assertSecondaryLink(Button button){
+        assertMenuLink(button);
+        android.content.res.ColorStateList surface=buttonFill(button);
+        int fill=surface.getDefaultColor();
         int pressed=surface.getColorForState(new int[]{android.R.attr.state_enabled,android.R.attr.state_pressed},fill);
         assertTrue(Color.luminance(pressed)>Color.luminance(fill));
     }
 
-    @Test public void submenusUseTheSameNeutralStyleAcrossDestinations(){
+    @Test public void secondaryControlsUseFilledSurfacesAcrossDestinations(){
         root();assertPrimary(button("Current match"));
         assertNotNull(button("Current match").getCompoundDrawablesRelative()[2]);
-        assertMenuLink(button("Results (17)"));
-        assertMenuLink(button("Live sharing & referee"));
-        click("Statistics");assertMenuLink(button("Results (17)"));
+        for(String label:new String[]{"Results (17)","Statistics","Live sharing & referee","Settings"}){
+            assertSecondaryLink(button(label));
+        }
+        int secondary=buttonFill(button("Statistics")).getDefaultColor();
+        click("Statistics");assertSecondaryLink(button("Results (17)"));
         click("Results (17)");assertEquals(MenuSection.RESULTS,location().section);layout();
         for(String label:new String[]{"Filters","Options"}){
             Button tool=button(label);float density=activity.getResources().getDisplayMetrics().density;
             assertMenuLink(tool);
             assertTrue(tool.getWidth()>=48*density);assertTrue(tool.getHeight()>=48*density);
         }
-        click("Options");assertMenuLink(button("Export CSV"));
+        Button older=button("Older results");
+        assertSecondaryFill(older);
+        assertEquals(secondary,buttonFill(older).getDefaultColor());
+        assertNull(older.getCompoundDrawablesRelative()[2]);
+        click("Options");assertSecondaryLink(button("Export CSV"));
         assertPrimary(button("Add past match"));assertNotNull(button("Add past match").getCompoundDrawablesRelative()[2]);
         assertTrue(all().stream().anyMatch(view->view instanceof TextView&&view.isAccessibilityHeading()
             &&"Result options".contentEquals(((TextView)view).getText())

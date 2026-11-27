@@ -70,6 +70,13 @@ public class NavigationUiTest {
         assertNull(button.getBackgroundTintList());
         assertEquals(MainActivity.MENU_CONTROL_TEXT.getDefaultColor(),button.getTextColors().getDefaultColor());
         assertNotNull(button.getCompoundDrawablesRelative()[2]);
+        RippleDrawable background=(RippleDrawable)button.getBackground();
+        GradientDrawable shape=(GradientDrawable)background.getDrawable(0);
+        int fill=shape.getColor().getColorForState(button.getDrawableState(),Color.TRANSPARENT);
+        assertEquals(button.getText().toString(),255,Color.alpha(fill));
+        assertEquals(Color.red(fill),Color.green(fill));
+        assertEquals(Color.green(fill),Color.blue(fill));
+        assertTrue(androidx.core.graphics.ColorUtils.calculateContrast(button.getCurrentTextColor(),fill)>=4.5);
     }
     private void red(Button button){int c=colour(button);assertTrue(Color.red(c)>Color.blue(c));}
     private void outline(Button button){assertNull(button.getBackgroundTintList());assertNull(button.getCompoundDrawablesRelative()[2]);assertEquals(MainActivity.MENU_CONTROL_TEXT.getDefaultColor(),button.getTextColors().getDefaultColor());GradientDrawable shape=(GradientDrawable)((RippleDrawable)button.getBackground()).getDrawable(0);assertEquals(0,Color.alpha(shape.getColor().getDefaultColor()));}

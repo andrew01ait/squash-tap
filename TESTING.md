@@ -1,10 +1,18 @@
 # Testing and verification
 
-Current watch release: **v0.23.9 / code 48**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
+Current watch release: **v0.23.10 / code 49**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
 
 ## Website support options · 2026-11-26
 
 All 112 tests passed with `node --test web-test/*.test.mjs`. The browser showed both links when the footer was expanded, kept the QR images behind a separate disclosure and opened the French support shortcut in French. Each published-size QR image decoded to its matching payment link at widths from 180 to 208 pixels.
+
+## Direct v0.23.10 · 2026-11-27
+
+The signed direct release passed 349 core, 295 native watch UI and 112 web/relay tests (756 total). The Play-source UI suite with compiled resources passed 311 tests.
+
+Native tests check subtle filled submenu rows across Settings, history, sharing and the player list. They cover direct actions without a chevron, the selected check mark, text contrast, outlined Back and red confirmation. German tests at 192 dp and 130% text verify the player sorting and match-ending controls on a round display.
+
+The original certificate, package identity, version, minimum SDK, alignment and 45 retained APK checksums were verified. Physical watch acceptance for this release is pending.
 
 ## Direct v0.23.9 · 2026-11-27
 

@@ -499,7 +499,7 @@ final class MatchRooms {
         if(isHost() && !finalScore())label=a.tr("Cancel match");
         else if(readOnly())label=text("Leave shared match","Geteilte Partie verlassen","Quitter le match partagé","Salir del partido compartido");
         else label=text("Stop watch sharing","Uhrenfreigabe beenden","Arrêter le partage","Dejar de compartir");
-        a.secondaryNavigationButton(page,label,()->confirmLeave(back));
+        a.navigationButton(page,label,()->confirmLeave(back));
     }
     private void confirmLeave(Runnable back){
         if(s==null) return;
