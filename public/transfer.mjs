@@ -5,9 +5,9 @@ import {mountLanguage,language} from './locale.mjs';
 import {validateBackup,datedFile} from './backup.mjs?v=0.16.0';
 import {SPORTS,sportMarkup,rowSport} from './sports.mjs?v=0.16.3';
 import {open,seal,name,parseCsv,writeCsv,HEADER,statistics,localDate,rowWinner} from './interchange.mjs?v=0.16.0';
-import {addName,incomingPayload,checkRetirementSupport,initialView,filteredRows,sportsByPlayer,inScope,filterPlayers,recentPlayerRanks,playersInLast30Days,EMPTY_MATCH_NOTES,normalizeMatchNotes,sameMatchNotes,notesFromSnapshot,matchNoteEdits} from './transfer-state.mjs?v=5';
-import {newest,resultCard,shortRecord,renderStatistics,orderedSports,node} from './transfer-view.mjs?v=6';
-import {tx,errorText,sportText,momentText} from './transfer-copy.mjs?v=8';
+import {addName,incomingPayload,checkRetirementSupport,initialView,filteredRows,sportsByPlayer,inScope,filterPlayers,recentPlayerRanks,playersInLast30Days,EMPTY_MATCH_NOTES,normalizeMatchNotes,sameMatchNotes,notesFromSnapshot,matchNoteEdits,eventLabels,sortResults} from './transfer-state.mjs?v=6';
+import {resultCard,shortRecord,renderStatistics,orderedSports,node} from './transfer-view.mjs?v=6';
+import {tx,errorText,sportText,momentText} from './transfer-copy.mjs?v=9';
 
 const $=id=>document.getElementById(id);
 const PAGE_SIZE=25;
@@ -23,7 +23,7 @@ let notice=['On your watch, open Results → Options → View results on phone, 
 const originals=new Map(),pendingResults=new Map();
 let originalNotes=new Map(),noteMatchId=null;
 const pendingNotes=new Map(),noteDialog=$('notes-editor');
-const noteFields={text:$('notes-text'),team:$('notes-team'),event:$('notes-event')};
+const noteText=$('notes-text'),noteEvent=$('notes-event'),eventName=$('notes-event-name');
 let recentRanks=new Map();
 const editor=mountResultEditor($('result-editor'),row=>{
   if(!link||!snapshot||Date.now()>=expiry||sent||sending)throw Error('This transfer has expired. Scan a new QR code on your watch.');
@@ -76,8 +76,25 @@ function fillPlayers() {
   picker.value=current;picker.disabled=sent||sending||!changeCurrent;
 }
 function contextRows() {return inScope(rows,$('sport-select').value,$('mode-select').value);}
+const eventFor=row=>notesForMatch(row[1]).event;
+const eventOption=event=>'label:'+event;
+const byEvent=()=>$('result-sort').value==='event';
+function fillEventFilter(context) {
+  const available=snapshot.matchNotes!==undefined;
+  $('event-filter-field').hidden=!available;$('result-sort-field').hidden=!available;
+  const select=$('event-filter'),selected=select.value;
+  select.replaceChildren();
+  option(select,'all',tx('All events'));option(select,'none',tx('No event'));
+  for(const event of eventLabels(context,eventFor,language())) option(select,eventOption(event),event);
+  select.value=[...select.options].some(o=>o.value===selected)?selected:'all';
+}
 function filters() {
-  return {id:$('opponent-filter').value,role:$('role-filter').value,outcome:$('outcome-filter').value,from:$('from').value,to:$('to').value};
+  const selected=$('event-filter').value;
+  const event=selected.startsWith('label:')?selected.slice(6):selected==='none'?'':null;
+  return {id:$('opponent-filter').value,role:$('role-filter').value,outcome:$('outcome-filter').value,from:$('from').value,to:$('to').value,event,eventFor};
+}
+function visibleResults(context,f) {
+  return sortResults(filteredRows(context,f),eventFor,byEvent(),language());
 }
 function exportNames(row) {
   const copy=[...row];
@@ -94,9 +111,19 @@ function reopenResult(id) {
 function openNotesEditor(id) {
   const notes=notesForMatch(id);
   noteMatchId=id;
-  for(const [key,input] of Object.entries(noteFields)) input.value=notes[key];
+  noteText.value=notes.text;eventName.value='';
+  noteEvent.replaceChildren();
+  option(noteEvent,'',tx('No event'));
+  for(const label of eventLabels(rows,eventFor,language())) option(noteEvent,eventOption(label),label);
+  option(noteEvent,'new',tx('New event'));
+  noteEvent.value=notes.event?eventOption(notes.event):'';
+  showEventName();
   $('notes-error').hidden=true;
   noteDialog.showModal();$('notes-title').focus();
+}
+function showEventName() {
+  const create=noteEvent.value==='new';
+  $('notes-event-name-field').hidden=!create;eventName.required=create;
 }
 function renderMatchNotes(card,actions,id) {
   const notes=notesForMatch(id);
@@ -104,7 +131,7 @@ function renderMatchNotes(card,actions,id) {
   if(notes.event) card.querySelector('.match-meta').append(node('span',notes.event,'match-event'));
   if(present){
     const details=node('dl',undefined,'match-note-details');
-    for(const [key,label] of [['event','Event or league'],['team',"Opponent's club or team"],['text','Note']]){
+    for(const [key,label] of [['event','Event'],['text','Note']]){
       if(!notes[key]) continue;
       const field=node('div');
       field.append(node('dt',tx(label)),node('dd',notes[key]));
@@ -123,11 +150,13 @@ function renderMatchNotes(card,actions,id) {
   }
 }
 function renderResults(reset=true) {
-  const f=filters(),list=$('result-list'),context=contextRows(),active=[f.id!=='*',Boolean(f.id!=='*'&&f.role!=='all'),f.outcome!=='all',!!f.from,!!f.to,$('mode-select').value!=='all'].filter(Boolean).length;
+  const list=$('result-list'),context=contextRows();
+  fillEventFilter(context);
+  const f=filters(),active=[f.id!=='*',Boolean(f.id!=='*'&&f.role!=='all'),f.outcome!=='all',f.event!==null,!!f.from,!!f.to,$('mode-select').value!=='all'].filter(Boolean).length;
   $('role-field').hidden=f.id==='*';
   $('filters-applied').textContent=active?tx('{0} selected',active):'';
   let selected;
-  try {selected=newest(filteredRows(context,f));} catch(err) {
+  try {selected=visibleResults(context,f);} catch(err) {
     list.replaceChildren();$('filtered-summary').textContent=errorText(err);$('count').hidden=true;
     $('result-pages').hidden=true;$('download').disabled=true;return;
   }
@@ -140,13 +169,15 @@ function renderResults(reset=true) {
   $('filtered-summary').textContent=shortRecord(statistics(selected));
   list.replaceChildren();
   const monthFormat=new Intl.DateTimeFormat(language(),{month:'long',year:'numeric',timeZone:'UTC'});
-  let lastMonth='',group;
+  const eventSort=byEvent();
+  let groupKey,group;
   for(const row of selected.slice(resultPage*PAGE_SIZE,(resultPage+1)*PAGE_SIZE)) {
-    const month=localDate(row).slice(0,7);
-    if(month!==lastMonth) {
+    const key=eventSort?eventFor(row):localDate(row).slice(0,7);
+    if(key!==groupKey) {
       group=node('div',undefined,'ledger-group');
-      list.append(node('h3',monthFormat.format(new Date(month+'-01T12:00:00Z')),'ledger-period'),group);
-      lastMonth=month;
+      const heading=eventSort?(key||tx('No event')):monthFormat.format(new Date(key+'-01T12:00:00Z'));
+      list.append(node('h3',heading,'ledger-period'),group);
+      groupKey=key;
     }
     const r=exportNames(row),card=resultCard(r,r[5]||tx('Opponent'),myName||tx('Me'));
     const actions=card.querySelector('.actions'),id=row[1];
@@ -163,12 +194,15 @@ function renderResults(reset=true) {
   }
   if(!selected.length) list.append(node('p',tx(rows.length?'No matches fit these filters.':'No saved matches in this transfer.'),'empty'));
   $('result-pages').hidden=pages<=1;$('result-page').textContent=tx('Page {0} of {1}',resultPage+1,pages);
+  $('prev-results').textContent=tx(eventSort?'Previous page':'Newer');
+  $('next-results').textContent=tx(eventSort?'Next page':'Older');
   $('prev-results').disabled=resultPage===0;$('next-results').disabled=resultPage>=pages-1;
 }
 function showMatches(id='*',role='all',matchId=null) {
   $('opponent-filter').value=id;$('role-filter').value=role;
   $('outcome-filter').value='all';$('from').value='';$('to').value='';
-  const index=matchId?newest(filteredRows(contextRows(),filters())).findIndex(r=>r[1]===matchId):0;
+  $('event-filter').value='all';
+  const index=matchId?visibleResults(contextRows(),filters()).findIndex(r=>r[1]===matchId):0;
   resultPage=Math.floor(Math.max(0,index)/PAGE_SIZE);
   if(id!=='*') $('result-filters').open=true;
   showTab('results');renderResults(false);
@@ -337,7 +371,7 @@ async function api(path,options={}) {
 function expire(){
   editor.close();originals.clear();pendingResults.clear();link=null;snapshot=null;catalog=[];rows=[];directory.clear();sportsIndex.clear();restoreBackup='';restoreDate=null;
   if(noteDialog.open) noteDialog.close();
-  originalNotes.clear();pendingNotes.clear();noteMatchId=null;$('notes-form').reset();
+  originalNotes.clear();pendingNotes.clear();noteMatchId=null;$('notes-form').reset();noteEvent.replaceChildren();
   myName='';editPerson=null;editValue='';importCsv='';importRows=[];current='';changeCurrent=false;expiry=0;
   $('workspace').replaceChildren();$('workspace').hidden=true;$('expiry').hidden=true;renderHeading();
   setNotice('This transfer has expired. Scan a new QR code on your watch.');
@@ -350,7 +384,7 @@ async function sendIncoming(backup=false) {
     const batch=entryChanges(pendingResults,originals,importRows);
     const payload=backup?{schema:1,sessionId:session.id,baseDirectory:snapshot.baseDirectory,currentMatchId:snapshot.currentMatchId,restoreBackup}:incomingPayload({snapshot,catalog,current,changeCurrent,csv:batch.csv||importCsv,sessionId:session.id,myName});
     if(!backup&&batch.edits)payload.resultEdits=batch.edits;
-    if(!backup&&pendingNotes.size)payload.matchNoteEdits=matchNoteEdits(originalNotes,pendingNotes);
+    if(!backup&&pendingNotes.size)payload.matchNoteEdits=matchNoteEdits(originalNotes,pendingNotes,snapshot.matchNotes);
     const cipher=await seal(session.id,'in',session.key,JSON.stringify(payload),undefined,backup);
     if(link!==session) return;
     await api('/incoming',{method:'POST',body:JSON.stringify({cipher})});
@@ -362,13 +396,16 @@ async function sendIncoming(backup=false) {
 }
 $('add-result').addEventListener('click',()=>openEntry());
 $('notes-cancel').addEventListener('click',()=>noteDialog.close());
-noteDialog.addEventListener('close',()=>{noteMatchId=null;$('notes-form').reset();});
+noteDialog.addEventListener('close',()=>{noteMatchId=null;$('notes-form').reset();noteEvent.replaceChildren();showEventName();});
+noteEvent.addEventListener('change',()=>{showEventName();if(eventName.required)eventName.focus();});
 $('notes-form').addEventListener('submit',event=>{
   event.preventDefault();
   const id=noteMatchId;
   if(!snapshot||!originals.has(id)||sent||sending||Date.now()>=expiry)return;
   try {
-    const notes=normalizeMatchNotes(Object.fromEntries(Object.entries(noteFields).map(([key,input])=>[key,input.value])));
+    const newEvent=noteEvent.value==='new';
+    const notes=normalizeMatchNotes({text:noteText.value,event:newEvent?eventName.value:noteEvent.value.slice(6)});
+    if(newEvent&&!notes.event)throw Error('Enter an event name.');
     if(sameMatchNotes(notes,originalNotes.get(id)||EMPTY_MATCH_NOTES)) pendingNotes.delete(id);
     else pendingNotes.set(id,notes);
     noteDialog.close();renderResults(false);reopenResult(id);renderDraft();
@@ -389,7 +426,7 @@ const wideFilters=matchMedia('(min-width:720px)');
 function fitFilters(){const filters=$('result-filters');if(filters)filters.open=wideFilters.matches;}
 fitFilters();wideFilters.addEventListener('change',fitFilters);
 for(const id of ['sport-select','mode-select']) $(id).addEventListener('change',()=>{renderResults();renderStats();});
-for(const id of ['opponent-filter','role-filter','outcome-filter','from','to']) $(id).addEventListener('change',()=>{
+for(const id of ['opponent-filter','role-filter','outcome-filter','event-filter','result-sort','from','to']) $(id).addEventListener('change',()=>{
   if(id==='opponent-filter') $('role-filter').value='all';
   renderResults();
 });
@@ -399,7 +436,7 @@ for(const [id,step] of [['prev-results',-1],['next-results',1]]) $(id).addEventL
 $('view-all-history').addEventListener('click',()=>showMatches());
 $('reset-filter').addEventListener('click',()=>{
   $('mode-select').value='all';$('opponent-filter').value='*';$('role-filter').value='all';
-  $('outcome-filter').value='all';$('from').value='';$('to').value='';renderResults();renderStats();
+  $('outcome-filter').value='all';$('event-filter').value='all';$('from').value='';$('to').value='';renderResults();renderStats();
 });
 $('played-recently').addEventListener('change',renderPeople);
 $('show-removed').addEventListener('change',renderPeople);
@@ -428,7 +465,7 @@ $('change-current').addEventListener('change',()=>{
 });
 $('current-opponent').addEventListener('change',()=>{if(changeCurrent&&!sent&&!sending){current=$('current-opponent').value;renderDraft();}});
 $('download').addEventListener('click',()=>tryAction(()=>{
-  const selected=newest(filteredRows(contextRows(),filters())).map(exportNames);
+  const selected=visibleResults(contextRows(),filters()).map(exportNames);
   download(datedFile($('sport-select').value+'_results.csv'),writeCsv(selected));
 }));
 $('template').addEventListener('click',()=>download(datedFile('template.csv'),'\ufeff'+HEADER+'\r\n'));

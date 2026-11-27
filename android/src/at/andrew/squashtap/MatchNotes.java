@@ -9,15 +9,13 @@ import java.util.Objects;
 public final class MatchNotes {
     public static final int TEXT_LIMIT = 600;
     public static final int LABEL_LIMIT = 80;
-    public static final MatchNotes EMPTY = new MatchNotes("", "", "");
+    public static final MatchNotes EMPTY = new MatchNotes("", "");
 
     public final String text;
-    public final String team;
     public final String event;
 
-    public MatchNotes(String text, String team, String event) {
+    public MatchNotes(String text, String event) {
         this.text = field(text.replace("\r\n", "\n").replace('\r', '\n'), TEXT_LIMIT, true);
-        this.team = field(team, LABEL_LIMIT, false);
         this.event = field(event, LABEL_LIMIT, false);
     }
 
@@ -36,31 +34,33 @@ public final class MatchNotes {
     }
 
     public boolean isEmpty() {
-        return text.isEmpty() && team.isEmpty() && event.isEmpty();
+        return text.isEmpty() && event.isEmpty();
     }
 
     // A modified UTF-8 field uses at most three bytes per UTF-16 code unit, plus its length.
     int storageEstimate() {
-        return 6 + 3 * (text.length() + team.length() + event.length());
+        return 6 + 3 * (text.length() + event.length());
     }
 
     void write(DataOutputStream out) throws IOException {
         out.writeUTF(text);
-        out.writeUTF(team);
+        out.writeUTF(""); // B6 reserves a slot for the retired opponent affiliation.
         out.writeUTF(event);
     }
 
     static MatchNotes read(DataInputStream in) throws IOException {
-        return new MatchNotes(in.readUTF(), in.readUTF(), in.readUTF());
+        String text = in.readUTF();
+        in.readUTF();
+        return new MatchNotes(text, in.readUTF());
     }
 
     @Override public boolean equals(Object other) {
         if (!(other instanceof MatchNotes)) return false;
         MatchNotes value = (MatchNotes) other;
-        return text.equals(value.text) && team.equals(value.team) && event.equals(value.event);
+        return text.equals(value.text) && event.equals(value.event);
     }
 
     @Override public int hashCode() {
-        return Objects.hash(text, team, event);
+        return Objects.hash(text, event);
     }
 }

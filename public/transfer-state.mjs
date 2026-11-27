@@ -4,7 +4,7 @@ import {name, statistics, localDate, rowWinner} from './interchange.mjs?v=0.16.0
 
 export function initialView(value){return ['results','statistics','opponents','import','backup'].includes(value)?value:'results';}
 
-export const EMPTY_MATCH_NOTES=Object.freeze({text:'',team:'',event:''});
+export const EMPTY_MATCH_NOTES=Object.freeze({text:'',event:''});
 
 function noteField(value,limit,multiline=false){
   if(typeof value!=='string') throw Error('Use plain text for match notes.');
@@ -18,10 +18,10 @@ function noteField(value,limit,multiline=false){
 
 export function normalizeMatchNotes(value){
   if(!value||typeof value!=='object'||Array.isArray(value)) throw Error('Use plain text for match notes.');
-  return {text:noteField(value.text,600,true),team:noteField(value.team,80),event:noteField(value.event,80)};
+  return {text:noteField(value.text,600,true),event:noteField(value.event,80)};
 }
 
-export const sameMatchNotes=(a,b)=>a.text===b.text&&a.team===b.team&&a.event===b.event;
+export const sameMatchNotes=(a,b)=>a.text===b.text&&a.event===b.event;
 
 export function notesFromSnapshot(value,matchIds){
   if(value===undefined) return new Map();
@@ -34,8 +34,12 @@ export function notesFromSnapshot(value,matchIds){
   return notes;
 }
 
-export function matchNoteEdits(saved,pending){
-  return [...pending].map(([id,after])=>({id,before:saved.get(id)||EMPTY_MATCH_NOTES,after}));
+export function matchNoteEdits(saved,pending,snapshot={}){
+  return [...pending].map(([id,after])=>{
+    // Preserve the legacy field when the browser is paired with an older watch.
+    const team=typeof snapshot[id]?.team==='string'?snapshot[id].team:'';
+    return {id,before:{...(saved.get(id)||EMPTY_MATCH_NOTES),team},after:{...after,team}};
+  });
 }
 /** Catalog edits never select a match opponent. Match reassignment is a separate opt-in. */
 export function addName(catalog,value){
@@ -78,10 +82,11 @@ function recordedDay(row) {
   }
   return entry.day;
 }
-export function filteredRows(rows,{id='*',role='all',outcome='all',from='',to=''}={}) {
+export function filteredRows(rows,{id='*',role='all',outcome='all',from='',to='',event=null,eventFor=()=>''}={}) {
   if(from&&to&&from>to) throw Error('date');
   return rows.filter(row=>{
     if(!matchesPerson(row,id,role) || outcome!=='all' && (rowWinner(row)===0?'won':'lost')!==outcome) return false;
+    if(event!==null&&eventFor(row)!==event) return false;
     if(!from&&!to) return true;
     const date=recordedDay(row);
     return (!from||date>=from)&&(!to||date<=to);
@@ -92,6 +97,21 @@ export function newest(rows) {
   return rows.map(row=>({row,day:recordedDay(row),start:row[7]?Date.parse(row[7]):0}))
     .sort((a,b)=>b.day.localeCompare(a.day)||b.start-a.start||Number(b.row[3])-Number(a.row[3]))
     .map(item=>item.row);
+}
+function eventOrder(locale) {
+  const collator=new Intl.Collator(locale);
+  return (a,b)=>a===b?0:!a?1:!b?-1:collator.compare(a,b)||(a<b?-1:1);
+}
+export function eventLabels(rows,eventFor,locale) {
+  return [...new Set(rows.map(eventFor).filter(Boolean))].sort(eventOrder(locale));
+}
+export function sortResults(rows,eventFor,byEvent,locale) {
+  const sorted=newest(rows);
+  if(byEvent){
+    const compare=eventOrder(locale);
+    sorted.sort((a,b)=>compare(eventFor(a),eventFor(b)));
+  }
+  return sorted;
 }
 export function matchInsights(rows) {
   const ordered=newest(rows);

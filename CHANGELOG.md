@@ -1,5 +1,11 @@
 # Releases
 
+## v0.23.13 · 2026-11-27 · direct APK code 52
+
+- Private phone journal links last one hour from creation.
+- Choose existing events or add a new event. Filter results by event or sort events A–Z on the watch and in the phone journal.
+- The update migrates match notes and events and removes previous club and team labels from match notes.
+
 ## v0.23.12 · 2026-11-27 · direct APK code 51
 
 - Add optional personal notes, opposing club or team, and one event or league to the current match or a saved result.

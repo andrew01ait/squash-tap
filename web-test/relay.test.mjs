@@ -6,6 +6,18 @@ afterEach(async()=>{await mf.dispose();});
 async function api(path='',method='GET',token,body,headers={}){return mf.dispatchFetch('https://test.local/api/transfer'+path,{method,headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{}),...headers},...(body?{body:JSON.stringify(body)}:{})});}
 async function create(){return api('','POST',null,{id,ownerToken:owner,guestToken:guest,cipher});}
 test('creates opaque expiring payload, hashes tokens and exposes neither key nor data',async()=>{const response=await create();assert.equal(response.status,201);const result=await response.json();assert.equal(result.ttlSeconds,600);const stored=await db.prepare('SELECT * FROM transfers').first();assert.notEqual(stored.owner_hash,owner);assert.equal(stored.owner_hash.length,64);assert.ok(stored.expires_at>Date.now());const listed=await bucket.list();assert.equal(listed.objects.length,1);assert.equal(await (await bucket.get(listed.objects[0].key)).text(),cipher);});
+test('journal sessions expire after one hour and sending edits keeps the original deadline',async()=>{
+  const started=Date.now(),r=await api('','POST',null,{id,ownerToken:owner,guestToken:guest,cipher,journal:true});
+  assert.equal(r.status,201);
+  const journal=await r.json();
+  assert.equal(journal.ttlSeconds,3600);
+  assert.ok(journal.expiresAt>=started+3600000&&journal.expiresAt<=Date.now()+3600000);
+  assert.equal((await api('/'+id+'/incoming','POST',guest,{cipher})).status,201);
+  assert.equal((await (await api('/'+id+'/incoming','GET',owner)).json()).expiresAt,journal.expiresAt);
+  const backupId='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+  const backup=await api('','POST',null,{id:backupId,ownerToken:owner,guestToken:guest,cipher:'2'+cipher.slice(1),journal:true});
+  assert.equal(backup.status,201);assert.equal((await backup.json()).ttlSeconds,600);
+});
 test('phone can fetch outgoing content but cannot receive watch-side input',async()=>{await create();assert.equal((await api('/'+id+'/outgoing','GET',guest)).status,200);assert.equal((await api('/'+id+'/incoming','GET',guest)).status,403);assert.equal((await api('/'+id+'/outgoing','GET',owner)).status,403);});
 test('unknown and absent capabilities cannot read content',async()=>{await create();assert.equal((await api('/'+id+'/outgoing','GET','x'.repeat(43))).status,401);assert.equal((await api('/'+id+'/outgoing')).status,401);});
 test('incoming changes are one-shot and owner receives exactly the encrypted data',async()=>{await create();assert.equal((await api('/'+id+'/incoming','GET',owner)).status,409);assert.equal((await api('/'+id+'/incoming','POST',owner,{cipher})).status,403);assert.equal((await api('/'+id+'/incoming','POST',guest,{cipher})).status,201);assert.equal((await api('/'+id+'/incoming','POST',guest,{cipher})).status,409);const r=await api('/'+id+'/incoming','GET',owner);assert.equal((await r.json()).cipher,cipher);});

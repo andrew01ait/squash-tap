@@ -224,11 +224,15 @@ public final class MatchBook {
         if(in.available()>MAX_NOTES_BYTES)throw new IOException("Oversized match notes");
         int count=in.readInt(),bytes=4;
         if(count<1||count>results.size()+1)throw new IOException("Invalid match note count");
+        Set<String> ids=new HashSet<>();
         for(int i=0;i<count;i++){
             String id=in.readUTF();
             MatchNotes value=MatchNotes.read(in);
-            if(!canAnnotate(id)||value.isEmpty()||notes.put(id,value)!=null)throw new IOException("Invalid match note");
-            bytes+=noteBytes(id,value);
+            if(!canAnnotate(id)||!ids.add(id))throw new IOException("Invalid match note");
+            if(!value.isEmpty()){
+                notes.put(id,value);
+                bytes+=noteBytes(id,value);
+            }
         }
         if(bytes>MAX_NOTES_BYTES)throw new IOException("Oversized match notes");
     }

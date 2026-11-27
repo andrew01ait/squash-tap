@@ -9,8 +9,8 @@ public class BackupArchiveTest {
     @Test public void fullBackupIncludesActiveAndSavedNotes(){
         MatchBook b=new MatchBook(new MatchState("active",3));
         b.importResult(new MatchResult("record","2026-11-05",1,3,new int[][]{{11,6},{11,8}}));
-        MatchNotes active=new MatchNotes("Try a shorter serve","","");
-        MatchNotes saved=new MatchNotes("First round","Club Nord","Tuesday tournament");
+        MatchNotes active=new MatchNotes("Try a shorter serve","");
+        MatchNotes saved=new MatchNotes("First round","Tuesday tournament");
         b.setNotes("active",active);
         b.setNotes("record",saved);
         BackupArchive backup=BackupArchive.parse(BackupArchive.create(b,new OpponentDirectory(),Collections.emptyMap()));

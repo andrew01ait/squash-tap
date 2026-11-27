@@ -32,7 +32,7 @@ final class TransferClient {
             JSONObject notes=new JSONObject();
             for(MatchResult result:selected){
                 MatchNotes value=book.notes(result.id);
-                if(!value.isEmpty())notes.put(result.id,new JSONObject().put("text",value.text).put("team",value.team).put("event",value.event));
+                if(!value.isEmpty())notes.put(result.id,new JSONObject().put("text",value.text).put("team","").put("event",value.event));
             }
             snapshot.put("matchNotes",notes);
         }
@@ -50,7 +50,9 @@ final class TransferClient {
         Session session=new Session();JSONObject payload=snapshot(session,book,directory,selected,includeNotes).put("selectedSport",sport).put("myName",myName);
         if(backup!=null)payload.put("fullBackup",backup);
         String cipher=backup==null?TransferCrypto.seal(session.id,"out",session.key,payload.toString()):TransferCrypto.sealBackup(session.id,"out",session.key,payload.toString());
-        JSONObject reply=request("POST","",null,new JSONObject().put("id",session.id).put("ownerToken",session.owner).put("guestToken",session.guest).put("cipher",cipher));
+        JSONObject body=new JSONObject().put("id",session.id).put("ownerToken",session.owner).put("guestToken",session.guest).put("cipher",cipher);
+        if(includeNotes)body.put("journal",true);
+        JSONObject reply=request("POST","",null,body);
         session.expiresAt=reply.getLong("expiresAt");return session;
     }
     static JSONObject receive(Session session)throws Exception{
@@ -112,10 +114,10 @@ final class TransferClient {
         }
     }
     private static MatchNotes readNotes(JSONObject value)throws JSONException{
-        Object text=value.get("text"),team=value.get("team"),event=value.get("event");
-        if(!(text instanceof String)||!(team instanceof String)||!(event instanceof String))
+        Object text=value.get("text"),event=value.get("event");
+        if(!(text instanceof String)||!(event instanceof String))
             throw new IllegalArgumentException("Use plain text for match notes.");
-        return new MatchNotes((String)text,(String)team,(String)event);
+        return new MatchNotes((String)text,(String)event);
     }
     static void end(Session session)throws Exception{request("DELETE","/"+session.id,session.owner,null);}
     private static JSONObject request(String method,String path,String token,JSONObject body)throws Exception{

@@ -1,6 +1,6 @@
 # Keep Score components
 
-Keep Score v0.23.12 runs on Wear OS and supports six racket sports. The watch stores match history, scoring rules, player names and personal match notes. A note, opposing club or team and optional event belong to the match ID. Phones and tablets can open a match journal, follow an audience scoreboard or score a match as referee.
+Keep Score v0.23.13 runs on Wear OS and supports six racket sports. The watch stores match history, scoring rules, player names and personal match notes. A note and optional event belong to the match ID. The event picker draws its labels from annotated matches and the history supports an event filter and alphabetical event sorting. Phones and tablets can open a match journal, follow an audience scoreboard or score a match as referee.
 
 The idle Home header shows the launcher artwork and app name with a greeting using the given name from the local display name setting. The Wear OS Tile uses the logo and app name. MenuLocation carries the section for every watch panel. Home tiles, menu titles and section headings use the destination colours. Watch buttons use a shared neutral style, with a filled primary action, chevrons for submenus and an outlined Back. Secondary actions, submenu buttons and unselected options use a subtle dark fill. Selected options use a lighter surface and a tick. Deleting entries and discarding work use red. Sport selectors keep sport colours. The phone journal uses the corresponding accents for its tabs and headings.
 

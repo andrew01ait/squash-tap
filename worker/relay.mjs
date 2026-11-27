@@ -1,5 +1,6 @@
 /** Only opaque encrypted payloads reach this service. Keys never leave URL fragments/devices. */
 export const TTL=600_000,MAX_BODY=6_000_600;
+const JOURNAL_TTL=3_600_000;
 const baseHeaders={"Cache-Control":"no-store, private","Content-Type":"application/json; charset=utf-8","X-Content-Type-Options":"nosniff","Referrer-Policy":"no-referrer","X-Frame-Options":"DENY"};
 function response(value,status=200){return new Response(JSON.stringify(value),{status,headers:baseHeaders});}
 async function hash(value){return [...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(value)))].map(x=>x.toString(16).padStart(2,"0")).join("");}
@@ -33,12 +34,13 @@ export async function handleTransfer(request,env){
       const total=await env.DB.prepare("SELECT count(*) AS n FROM transfers").first();if(total.n>=250)return response({error:"Transfer service is busy. Try again later."},503);
       const data=await json(request);
       if(!/^[a-f0-9]{32}$/.test(data.id)||!/^[-\w]{43}$/.test(data.ownerToken)||!/^[-\w]{43}$/.test(data.guestToken)||data.ownerToken===data.guestToken||!validCipher(data.cipher))return response({error:"Invalid transfer"},400);
-      const session={id:data.id,expires_at:now+TTL};
+      const lifetime=data.journal===true&&data.cipher.startsWith("1.")?JOURNAL_TTL:TTL;
+      const session={id:data.id,expires_at:now+lifetime};
       const exists=await env.DB.prepare("SELECT id FROM transfers WHERE id=?").bind(data.id).first();if(exists)return response({error:"Transfer already exists"},409);
       await env.BUCKET.put(objectKey(session,"out"),data.cipher,{httpMetadata:{contentType:"application/octet-stream"}});
       try{const created=await env.DB.prepare("INSERT INTO transfers(id,owner_hash,guest_hash,expires_at,incoming) SELECT ?,?,?,?,0 WHERE (SELECT count(*) FROM transfers)<250").bind(data.id,await hash(data.ownerToken),await hash(data.guestToken),session.expires_at).run();if(created.meta.changes!==1){await env.BUCKET.delete(objectKey(session,"out"));return response({error:"Transfer service is busy. Try again later."},503);}}
       catch(error){await env.BUCKET.delete(objectKey(session,"out"));throw error;}
-      return response({id:data.id,expiresAt:session.expires_at,ttlSeconds:600},201);
+      return response({id:data.id,expiresAt:session.expires_at,ttlSeconds:lifetime/1000},201);
     }
     const [, , ,id,action]=path.split("/");
     const session=await env.DB.prepare("SELECT * FROM transfers WHERE id=? AND expires_at>?").bind(id,now).first();

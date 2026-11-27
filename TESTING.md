@@ -1,10 +1,18 @@
 # Testing and verification
 
-Current watch release: **v0.23.12 / code 51**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
+Current watch release: **v0.23.13 / code 52**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
 
 ## Website support options · 2026-11-26
 
 All 112 tests passed with `node --test web-test/*.test.mjs`. The browser showed both links when the footer was expanded, kept the QR images behind a separate disclosure and opened the French support shortcut in French. Each published-size QR image decoded to its matching payment link at widths from 180 to 208 pixels.
+
+## Direct v0.23.13 · 2026-11-27
+
+The signed direct release passed 354 core, 298 native watch UI and 115 web/relay tests (767 total). The Play-source UI suite with compiled resources passed 314 tests.
+
+Core tests cover retiring the team field in existing B6 match books, re-encoding notes and events, and stable event filtering and sorting. The watch UI covers creating and reusing an event and preserving the unsaved note while choosing it. Browser and relay tests verify legacy watch note edits, sorting and filtering, and one-hour journal links with fixed deadlines.
+
+The original certificate, package identity, version, minimum SDK, alignment and 48 retained APK checksums were verified. Physical watch acceptance for this release is pending.
 
 ## Direct v0.23.12 · 2026-11-27
 

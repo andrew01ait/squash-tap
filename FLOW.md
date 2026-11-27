@@ -1,4 +1,4 @@
-# Navigation and match flows — v0.23.12
+# Navigation and match flows — v0.23.13
 
 The separate Play preparation candidate retains these scoring/navigation flows. Its Settings → Check for updates opens a Google Play explanation, Open Google Play and Back to Settings. All website update/download/install/setup entry points route there in that build; a missing Store produces an actionable message and keeps the match. The public direct-APK release keeps its existing updater. See [PLAY_RELEASE.md](PLAY_RELEASE.md).
 
@@ -130,13 +130,13 @@ Player lists filter names before pagination. The Last 30 days checkbox intersect
 
 ## Match notes
 
-Open **Match details** in the current match or a saved result to add or edit three optional fields. Personal notes have up to 600 characters. The opponent’s club or team and the event or league each have up to 80. The event also appears in the results list. Complete backups carry the notes.
+Open **Match details** in the current match or open a saved result to edit its note and event. A note has up to 600 characters and an event name up to 80. Choose an event from existing matches or create one. The results filter accepts an event, and event sorting groups matches alphabetically with the newest first within each event. Complete backups include notes and events.
 
 **View results on phone** includes the notes for the shared journal entries. The journal sends edits with the original note values for that match. The watch rejects stale edits, previews the changes and saves them after confirmation. A journal link is separate from a result-card link.
 
 ## Phone links, CSV and privacy
 
-View results on phone, Edit names on phone and Import CSV use encrypted ten-minute QR transfers. The watch asks you to end an open transfer before switching between the private journal and other transfer purposes. The QR's local view fragment selects Results, Opponents or Import after decryption; old/unknown values default to Results. It changes no authorization, snapshot data or encryption. Names/imports are prepared on the phone, sent once, then explicitly received/reviewed/applied on the watch. Cancel applies nothing. Duplicates/conflicts are skipped, not overwritten.
+View results on phone opens an encrypted journal link for one hour. Edit names on phone and Import CSV use encrypted links for ten minutes. The watch asks you to end an open transfer before switching between the private journal and other transfer purposes. The QR's local view fragment selects Results, Opponents or Import after decryption; old/unknown values default to Results. It changes no authorization, snapshot data or encryption. Names/imports are prepared on the phone, sent once, then explicitly received/reviewed/applied on the watch. Cancel applies nothing. Duplicates/conflicts are skipped, not overwritten.
 
 Each phone action retains its caller and export scope. A differently filtered snapshot requires ending an open transfer first. Returning to the scoreboard while creating/receiving must prevent a late request completion from redirecting the UI. No polling is added. Keys/tokens stay in memory/fragments; ciphertext and hashed capabilities remain temporary. End/apply deletes live transfer data; unused expired data is inaccessible and cleaned in later API traffic. No account or permanent server history is introduced.
 

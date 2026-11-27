@@ -2,6 +2,18 @@ import {language, t} from './locale.mjs';
 import {rowWinner, localMoment} from './interchange.mjs?v=0.16.0';
 
 const messages = {
+  "Event": ["Veranstaltung", "Événement", "Evento"],
+  "New event": ["Neue Veranstaltung", "Nouvel événement", "Nuevo evento"],
+  "No event": ["Ohne Veranstaltung", "Sans événement", "Sin evento"],
+  "All events": ["Alle Veranstaltungen", "Tous les événements", "Todos los eventos"],
+  "Event name": ["Name der Veranstaltung", "Nom de l’événement", "Nombre del evento"],
+  "Enter an event name.": ["Gib den Namen der Veranstaltung ein.", "Saisis le nom de l’événement.", "Introduce el nombre del evento."],
+  "Sort results": ["Ergebnisse sortieren", "Trier les résultats", "Ordenar resultados"],
+  "Newest first": ["Neueste zuerst", "Plus récents d’abord", "Más recientes primero"],
+  "Event A\u2013Z": ["Veranstaltung A–Z", "Événement A–Z", "Evento A–Z"],
+  "Previous page": ["Vorherige Seite", "Page précédente", "Página anterior"],
+  "Next page": ["Nächste Seite", "Page suivante", "Página siguiente"],
+  "Your watch and this browser exchange encrypted data. Anyone with the complete QR link can open it before it expires.": ["Deine Uhr und dieser Browser tauschen verschlüsselte Daten aus. Wer den vollständigen QR-Link hat, kann ihn bis zum Ablauf öffnen.", "Ta montre et ce navigateur échangent des données chiffrées. Toute personne ayant le lien QR complet peut l’ouvrir avant son expiration.", "Tu reloj y este navegador intercambian datos cifrados. Quien tenga el enlace QR completo puede abrirlo antes de que caduque."],
   "Stage match notes": ["Partienotizen vormerken", "Préparer les notes", "Preparar notas"],
   "Discard note edit": ["Notizänderung verwerfen", "Annuler la modification des notes", "Descartar cambios en las notas"],
   "Match notes ready to send: {0}": ["Vorgemerkte Partienotizen: {0}", "Notes prêtes à envoyer : {0}", "Notas listas para enviar: {0}"],
@@ -10,8 +22,6 @@ const messages = {
   "Match notes": ["Partienotizen", "Notes du match", "Notas del partido"],
   "Edit match notes": ["Partienotizen bearbeiten", "Modifier les notes", "Editar notas del partido"],
   "Note": ["Notiz", "Note", "Nota"],
-  "Opponent's club or team": ["Verein oder Team der Gegenseite", "Club ou équipe adverse", "Club o equipo rival"],
-  "Event or league": ["Veranstaltung oder Liga", "Événement ou ligue", "Evento o liga"],
   "All fields are optional and apply to this match.": ["Alle Angaben sind freiwillig und gelten für diese Partie.", "Tous les champs sont facultatifs et concernent ce match.", "Todos los campos son opcionales y se aplican a este partido."],
   "Use plain text for match notes.": ["Verwende einfachen Text für die Partienotizen.", "Utilise du texte simple pour les notes.", "Usa texto sencillo para las notas."],
   "A match note field is too long.": ["Ein Feld der Partienotizen ist zu lang.", "Un champ des notes est trop long.", "Un campo de las notas es demasiado largo."],
@@ -145,7 +155,6 @@ const messages = {
   'Send to your watch': ['An deine Uhr senden','Envoyer à votre montre','Enviar a tu reloj'],
   'On your watch, choose Receive changes to review and confirm.': ['Wähle auf der Uhr „Änderungen empfangen“, um sie zu prüfen und zu bestätigen.','Sur la montre, choisissez « Recevoir les modifications » pour les vérifier et les confirmer.','En el reloj, elige «Recibir cambios» para revisarlos y confirmarlos.'],
   'Send changes': ['Änderungen senden','Envoyer les modifications','Enviar cambios'],
-  'Your watch and this browser exchange encrypted data. Anyone with the complete QR link can open it during its ten-minute lifetime.': ['Uhr und Browser tauschen die Daten verschlüsselt aus. Wer den vollständigen QR-Link hat, kann ihn während seiner zehnminütigen Gültigkeit öffnen.','La montre et ce navigateur échangent des données chiffrées. Toute personne disposant du lien QR complet peut l’ouvrir pendant ses dix minutes de validité.','El reloj y este navegador intercambian datos cifrados. Cualquier persona con el enlace QR completo puede abrirlo durante sus diez minutos de validez.'],
   'On your watch, open Results → Options → View results on phone, or Players → Edit names on phone. Scan the QR code.': ['Öffne auf der Uhr Ergebnisse → Optionen → Ergebnisse am Handy oder Spieler → Namen am Handy bearbeiten. Scanne den QR-Code.','Sur la montre, ouvrez Résultats → Options → Voir les résultats sur téléphone, ou Joueurs → Modifier les noms sur téléphone. Scannez le code QR.','En el reloj, abre Resultados → Opciones → Ver resultados en el teléfono o Jugadores → Editar nombres en el teléfono. Escanea el código QR.'],
   'Match insights': ['Partienanalyse','Analyse des matchs','Análisis de partidos'],
   'Player directory': ['Spielerverzeichnis','Répertoire des joueurs','Directorio de jugadores'],
@@ -308,7 +317,7 @@ const errors = {
 export function errorText(error) {
   const message=String(error?.message||error||''),row=message.match(/^CSV row (\d+): (.+)$/);
   if(row) return t('CSV row {0}: {1}','CSV-Zeile {0}: {1}','Ligne CSV {0} : {1}','Fila {0} del CSV: {1}',row[1],errorText(/name|control char/i.test(row[2])?'name':'csv'));
-  if(['Invalid match notes.','Use plain text for match notes.','A match note field is too long.'].includes(message)) return tx(message);
+  if(['Invalid match notes.','Use plain text for match notes.','A match note field is too long.','Enter an event name.'].includes(message)) return tx(message);
   if(/expired or ended/.test(message)) return tx('This transfer has expired. Scan a new QR code on your watch.');
   const matches=[
     [/1–60|control characters/,'name'],[/storage is full/,'roster'],[/already sent/,'sent'],

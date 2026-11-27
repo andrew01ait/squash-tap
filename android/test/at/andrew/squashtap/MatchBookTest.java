@@ -45,7 +45,7 @@ public class MatchBookTest {
     @Test public void notesStayWithTheMatchThroughCompletionUndoAndNewMatch(){
         MatchBook b=book();
         assertTrue(b.encode().startsWith("B4:"));
-        MatchNotes note=new MatchNotes("Served short\r\n📝 Watch positioning","Club Nord","Landesliga");
+        MatchNotes note=new MatchNotes("Served short\r\n📝 Watch positioning","Landesliga");
         b.setNotes("first",note);
         finish(b,0,DAY);
         assertTrue(b.encode().startsWith("B6:"));
@@ -57,7 +57,7 @@ public class MatchBookTest {
         assertTrue(restored.add(0,DAY));
         assertEquals(1,restored.result("first").number);
         restored.newMatch("second",3,MatchFormat.defaults("tennis"));
-        restored.setNotes("second",new MatchNotes("","", "Autumn cup"));
+        restored.setNotes("second",new MatchNotes("", "Autumn cup"));
         MatchBook multi=MatchBook.decode(restored.encode());
         assertEquals("tennis",multi.current().format().sport);
         assertEquals(note,multi.notes("first"));
@@ -70,16 +70,40 @@ public class MatchBookTest {
     }
     @Test public void annotationsRejectInvalidTextAndCannotReviveDeletedResults(){
         MatchBook b=book();
-        assertEquals("A\nB",new MatchNotes(" A\r\nB ","","").text);
-        assertThrows(IllegalArgumentException.class,()->new MatchNotes("","A\nB",""));
-        assertThrows(IllegalArgumentException.class,()->new MatchNotes("","","A\u0000B"));
-        assertThrows(IllegalArgumentException.class,()->new MatchNotes(String.join("",java.util.Collections.nCopies(601,"x")),"",""));
-        assertThrows(IllegalArgumentException.class,()->b.setNotes("missing",new MatchNotes("text","","")));
+        assertEquals("A\nB",new MatchNotes(" A\r\nB ","").text);
+        assertThrows(IllegalArgumentException.class,()->new MatchNotes("","A\nB"));
+        assertThrows(IllegalArgumentException.class,()->new MatchNotes("","A\u0000B"));
+        assertThrows(IllegalArgumentException.class,()->new MatchNotes(String.join("",java.util.Collections.nCopies(601,"x")),""));
+        assertThrows(IllegalArgumentException.class,()->b.setNotes("missing",new MatchNotes("text","")));
         finish(b,0,DAY);
-        b.setNotes("first",new MatchNotes("","","Test league"));
+        b.setNotes("first",new MatchNotes("","Test league"));
         b.deleteAll();
         assertTrue(b.notes("first").isEmpty());
-        assertThrows(IllegalArgumentException.class,()->b.setNotes("first",new MatchNotes("text","","")));
+        assertThrows(IllegalArgumentException.class,()->b.setNotes("first",new MatchNotes("text","")));
         assertTrue(b.encode().startsWith("B4:"));
+    }
+    @Test public void legacyTeamDataIsDroppedWhenLoadingOrRewritingB6()throws Exception{
+        MatchBook original=book();
+        byte[] base=java.util.Base64.getDecoder().decode(original.encode().substring(3));
+        for(MatchNotes expected:new MatchNotes[]{MatchNotes.EMPTY,new MatchNotes("Serve short","Landesliga")}){
+            java.io.ByteArrayOutputStream bytes=new java.io.ByteArrayOutputStream();
+            try(java.io.DataOutputStream out=new java.io.DataOutputStream(bytes)){
+                out.writeBoolean(false);
+                out.write(base);
+                out.writeInt(1);
+                out.writeUTF("first");
+                out.writeUTF(expected.text);
+                out.writeUTF("Legacy club");
+                out.writeUTF(expected.event);
+            }
+            MatchBook decoded=MatchBook.decode("B6:"+java.util.Base64.getEncoder().encodeToString(bytes.toByteArray()));
+            assertEquals(expected,decoded.notes("first"));
+            assertEquals(original.current().encode(),decoded.current().encode());
+            assertEquals(expected,MatchBook.decode(decoded.encode()).notes("first"));
+            String payload=new String(java.util.Base64.getDecoder().decode(decoded.encode().substring(3)),
+                java.nio.charset.StandardCharsets.ISO_8859_1);
+            assertFalse(payload.contains("Legacy club"));
+            if(expected.isEmpty())assertEquals(original.encode(),decoded.encode());
+        }
     }
 }

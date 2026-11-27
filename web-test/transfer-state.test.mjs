@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {addName,incomingPayload,checkRetirementSupport,opponentStatistics,initialView,recentPlayerRanks,playersInLast30Days,EMPTY_MATCH_NOTES,normalizeMatchNotes,notesFromSnapshot,matchNoteEdits} from '../public/transfer-state.mjs';
+import {addName,incomingPayload,checkRetirementSupport,opponentStatistics,initialView,recentPlayerRanks,playersInLast30Days,EMPTY_MATCH_NOTES,normalizeMatchNotes,notesFromSnapshot,matchNoteEdits,eventLabels,sortResults} from '../public/transfer-state.mjs';
 import {statistics,rowWinner,rowOutcome,writeCsv,parseCsv,RETIREMENT_HEADER} from '../public/interchange.mjs';
 import {newest} from '../public/transfer-view.mjs';
 const snapshot={baseDirectory:'base',currentMatchId:'last-completed',currentOpponentId:'alice',opponents:[{id:'alice',name:'Alice',archived:false}]};
@@ -92,16 +92,31 @@ test('all-sports browsing respects mode and can filter historical identities out
 });
 test('journal notes preserve newlines and round-trip assignment, edits and clearing by match ID',()=>{
   const original=normalizeMatchNotes({text:' Watch the backhand\r\n📝 Second line ',team:' Club Nord ',event:'Landesliga'});
-  assert.deepEqual(original,{text:'Watch the backhand\n📝 Second line',team:'Club Nord',event:'Landesliga'});
+  assert.deepEqual(original,{text:'Watch the backhand\n📝 Second line',event:'Landesliga'});
+  const legacy={'match-id':{...original,team:'Club Nord'}};
   const saved=notesFromSnapshot({'match-id':original},new Set(['match-id','other']));
   const added=normalizeMatchNotes({text:'',team:'',event:'Tuesday tournament'});
-  assert.deepEqual(matchNoteEdits(saved,new Map([['match-id',EMPTY_MATCH_NOTES],['other',added]])),[
-    {id:'match-id',before:original,after:EMPTY_MATCH_NOTES},
-    {id:'other',before:EMPTY_MATCH_NOTES,after:added}
+  assert.deepEqual(matchNoteEdits(saved,new Map([['match-id',EMPTY_MATCH_NOTES],['other',added]]),legacy),[
+    {id:'match-id',before:{...original,team:'Club Nord'},after:{...EMPTY_MATCH_NOTES,team:'Club Nord'}},
+    {id:'other',before:{...EMPTY_MATCH_NOTES,team:''},after:{...added,team:''}}
   ]);
   assert.equal(notesFromSnapshot(undefined,new Set()).size,0);
   assert.throws(()=>notesFromSnapshot({'wrong-id':original},new Set(['match-id'])));
   assert.throws(()=>normalizeMatchNotes({...original,text:'x'.repeat(601)}));
-  assert.throws(()=>normalizeMatchNotes({...original,team:'club\nteam'}));
+  assert.throws(()=>normalizeMatchNotes({...original,event:'club\nteam'}));
   assert.throws(()=>normalizeMatchNotes({...original,event:'\ud800'}));
+});
+test('events are reusable labels, compose with result filters and sort results newest first within groups',()=>{
+  const rows=[
+    Object.assign([...normal],{1:'a',2:'2026-11-01'}),
+    Object.assign([...normal],{1:'b',2:'2026-11-02'}),
+    Object.assign([...normal],{1:'c',2:'2026-11-03'}),
+    Object.assign([...normal],{1:'d',2:'2026-11-04'})
+  ];
+  const tags={a:'Landesliga',b:'Alpine Cup',c:'Landesliga',d:''},eventFor=row=>tags[row[1]];
+  assert.deepEqual(eventLabels(rows,eventFor,'de'),['Alpine Cup','Landesliga']);
+  assert.deepEqual(sortResults(rows,eventFor,true,'de').map(r=>r[1]),['b','c','a','d']);
+  assert.deepEqual(sortResults(rows,eventFor,false,'de').map(r=>r[1]),['d','c','b','a']);
+  assert.deepEqual(filteredRows(rows,{event:'Landesliga',from:'2026-11-02',eventFor}).map(r=>r[1]),['c']);
+  assert.deepEqual(filteredRows(rows,{event:'',eventFor}).map(r=>r[1]),['d']);
 });

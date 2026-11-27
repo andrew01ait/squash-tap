@@ -55,7 +55,8 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     String tr(String label){return ui.text(label);}
     private MatchBook book;
     private OpponentDirectory opponents;
-    private String filterOpponent;
+    private String filterOpponent,filterEvent;
+    private boolean sortResultsByEvent;
     private LocalDate filterFrom,filterTo;
     private EditText nameInput;
     private TransferClient.Session transfer;
@@ -948,7 +949,8 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         int pages=Math.max(1,(items.size()+9)/10);
         int page=Math.max(0,Math.min(requestedPage,pages-1));
         resultsPage=page;
-        LinearLayout content=panel("Results","results:"+selectedSport+":"+filterMode+":"+page+":"+filterOpponent+":"+filterFrom+":"+filterTo,MenuSection.RESULTS);
+        String eventKey=filterEvent==null?"all":"event:"+filterEvent;
+        LinearLayout content=panel("Results","results:"+selectedSport+":"+filterMode+":"+page+":"+filterOpponent+":"+filterFrom+":"+filterTo+":"+eventKey+":"+sortResultsByEvent,MenuSection.RESULTS);
         boolean filtered=resultFiltersActive();
         int start=page*10, end=Math.min(start+10,items.size());
         if(items.isEmpty()){
@@ -964,8 +966,8 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
             if(start+1<end)section(content,"More matches");
             for(int i=start+1;i<end;i++)historyCard(content,items.get(i),page);
             paragraph(content,items.size()+tr(" of ")+book.count()+tr(" saved\nPage ")+(page+1)+tr(" of ")+pages);
-            if(page>0)secondaryButton(content,tr("Newer results"),()->showResultsFromTop(page-1));
-            if(page+1<pages)secondaryButton(content,tr("Older results"),()->showResultsFromTop(page+1));
+            if(page>0)secondaryButton(content,tr(sortResultsByEvent?"Previous page":"Newer results"),()->showResultsFromTop(page-1));
+            if(page+1<pages)secondaryButton(content,tr(sortResultsByEvent?"Next page":"Older results"),()->showResultsFromTop(page+1));
         }
         Button back=backButton(content,resultsReturnLabel,resultsReturn);
         if(roundMenu()){
@@ -1072,8 +1074,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         backButton(content,backLabel,back);
     }
     private void showNoteFields(LinearLayout content,MatchNotes notes){
-        if(!notes.event.isEmpty())showNoteField(content,"Event or league",notes.event);
-        if(!notes.team.isEmpty())showNoteField(content,"Opponent's club or team",notes.team);
+        if(!notes.event.isEmpty())showNoteField(content,"Event",notes.event);
         if(!notes.text.isEmpty())showNoteField(content,"Note",notes.text);
     }
     private void showNoteField(LinearLayout content,String label,String value){
@@ -1081,11 +1082,19 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         paragraph(content,value).setGravity(Gravity.START);
     }
     private void editMatchNotes(String id,MatchNotes original,Runnable back,String backLabel){
+        editMatchNotes(id,original,original.text,original.event,back,backLabel);
+    }
+    private void editMatchNotes(String id,MatchNotes original,String draft,String event,Runnable back,String backLabel){
         LinearLayout content=panel("Edit match notes");
         paragraph(content,tr("All fields are optional and apply to this match."));
-        EditText text=noteInput(content,"Note",original.text,MatchNotes.TEXT_LIMIT,true);
-        EditText team=noteInput(content,"Opponent's club or team",original.team,MatchNotes.LABEL_LIMIT,false);
-        EditText event=noteInput(content,"Event or league",original.event,MatchNotes.LABEL_LIMIT,false);
+        EditText text=noteInput(content,"Note",draft,MatchNotes.TEXT_LIMIT,true);
+        section(content,"Event");
+        navigationButton(content,event.isEmpty()?tr("Choose event"):event,()->{
+            String typed=text.getText().toString();
+            java.util.function.Consumer<String> returnWith=value->editMatchNotes(id,original,typed,value,back,backLabel);
+            chooseEvent(ResultFilter.eventLabels(book,book.newestFirst(),true,ui.locale),event,false,0,
+                returnWith,()->returnWith.accept(event));
+        });
         Runnable again=()->showMatchNotes(id,back,backLabel);
         primaryButton(content,tr("Save match notes"),()->{
             if(!book.canAnnotate(id)||!original.equals(book.notes(id))){
@@ -1093,7 +1102,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
                 return;
             }
             try{
-                MatchNotes updated=new MatchNotes(text.getText().toString(),team.getText().toString(),event.getText().toString());
+                MatchNotes updated=new MatchNotes(text.getText().toString(),event);
                 MatchBook changed=MatchBook.decode(book.encode());
                 changed.setNotes(id,updated);
                 if(!preferences.edit().putString("match_book",changed.encode()).commit())
@@ -1103,12 +1112,38 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
                 updateDisplay();
                 if(updated.isEmpty())back.run();else again.run();
             }catch(IllegalArgumentException|IllegalStateException error){
-                event.setError(safe(error));
+                text.setError(safe(error));
             }
         });
         backButton(content,"Cancel",original.isEmpty()?back:again);
         content.setFocusableInTouchMode(true);
         content.requestFocus();
+    }
+    private void chooseEvent(List<String> events,String selected,boolean filter,int page,
+            java.util.function.Consumer<String> pick,Runnable back){
+        LinearLayout content=panel(filter?"Filter by event":"Choose event");
+        if(filter)choiceButton(content,tr("All events"),selected==null,()->pick.accept(null));
+        else primaryNavigationButton(content,tr("New event"),()->newEvent(pick,
+            ()->chooseEvent(events,selected,false,page,pick,back)));
+        choiceButton(content,tr("No event"),"".equals(selected),()->pick.accept(""));
+        int start=page*10;
+        for(String name:events.subList(start,Math.min(start+10,events.size())))
+            choiceButton(content,name,name.equals(selected),()->pick.accept(name));
+        if(page>0)secondaryButton(content,tr("Previous page"),()->chooseEvent(events,selected,filter,page-1,pick,back));
+        if(start+10<events.size())secondaryButton(content,tr("Next page"),()->chooseEvent(events,selected,filter,page+1,pick,back));
+        backButton(content,"Cancel",back);
+    }
+    private void newEvent(java.util.function.Consumer<String> pick,Runnable back){
+        LinearLayout content=panel("New event");
+        EditText field=noteInput(content,"Event name","",MatchNotes.LABEL_LIMIT,false);
+        primaryButton(content,tr("Use event"),()->{
+            try{
+                String name=new MatchNotes("",field.getText().toString()).event;
+                if(name.isEmpty()){field.setError(tr("Enter an event name."));return;}
+                pick.accept(name);
+            }catch(IllegalArgumentException error){field.setError(safe(error));}
+        });
+        backButton(content,"Cancel",back);
     }
     private EditText noteInput(LinearLayout content,String label,String value,int limit,boolean multiline){
         section(content,label);
@@ -1317,7 +1352,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         scoreMenu=false;
         showMenu();
     }
-    private boolean selectSport(String sport){if(!allowSport(sport))return false;if(!selectedSport.equals(sport)){filterOpponent=null;filterFrom=filterTo=null;filterMode=-1;resultsPage=0;}selectedSport=sport;preferences.edit().putString("selected_sport",sport).apply();return true;}
+    private boolean selectSport(String sport){if(!allowSport(sport))return false;if(!selectedSport.equals(sport)){filterOpponent=filterEvent=null;filterFrom=filterTo=null;filterMode=-1;resultsPage=0;}selectedSport=sport;preferences.edit().putString("selected_sport",sport).apply();return true;}
     private void showSportRules(){
         LinearLayout content=panel(tr(MatchFormat.name(selectedSport))+tr(" rules"),null,MenuSection.RULES);
         String rules;
@@ -1459,7 +1494,12 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         return text;
     }
     private String opponentName(String matchId){return singleOpponent(matchId,true);}
-    private List<MatchResult> filteredResults(){List<MatchResult> out=new java.util.ArrayList<>();for(MatchResult result:ResultFilter.select(book,opponents,filterOpponent,filterFrom,filterTo))if(result.format.sport.equals(selectedSport)&&(filterMode<0||result.format.doubles==(filterMode==1)))out.add(result);return out;}
+    private List<MatchResult> filteredResults(){
+        List<MatchResult> out=ResultFilter.select(book,opponents,filterOpponent,filterFrom,filterTo);
+        out.removeIf(result->!result.format.sport.equals(selectedSport)||filterMode>=0&&result.format.doubles!=(filterMode==1));
+        ResultFilter.organizeByEvent(out,book,filterEvent,sortResultsByEvent,ui.locale);
+        return out;
+    }
     private List<MatchResult> sportResults(int mode){List<MatchResult> out=new java.util.ArrayList<>();for(MatchResult result:book.newestFirst())if(result.format.sport.equals(selectedSport)&&(mode<0||result.format.doubles==(mode==1)))out.add(result);return out;}
     private String modeLabel(){return filterMode<0?tr("All modes"):filterMode==0?tr("Singles"):tr("Doubles");}
     private void message(String title,String text,Runnable back){LinearLayout content=panel(title);paragraph(content,text);backButton(content,tr("Back"),back);}
@@ -1545,6 +1585,15 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         if(!selectedSport.equals("squash")&&!selectedSport.equals("padel"))navigationButton(content,tr("Mode: ")+modeLabel(),()->chooseResultMode(this::showResultFilters));
         OpponentDirectory.Entry e=filterOpponent==null?null:opponents.get(filterOpponent);
         personButton(content,tr("Opponent: ")+(filterOpponent==null?tr("All"):filterOpponent.isEmpty()?tr("Unnamed"):e==null?tr("Unknown"):e.name),()->showOpponentPicker(null,true));
+        String eventLabel=filterEvent==null?tr("All events"):filterEvent.isEmpty()?tr("No event"):filterEvent;
+        navigationButton(content,tr("Event: ")+eventLabel,()->chooseEvent(
+            ResultFilter.eventLabels(book,sportResults(-1),false,ui.locale),filterEvent,true,0,
+            value->{filterEvent=value;resultsPage=0;showResultFilters();},this::showResultFilters));
+        String[] orders={tr("Newest first"),tr("Event A–Z")};
+        int sort=sortResultsByEvent?1:0;
+        navigationButton(content,tr("Sort: ")+orders[sort],()->selectOption(
+            tr("Sort results"),tr("Matches within an event are shown newest first."),orders,sort,
+            value->{sortResultsByEvent=value==1;resultsPage=0;showResultFilters();},this::showResultFilters));
         section(content,"Date range");
         paragraph(content,tr("Dates: ")+(filterFrom==null?tr("any"):ui.filterDate(filterFrom))+tr(" to ")+(filterTo==null?tr("any"):ui.filterDate(filterTo)));
         secondaryButton(content,tr("Today"),()->{filterFrom=LocalDate.now();filterTo=filterFrom;showResults(0);});
@@ -1553,9 +1602,9 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         navigationButton(content,tr("Custom date range"),this::showDateRange);
         backButton(content,"Back to Results",()->showResults(resultsPage));
     }
-    private boolean resultFiltersActive(){return filterOpponent!=null||filterFrom!=null||filterTo!=null||filterMode>=0;}
+    private boolean resultFiltersActive(){return filterOpponent!=null||filterEvent!=null||filterFrom!=null||filterTo!=null||filterMode>=0;}
     private void resetResultFilters(){
-        filterOpponent=null;filterFrom=filterTo=null;filterMode=-1;showResultsFromTop(0);
+        filterOpponent=filterEvent=null;filterFrom=filterTo=null;filterMode=-1;showResultsFromTop(0);
     }
     private void showDateRange(){
         LinearLayout content=panel("Date range");paragraph(content,tr("Use YYYY-MM-DD. Leave either date empty for no limit."));
@@ -1728,7 +1777,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
             else showTransfer();return;
         }
         final String saved=book.encode(),names=opponents.encode(),myName=preferences.getString("my_name","");final boolean backupMode=transferView.equals("backup");final String backupCopy=backupOverride;final java.util.Map<String,String> backupSettings=backupSettings();final List<MatchResult> selected=backupMode?java.util.Collections.emptyList():filtered?new java.util.ArrayList<>(filteredResults()):ResultFilter.select(book,opponents,null,null,null);
-        transferBusy=true;LinearLayout content=panel("Preparing phone link","phone-transfer:"+transferView+(transferResultId.isEmpty()?"":":card"),phoneSection());paragraph(content,tr("Creating an encrypted ten-minute link. Both devices need internet."));backButton(content,transferReturnLabel,transferReturn);
+        transferBusy=true;LinearLayout content=panel("Preparing phone link","phone-transfer:"+transferView+(transferResultId.isEmpty()?"":":card"),phoneSection());paragraph(content,tr("Creating an encrypted phone link. Both devices need internet."));backButton(content,transferReturnLabel,transferReturn);
         final Dialog waiting=panel;
         tasks.execute(()->{try{TransferClient.Session created=TransferClient.create(MatchBook.decode(saved),OpponentDirectory.decode(names),selected,selectedSport,myName,backupMode?(backupCopy.isEmpty()?BackupArchive.create(MatchBook.decode(saved),OpponentDirectory.decode(names),backupSettings):backupCopy):null,includeNotes);onUi(()->transferCreated(created,filtered,backupMode,backupCopy,waiting));}catch(Exception error){onUi(()->{transferBusy=false;if(panel==waiting)message(tr("Transfer unavailable"),safe(error),transferReturn);});}});
     }
@@ -1744,7 +1793,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     private void showTransfer(){
         LinearLayout content=panel(phoneTitle(),"phone-transfer:"+transferView+(transferResultId.isEmpty()?"":":card"),phoneSection());
         if(transfer==null||transfer.expired()){
-            paragraph(content,tr("No active phone link. Create an encrypted link that expires after ten minutes."));
+            paragraph(content,tr("No active phone link. Create a new encrypted link."));
             primaryButton(content,tr("Create phone link"),()->{transfer=null;beginTransfer(transferFiltered);});
         }else{
             if(transfer.includesNotes==transferView.equals("journal")&&transferSnapshotBackup==transferView.equals("backup")){

@@ -155,22 +155,25 @@ public class MenuRevisionUiTest {
         String directory=preferences.getString("opponent_book","");
         match();click("Match details");click("Add match notes");
         noteField("Note").setText("First point\nTry the backhand 📝");
-        noteField("Opponent's club or team").setText("Club Nord");
-        noteField("Event or league").setText("Landesliga");
+        click("Choose event");click("New event");
+        noteField("Event name").setText("Landesliga");click("Use event");
+        assertEquals("First point\nTry the backhand 📝",noteField("Note").getText().toString());
         click("Save match notes");
         assertTrue(has("Try the backhand 📝"));
-        assertEquals(new MatchNotes("First point\nTry the backhand 📝","Club Nord","Landesliga"),book().notes("current"));
+        assertEquals(new MatchNotes("First point\nTry the backhand 📝","Landesliga"),book().notes("current"));
         assertEquals(active,book().current().encode());
         assertEquals(directory,preferences.getString("opponent_book",""));
         click("Edit match notes");noteField("Note").setText("Discard this");click("Cancel");
         assertFalse(has("Discard this"));
         close();launch();match();click("Match details");click("Match notes");
-        assertTrue(has("Club Nord"));assertTrue(has("Landesliga"));
+        assertTrue(has("Landesliga"));
         results();openFirstResult();click("Add match notes");
-        noteField("Event or league").setText("Tuesday tournament");click("Save match notes");
-        assertTrue(has("Tuesday tournament"));
+        click("Choose event");click("Landesliga");click("Save match notes");
+        assertTrue(has("Landesliga"));
         click("Back to Result");back();
-        assertTrue(has("Tuesday tournament"));
+        click("Filters");click("Event: All events");click("Landesliga");
+        click("Sort: Newest first");click("Event A–Z");click("Back to Results");
+        assertTrue(has("Landesliga"));assertTrue(has("1 of 17 saved"));
         assertEquals(active,book().current().encode());
     }
     private EditText noteField(String title){

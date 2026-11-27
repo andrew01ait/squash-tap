@@ -23,7 +23,7 @@ public class OpponentTransferUiTest {
  @Test public void notesRequireAPrivateJournalAndFreshConfirmation()throws Exception{
     MatchBook book=book();
     OpponentDirectory names=directory();
-    MatchNotes annotated=new MatchNotes("Serve low","Club Nord","Landesliga");
+    MatchNotes annotated=new MatchNotes("Serve low","Landesliga");
     book.setNotes("saved",annotated);
     preferences.edit().putString("match_book",book.encode()).commit();
     ReflectionHelpers.setField(activity,"book",book);
@@ -31,10 +31,10 @@ public class OpponentTransferUiTest {
     JSONObject snapshot=TransferClient.snapshot(privateLink,book,names,Collections.singletonList(book.result("saved")),true);
     assertEquals("Landesliga",snapshot.getJSONObject("matchNotes").getJSONObject("saved").getString("event"));
     assertFalse(TransferClient.snapshot(share,book,names,book.newestFirst()).has("matchNotes"));
-    assertFalse(MatchCsv.export(book.newestFirst(),names).contains("Club Nord"));
+    assertFalse(MatchCsv.export(book.newestFirst(),names).contains("Landesliga"));
     JSONObject edit=payload("").put("changeCurrentOpponent",false);
     JSONObject before=snapshot.getJSONObject("matchNotes").getJSONObject("saved");
-    JSONObject after=new JSONObject().put("text","Practice serve").put("team","").put("event","Landesliga");
+    JSONObject after=new JSONObject().put("text","Practice serve").put("team","Legacy club").put("event","Landesliga");
     JSONObject noteEdit=new JSONObject().put("id","saved").put("before",before).put("after",after);
     edit.put("matchNoteEdits",new JSONArray().put(noteEdit));
     assertThrows(Exception.class,()->TransferClient.preview(edit,book,names,share));
@@ -49,7 +49,8 @@ public class OpponentTransferUiTest {
     assertEquals(annotated,book().notes("saved"));
     click("Apply changes");
     MatchBook updated=book();
-    assertEquals(new MatchNotes("Practice serve","","Landesliga"),updated.notes("saved"));
+    assertEquals(new MatchNotes("Practice serve","Landesliga"),updated.notes("saved"));
+    assertFalse(TransferClient.snapshot(privateLink,updated,names,updated.newestFirst(),true).toString().contains("Legacy club"));
     assertEquals(book.current().encode(),updated.current().encode());
     assertThrows(Exception.class,()->TransferClient.preview(edit,updated,names,privateLink));
  }

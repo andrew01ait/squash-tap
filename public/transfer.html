@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="/score-outcome.css?v=1">
   <link rel="stylesheet" href="/menu-colours.css">
 <link rel="stylesheet" href="/transfer.css?v=9">
-<script type="module" src="/transfer.mjs?v=9"></script>
+<script type="module" src="/transfer.mjs?v=10"></script>
 </head>
 <body>
 <main>
@@ -54,6 +54,8 @@
             <label><span data-i="Player">Player</span><select id="opponent-filter"><option value="*" data-i="All players">All players</option></select></label>
             <label id="role-field" hidden><span data-i="Player role">Player role</span><select id="role-filter"><option value="all" data-i="Any role">Any role</option><option value="opponent" data-i="Opponent">Opponent</option><option value="partner" data-i="Partner">Partner</option></select></label>
             <label><span data-i="Outcome">Outcome</span><select id="outcome-filter"><option value="all" data-i="All outcomes">All outcomes</option><option value="won" data-i="Won">Won</option><option value="lost" data-i="Lost">Lost</option></select></label>
+            <label id="event-filter-field" hidden><span data-i="Event">Event</span><select id="event-filter"></select></label>
+            <label id="result-sort-field" hidden><span data-i="Sort results">Sort results</span><select id="result-sort"><option value="newest" data-i="Newest first">Newest first</option><option value="event" data-i="Event A–Z">Event A–Z</option></select></label>
             <label><span data-i="From">From</span><input type="date" id="from"></label>
             <label><span data-i="To">To</span><input type="date" id="to"></label>
           </div>
@@ -183,8 +185,8 @@
         <h2 id="notes-title" tabindex="-1" data-i="Match notes">Match notes</h2>
         <p class="muted" data-i="All fields are optional and apply to this match.">All fields are optional and apply to this match.</p>
         <label><span data-i="Note">Note</span><textarea id="notes-text" rows="4" maxlength="600"></textarea></label>
-        <label><span data-i="Opponent's club or team">Opponent's club or team</span><input id="notes-team" maxlength="80"></label>
-        <label><span data-i="Event or league">Event or league</span><input id="notes-event" maxlength="80"></label>
+        <label><span data-i="Event">Event</span><select id="notes-event"></select></label>
+        <label id="notes-event-name-field" hidden><span data-i="Event name">Event name</span><input id="notes-event-name" maxlength="80"></label>
         <p id="notes-error" class="entry-error" role="alert" hidden></p>
         <div class="entry-actions"><button type="button" class="secondary" id="notes-cancel" data-i="Cancel">Cancel</button><button type="submit" data-i="Stage match notes">Stage match notes</button></div>
       </form>
@@ -194,7 +196,7 @@
       <button type="button" id="send" data-i="Send changes" disabled>Send changes</button>
     </aside>
   </div>
-  <footer data-i="Your watch and this browser exchange encrypted data. Anyone with the complete QR link can open it during its ten-minute lifetime.">Your watch and this browser exchange encrypted data. Anyone with the complete QR link can open it during its ten-minute lifetime.</footer>
+  <footer data-i="Your watch and this browser exchange encrypted data. Anyone with the complete QR link can open it before it expires.">Your watch and this browser exchange encrypted data. Anyone with the complete QR link can open it before it expires.</footer>
 </main>
 </body>
 </html>
