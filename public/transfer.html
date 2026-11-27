@@ -11,8 +11,8 @@
   <link rel="icon" href="/favicon.svg">
   <link rel="stylesheet" href="/score-outcome.css?v=1">
   <link rel="stylesheet" href="/menu-colours.css">
-<link rel="stylesheet" href="/transfer.css?v=9">
-<script type="module" src="/transfer.mjs?v=10"></script>
+  <link rel="stylesheet" href="/transfer.css?v=10">
+  <script type="module" src="/transfer.mjs?v=11"></script>
 </head>
 <body>
 <main>
@@ -62,7 +62,7 @@
           <button type="button" id="reset-filter" class="quiet" data-i="Reset all filters">Reset all filters</button>
         </details>
         <div class="history-column">
-          <div class="section-head"><h2 id="history-heading" tabindex="-1" data-i="Match history">Match history</h2><span class="counter" id="count"></span><button type="button" id="add-result" data-i="Add result">Add result</button></div>
+          <div class="section-head"><h2 id="history-heading" tabindex="-1" data-i="Match history">Match history</h2><span class="counter" id="count"></span><button type="button" id="add-result" class="journal-primary" data-i="Add result">Add result</button></div>
           <p id="editor-upgrade" class="muted" data-i="To edit results already on the watch, update Keep Score to v0.19.0 and scan a new QR code." hidden></p>
           <p id="filtered-summary" class="summary-line" aria-live="polite"></p>
           <div id="result-list"></div>
@@ -76,8 +76,39 @@
 
     <section id="statistics" data-menu-colour="statistics" aria-labelledby="stats-title" hidden>
       <div class="section-head"><h2 id="stats-title" data-i="Your record">Your record</h2></div>
-      <p id="statistics-scope" class="muted"></p>
+      <div class="stats-filters">
+        <label id="stats-event-field" hidden><span data-i="Event">Event</span><select id="stats-event"></select></label>
+        <label><span data-i="Period">Period</span><select id="stats-period">
+          <option value="all" data-i="All time">All time</option>
+          <option value="recent" data-i="Last 30 days">Last 30 days</option>
+        </select></label>
+      </div>
+      <p id="statistics-scope" class="muted" aria-live="polite"></p>
       <div id="overall-summary" class="metric-grid"></div>
+      <div class="stat-panel squash-time-panel">
+        <h3 data-i="Total squash playing time">Total squash playing time</h3>
+        <strong id="squash-time"></strong>
+        <p id="squash-time-coverage" class="muted"></p>
+      </div>
+      <div class="stat-panel monthly-panel">
+        <div class="month-chart-head">
+          <h3 id="month-chart-title" data-i="Month by month">Month by month</h3>
+          <label id="month-metric-field"><span data-i="Metric">Metric</span><select id="month-metric">
+            <option value="played" data-i="Matches">Matches</option>
+            <option value="won" data-i="Wins">Wins</option>
+            <option value="lost" data-i="Losses">Losses</option>
+            <option value="winRate" data-i="Win rate">Win rate</option>
+            <option value="totalSeconds" data-i="Recorded playing time">Recorded playing time</option>
+            <option value="averageSeconds" data-i="Average duration">Average duration</option>
+          </select></label>
+        </div>
+        <p id="month-chart-empty" class="muted" data-i="No matches in this selection." hidden>No matches in this selection.</p>
+        <p id="month-chart-time-note" class="muted" data-i="Matches with recorded start and finish only." hidden>Matches with recorded start and finish only.</p>
+        <dl id="month-chart" class="month-chart" aria-labelledby="month-chart-title"></dl>
+        <div id="month-pages" class="pagination" hidden>
+          <button type="button" class="secondary" id="older-months" data-i="Older">Older</button><span id="month-page" aria-live="polite"></span><button type="button" class="secondary" id="newer-months" data-i="Newer">Newer</button>
+        </div>
+      </div>
       <div class="stats-layout">
         <div class="stat-panel">
           <h3 data-i="Recent form">Recent form</h3><p class="muted" data-i="Last 12 matches, oldest first. Select a result for the score.">Last 12 matches, oldest first. Select a result for the score.</p>
@@ -177,7 +208,7 @@
           </fieldset>
         </div>
         <p id="entry-error" tabindex="-1" class="entry-error" role="alert" hidden></p>
-        <div class="entry-actions"><button type="button" class="secondary" id="entry-cancel" data-i="Cancel">Cancel</button><button type="submit" data-i="Stage result">Stage result</button></div>
+        <div class="entry-actions"><button type="button" class="secondary" id="entry-cancel" data-i="Cancel">Cancel</button><button type="submit" class="journal-primary" data-i="Stage result">Stage result</button></div>
       </form>
     </dialog>
     <dialog id="notes-editor" aria-labelledby="notes-title">
@@ -188,7 +219,7 @@
         <label><span data-i="Event">Event</span><select id="notes-event"></select></label>
         <label id="notes-event-name-field" hidden><span data-i="Event name">Event name</span><input id="notes-event-name" maxlength="80"></label>
         <p id="notes-error" class="entry-error" role="alert" hidden></p>
-        <div class="entry-actions"><button type="button" class="secondary" id="notes-cancel" data-i="Cancel">Cancel</button><button type="submit" data-i="Stage match notes">Stage match notes</button></div>
+        <div class="entry-actions"><button type="button" class="secondary" id="notes-cancel" data-i="Cancel">Cancel</button><button type="submit" class="journal-primary" data-i="Stage match notes">Stage match notes</button></div>
       </form>
     </dialog>
     <aside id="send-changes" hidden>

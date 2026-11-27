@@ -2,8 +2,8 @@ import {downloadResultCard,shareResultCard} from './result-card.mjs?v=3';
 import {scoreValue} from './match-sheet.mjs?v=2';
 import {rowSport,rowMode,rowRules,scorePairs,finalScore,details,SPORTS,sportMarkup} from './sports.mjs?v=0.16.3';
 import {rowWinner,statistics} from './interchange.mjs?v=0.16.0';
-import {byPlayer,matchInsights,matchesPerson,newest} from './transfer-state.mjs?v=2';
-import {tx,modeText,sportText,durationText,errorText,momentText,outcomeText} from './transfer-copy.mjs';
+import {byPlayer,matchInsights,matchesPerson,newest} from './transfer-state.mjs?v=7';
+import {tx,modeText,sportText,durationText,errorText,momentText,outcomeText} from './transfer-copy.mjs?v=10';
 import {language} from './locale.mjs';
 export {newest};
 const $=id=>document.getElementById(id);
@@ -88,13 +88,14 @@ export function resultCard(row,opponent,myName=tx('Me')) {
   statRow(times,tx('Start'),momentText(row,7,'required'));statRow(times,tx('End'),momentText(row,8,'required'));
   statRow(times,tx('Duration'),row[10]?durationText(Number(row[10])):tx('Not recorded'));
   detail.append(times);
-  const actions=node('div',undefined,'actions');
+  const actions=node('div',undefined,'result-actions');
+  const sharing=node('div',undefined,'actions result-sharing');
   for(const [title,action] of [['Download result card',downloadResultCard],['Share result card',shareResultCard]]) {
     const b=node('button',tx(title),'secondary');
     b.addEventListener('click',async()=>{b.disabled=true;try{await action(row,opponent,myName);}catch(e){if(e.name!=='AbortError')alert(errorText('image'));}finally{b.disabled=false;}});
-    actions.append(b);
+    sharing.append(b);
   }
-  detail.append(actions);card.append(detail);return card;
+  actions.append(sharing);detail.append(actions);card.append(detail);return card;
 }
 function metric(parent,title,value,note) {
   const article=node('article',undefined,'metric');
@@ -147,12 +148,61 @@ function renderPlayers(rows,catalog,role,onPlayer,selectedSport) {
   }
   if(!groups.length) list.append(node('p',tx(role==='partner'?'No named partners in this selection.':'No matches in this selection.'),'muted'));
 }
-export function renderStatistics({rows,allRows,catalog,mode,selectedSport,totalResults,onPlayer,onMatch,onSport}) {
+export function renderSquashTime({timed,totalSeconds},matchCount) {
+  $('squash-time').textContent=totalSeconds===null?tx('Not recorded'):durationText(totalSeconds);
+  $('squash-time-coverage').textContent=tx('{0} of {1} squash matches in this journal have recorded times.',timed,matchCount);
+}
+
+const MONTHS_PER_PAGE=12;
+const EMPTY_MONTH={played:0,won:0,lost:0,winRate:null,totalSeconds:null,averageSeconds:null};
+export function renderMonthChart({records,first,last},page) {
+  const chart=$('month-chart'),metric=$('month-metric').value;
+  const isDuration=metric==='totalSeconds'||metric==='averageSeconds';
+  const empty=!records.size;
+  chart.replaceChildren();
+  chart.hidden=empty;
+  $('month-chart-empty').hidden=!empty;
+  $('month-metric-field').hidden=empty;
+  $('month-chart-time-note').hidden=empty||!isDuration;
+  const pages=empty?0:Math.ceil((last-first+1)/MONTHS_PER_PAGE);
+  $('month-pages').hidden=pages<=1;
+  if(empty) return 0;
+
+  page=Math.min(pages-1,Math.max(0,page));
+  const end=last-page*MONTHS_PER_PAGE;
+  const start=Math.max(first,end-MONTHS_PER_PAGE+1);
+  const max=metric==='winRate'?100:Math.max(1,...Array.from(records.values(),record=>record[metric]??0));
+  const dateFormat=new Intl.DateTimeFormat(language(),{month:'short',year:'numeric',timeZone:'UTC'});
+  const numberFormat=new Intl.NumberFormat(language(),metric==='winRate'?{style:'percent'}:{});
+  for(let month=start;month<=end;month++) {
+    const date=new Date(0);date.setUTCFullYear(Math.floor(month/12),month%12,1);
+    const row=node('div'),values=node('dd');
+    const value=(records.get(month)||EMPTY_MONTH)[metric];
+    const bar=node('progress');bar.max=max;bar.value=value??0;bar.setAttribute('aria-hidden','true');
+    const label=node('span');
+    if(value===null) {
+      const dash=node('span','—');dash.setAttribute('aria-hidden','true');
+      label.append(dash,node('span',tx('Not recorded'),'sr-only'));
+    } else {
+      label.textContent=isDuration?durationText(value):numberFormat.format(metric==='winRate'?value/100:value);
+    }
+    values.append(bar,label);
+    row.append(node('dt',dateFormat.format(date)),values);chart.append(row);
+  }
+  $('month-page').textContent=tx('Page {0} of {1}',pages-page,pages);
+  $('newer-months').disabled=page===0;
+  $('older-months').disabled=page===pages-1;
+  return page;
+}
+
+export function renderStatistics({rows,rowsBySport,catalog,selectedSport,scopeCount,includedCount,totalResults,onPlayer,onMatch,onSport}) {
   const summary=$('overall-summary'),overall=statistics(rows),nested=['tennis','padel'].includes(selectedSport);
   $('stats-title').textContent=sportText(selectedSport)+' · '+tx('Your record');
   const acrossSports=selectedSport==='all';
-  const scope=[tx(acrossSports?'All transferred matches for the selected mode across every sport.':'All transferred matches for the selected sport and mode.')];
-  if(Number.isInteger(totalResults)&&allRows.length<totalResults) scope.push(tx('This transfer contains {0} of {1} saved matches. Open a full results link on the watch for your whole history.',allRows.length,totalResults));
+  const scope=[rows.length===scopeCount?
+    tx(acrossSports?'All transferred matches for the selected mode across every sport.':'All transferred matches for the selected sport and mode.'):
+    tx('{0} of {1} matches',rows.length,scopeCount)];
+  if(Number.isInteger(totalResults)&&includedCount<totalResults) scope.push(tx('This transfer contains {0} of {1} saved matches. Open a full results link on the watch for your whole history.',includedCount,totalResults));
   $('statistics-scope').textContent=scope.join(' ');summary.replaceChildren();
   metric(summary,tx('Matches'),overall.played,record(overall));
   metric(summary,tx('Win rate'),overall.winRate===null?'—':overall.winRate+'%');
@@ -180,12 +230,11 @@ export function renderStatistics({rows,allRows,catalog,mode,selectedSport,totalR
     if(s.timed) metric(insights,tx('Average duration'),durationText(s.averageSeconds),tx('{0} timed matches',s.timed));
   }
   const sportList=$('sport-records');sportList.replaceChildren();
-  const sameMode=allRows.filter(r=>mode==='all'||rowMode(r)===mode);
-  for(const sport of orderedSports(new Set(sameMode.map(rowSport)))) {
-    const stat=statistics(sameMode.filter(r=>rowSport(r)===sport));
+  for(const sport of orderedSports(new Set(rowsBySport.map(rowSport)))) {
+    const stat=statistics(rowsBySport.filter(r=>rowSport(r)===sport));
     recordButton(sportList,sportText(sport),tx('{0} matches',stat.played)+' · '+record(stat),stat.winRate,()=>onSport(sport),sportMark(sport));
   }
-  if(!sameMode.length) sportList.append(node('p',tx('No matches in this selection.'),'muted'));
+  if(!rowsBySport.length) sportList.append(node('p',tx('No matches in this selection.'),'muted'));
   renderPlayers(rows,catalog,'opponent',onPlayer,selectedSport);
   renderPlayers(rows,catalog,'partner',onPlayer,selectedSport);
 }

@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {addName,incomingPayload,checkRetirementSupport,opponentStatistics,initialView,recentPlayerRanks,playersInLast30Days,EMPTY_MATCH_NOTES,normalizeMatchNotes,notesFromSnapshot,matchNoteEdits,eventLabels,sortResults} from '../public/transfer-state.mjs';
+import {addName,incomingPayload,checkRetirementSupport,opponentStatistics,initialView,recentPlayerRanks,playersInLast30Days,EMPTY_MATCH_NOTES,normalizeMatchNotes,notesFromSnapshot,matchNoteEdits,eventLabels,sortResults,last30Days,recordedTime,monthlyStatistics} from '../public/transfer-state.mjs';
 import {statistics,rowWinner,rowOutcome,writeCsv,parseCsv,RETIREMENT_HEADER} from '../public/interchange.mjs';
 import {newest} from '../public/transfer-view.mjs';
 const snapshot={baseDirectory:'base',currentMatchId:'last-completed',currentOpponentId:'alice',opponents:[{id:'alice',name:'Alice',archived:false}]};
@@ -119,4 +119,47 @@ test('events are reusable labels, compose with result filters and sort results n
   assert.deepEqual(sortResults(rows,eventFor,false,'de').map(r=>r[1]),['d','c','b','a']);
   assert.deepEqual(filteredRows(rows,{event:'Landesliga',from:'2026-11-02',eventFor}).map(r=>r[1]),['c']);
   assert.deepEqual(filteredRows(rows,{event:'',eventFor}).map(r=>r[1]),['d']);
+});
+test('statistics combines the event and last 30 calendar days using each recorded playing day',()=>{
+  const range=last30Days(new Date(2026,10,27,12));
+  assert.deepEqual(range,{from:'2026-10-29',to:'2026-11-27'});
+  const rows=[
+    Object.assign([...normal],{1:'too-old',2:'2026-10-28'}),
+    Object.assign([...normal],{1:'at-start',2:'2026-10-28',7:'2026-10-28T23:30:00Z',9:'Europe/Vienna'}),
+    Object.assign([...normal],{1:'at-end',2:'2026-11-27'}),
+    Object.assign([...normal],{1:'other-event',2:'2026-11-27'}),
+    Object.assign([...normal],{1:'tomorrow',2:'2026-11-28'}),
+  ];
+  const selected=filteredRows(rows,{...range,event:'Landesliga',eventFor:row=>row[1]==='other-event'?'Alpine Cup':'Landesliga'});
+  assert.deepEqual(selected.map(row=>row[1]),['at-start','at-end']);
+  const trend=monthlyStatistics(selected,range);
+  assert.deepEqual([...trend.records.values()].map(s=>s.played),[1,1]);
+  assert.equal(trend.last-trend.first,1);
+});
+
+test('overall squash time sums elapsed timestamps across legacy and current results',()=>{
+  const overnight=Object.assign([...normal],{7:'2026-10-29T22:40:00Z',8:'2026-10-29T23:20:00Z',9:'Europe/Vienna'});
+  const timed=Object.assign([...normal],{0:'3',7:'2026-11-25T17:00:00Z',8:'2026-11-25T17:25:00Z',9:'Europe/Vienna',24:'squash',25:'singles'});
+  const dateOnly=[...normal];
+  const withoutFinish=Object.assign([...overnight],{8:''});
+  const reversed=Object.assign([...overnight],{8:'2026-10-29T22:00:00Z'});
+  const tennis=Object.assign([...timed],{24:'tennis'});
+  const squash=inScope([tennis,overnight,timed,dateOnly,withoutFinish,reversed],'squash','all');
+  assert.deepEqual(recordedTime(squash),{timed:2,totalSeconds:3900,averageSeconds:1950});
+  assert.deepEqual(recordedTime([dateOnly,withoutFinish,reversed]),{timed:0,totalSeconds:null,averageSeconds:null});
+  const immediate=Object.assign([...overnight],{8:overnight[7]});
+  assert.deepEqual(recordedTime([immediate]),{timed:1,totalSeconds:0,averageSeconds:0});
+});
+
+test('monthly rows use the recorded start month and keep untimed outcomes in the win rate',()=>{
+  const january=Object.assign([...normal],{2:'2026-01-05'});
+  const localMarch=Object.assign([...normal],{2:'2026-02-28',7:'2026-02-28T23:40:00Z',8:'2026-03-01T00:13:00Z',9:'Europe/Vienna'});
+  const marchRetirement=Object.assign([...retired],{2:'2026-03-04'});
+  const {records,first,last}=monthlyStatistics([localMarch,january,marchRetirement]);
+  const march=records.get(last);
+  assert.equal(last-first,2);
+  assert.equal(records.has(first+1),false);
+  assert.equal(records.get(first).totalSeconds,null);
+  assert.deepEqual([march.played,march.won,march.lost,march.winRate,march.timed,march.totalSeconds,march.averageSeconds],[2,1,1,50,1,1980,1980]);
+  assert.equal(monthlyStatistics([]).records.size,0);
 });

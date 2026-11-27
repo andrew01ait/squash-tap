@@ -5,9 +5,9 @@ import {mountLanguage,language} from './locale.mjs';
 import {validateBackup,datedFile} from './backup.mjs?v=0.16.0';
 import {SPORTS,sportMarkup,rowSport} from './sports.mjs?v=0.16.3';
 import {open,seal,name,parseCsv,writeCsv,HEADER,statistics,localDate,rowWinner} from './interchange.mjs?v=0.16.0';
-import {addName,incomingPayload,checkRetirementSupport,initialView,filteredRows,sportsByPlayer,inScope,filterPlayers,recentPlayerRanks,playersInLast30Days,EMPTY_MATCH_NOTES,normalizeMatchNotes,sameMatchNotes,notesFromSnapshot,matchNoteEdits,eventLabels,sortResults} from './transfer-state.mjs?v=6';
-import {resultCard,shortRecord,renderStatistics,orderedSports,node} from './transfer-view.mjs?v=6';
-import {tx,errorText,sportText,momentText} from './transfer-copy.mjs?v=9';
+import {addName,incomingPayload,checkRetirementSupport,initialView,filteredRows,sportsByPlayer,inScope,filterPlayers,recentPlayerRanks,playersInLast30Days,EMPTY_MATCH_NOTES,normalizeMatchNotes,sameMatchNotes,notesFromSnapshot,matchNoteEdits,eventLabels,sortResults,last30Days,recordedTime,monthlyStatistics} from './transfer-state.mjs?v=7';
+import {resultCard,shortRecord,renderStatistics,renderSquashTime,renderMonthChart,orderedSports,node} from './transfer-view.mjs?v=7';
+import {tx,errorText,sportText,momentText} from './transfer-copy.mjs?v=10';
 
 const $=id=>document.getElementById(id);
 const PAGE_SIZE=25;
@@ -25,6 +25,7 @@ let originalNotes=new Map(),noteMatchId=null;
 const pendingNotes=new Map(),noteDialog=$('notes-editor');
 const noteText=$('notes-text'),noteEvent=$('notes-event'),eventName=$('notes-event-name');
 let recentRanks=new Map();
+let chartData=null, monthPage=0;
 const editor=mountResultEditor($('result-editor'),row=>{
   if(!link||!snapshot||Date.now()>=expiry||sent||sending)throw Error('This transfer has expired. Scan a new QR code on your watch.');
   const id=row[1],base=originals.get(id);
@@ -79,19 +80,19 @@ function contextRows() {return inScope(rows,$('sport-select').value,$('mode-sele
 const eventFor=row=>notesForMatch(row[1]).event;
 const eventOption=event=>'label:'+event;
 const byEvent=()=>$('result-sort').value==='event';
-function fillEventFilter(context) {
-  const available=snapshot.matchNotes!==undefined;
-  $('event-filter-field').hidden=!available;$('result-sort-field').hidden=!available;
-  const select=$('event-filter'),selected=select.value;
+function fillEventSelect(select,context) {
+  const selected=select.value;
   select.replaceChildren();
   option(select,'all',tx('All events'));option(select,'none',tx('No event'));
   for(const event of eventLabels(context,eventFor,language())) option(select,eventOption(event),event);
   select.value=[...select.options].some(o=>o.value===selected)?selected:'all';
 }
+function selectedEvent(id) {
+  const selected=$(id).value;
+  return selected.startsWith('label:')?selected.slice(6):selected==='none'?'':null;
+}
 function filters() {
-  const selected=$('event-filter').value;
-  const event=selected.startsWith('label:')?selected.slice(6):selected==='none'?'':null;
-  return {id:$('opponent-filter').value,role:$('role-filter').value,outcome:$('outcome-filter').value,from:$('from').value,to:$('to').value,event,eventFor};
+  return {id:$('opponent-filter').value,role:$('role-filter').value,outcome:$('outcome-filter').value,from:$('from').value,to:$('to').value,event:selectedEvent('event-filter'),eventFor};
 }
 function visibleResults(context,f) {
   return sortResults(filteredRows(context,f),eventFor,byEvent(),language());
@@ -104,9 +105,12 @@ function exportNames(row) {
 function notesForMatch(id) {
   return pendingNotes.get(id)||originalNotes.get(id)||EMPTY_MATCH_NOTES;
 }
-function reopenResult(id) {
-  for(const detail of document.querySelectorAll('details.result'))
-    if(detail.dataset.matchId===id){detail.open=true;break;}
+function refreshNoteResult(id) {
+  renderResults(false);
+  const detail=[...document.querySelectorAll('details.result')].find(card=>card.dataset.matchId===id);
+  if(detail) detail.open=true;
+  (detail?.querySelector('.note-action')||$('history-heading')).focus({preventScroll:true});
+  renderStats();renderDraft();
 }
 function openNotesEditor(id) {
   const notes=notesForMatch(id);
@@ -128,7 +132,10 @@ function showEventName() {
 function renderMatchNotes(card,actions,id) {
   const notes=notesForMatch(id);
   const present=!sameMatchNotes(notes,EMPTY_MATCH_NOTES);
+  const editable=!sent&&!sending&&snapshot.matchNotes!==undefined&&originals.has(id);
   if(notes.event) card.querySelector('.match-meta').append(node('span',notes.event,'match-event'));
+  if(!present&&!editable) return;
+  const panel=node('div',undefined,'match-note-panel');
   if(present){
     const details=node('dl',undefined,'match-note-details');
     for(const [key,label] of [['event','Event'],['text','Note']]){
@@ -137,21 +144,30 @@ function renderMatchNotes(card,actions,id) {
       field.append(node('dt',tx(label)),node('dd',notes[key]));
       details.append(field);
     }
-    actions.before(details);
+    panel.append(details);
   }
-  if(!sent&&!sending&&snapshot.matchNotes!==undefined&&originals.has(id)){
-    const edit=node('button',tx(present?'Edit match notes':'Add match notes'),'secondary');
-    edit.type='button';edit.onclick=()=>openNotesEditor(id);actions.prepend(edit);
-    if(pendingNotes.has(id)){
-      const discard=node('button',tx('Discard note edit'),'quiet');discard.type='button';
-      discard.onclick=()=>{pendingNotes.delete(id);renderResults(false);reopenResult(id);renderDraft();};
-      actions.append(discard);
+  if(editable){
+    const buttons=node('div',undefined,'actions note-actions');
+    const edit=node('button',undefined,'journal-primary note-action');
+    if(!present) {
+      const plus=node('span','+','note-add-mark');plus.setAttribute('aria-hidden','true');edit.append(plus);
     }
+    edit.append(node('span',tx(present?'Edit match notes':'Add match notes')));
+    edit.type='button';edit.onclick=()=>openNotesEditor(id);buttons.append(edit);
+    if(pendingNotes.has(id)){
+      const discard=node('button',tx('Discard note edit'),'journal-discard');discard.type='button';
+      discard.onclick=()=>{pendingNotes.delete(id);refreshNoteResult(id);};
+      buttons.append(discard);
+    }
+    panel.append(buttons);
   }
+  actions.before(panel);
 }
 function renderResults(reset=true) {
   const list=$('result-list'),context=contextRows();
-  fillEventFilter(context);
+  const hasNotes=snapshot.matchNotes!==undefined;
+  $('event-filter-field').hidden=!hasNotes;$('result-sort-field').hidden=!hasNotes;
+  fillEventSelect($('event-filter'),context);
   const f=filters(),active=[f.id!=='*',Boolean(f.id!=='*'&&f.role!=='all'),f.outcome!=='all',f.event!==null,!!f.from,!!f.to,$('mode-select').value!=='all'].filter(Boolean).length;
   $('role-field').hidden=f.id==='*';
   $('filters-applied').textContent=active?tx('{0} selected',active):'';
@@ -180,13 +196,15 @@ function renderResults(reset=true) {
       groupKey=key;
     }
     const r=exportNames(row),card=resultCard(r,r[5]||tx('Opponent'),myName||tx('Me'));
-    const actions=card.querySelector('.actions'),id=row[1];
+    const actions=card.querySelector('.result-actions'),id=row[1];
     if(!sent&&!sending&&(snapshot.supportsResultEdits||!originals.has(id))){
-      const edit=node('button',tx('Edit result'),'secondary');edit.type='button';edit.onclick=()=>openEntry(row);actions.prepend(edit);
+      const edits=node('div',undefined,'actions result-edits');
+      const edit=node('button',tx('Edit result'),'secondary');edit.type='button';edit.onclick=()=>openEntry(row);edits.append(edit);
       if(pendingResults.has(id)){
-        const undo=node('button',tx('Discard change'),'quiet');undo.type='button';
-        undo.onclick=()=>{pendingResults.delete(id);refreshEntries();};actions.append(undo);
+        const undo=node('button',tx('Discard change'),'journal-discard');undo.type='button';
+        undo.onclick=()=>{pendingResults.delete(id);refreshEntries();};edits.append(undo);
       }
+      actions.prepend(edits);
     }
     renderMatchNotes(card,actions,id);
     if((pendingResults.has(id)||pendingNotes.has(id))&&!sent)card.querySelector('.match-meta').append(node('span',tx('Staged'),'entry-queued'));
@@ -215,9 +233,20 @@ function showMatches(id='*',role='all',matchId=null) {
   }
 }
 function renderStats(){
-  renderStatistics({rows:contextRows(),allRows:rows,catalog:directory,mode:$('mode-select').value,selectedSport:$('sport-select').value,totalResults:snapshot.totalResults+rows.length-originals.size,
-    onPlayer:(id,role)=>showMatches(id,role),onMatch:id=>showMatches('*','all',id),onSport:sport=>{$('sport-select').value=sport;renderResults();renderStats();$('stats-title').scrollIntoView({block:'start'});}
+  $('stats-event-field').hidden=snapshot.matchNotes===undefined;
+  fillEventSelect($('stats-event'),rows);
+  const sport=$('sport-select').value,mode=$('mode-select').value;
+  const period=$('stats-period').value==='recent'?last30Days():{};
+  const rowsBySport=filteredRows(inScope(rows,'all',mode),{...period,event:selectedEvent('stats-event'),eventFor});
+  const selected=inScope(rowsBySport,sport,'all');
+  renderStatistics({rows:selected,rowsBySport,catalog:directory,selectedSport:sport,scopeCount:contextRows().length,
+    includedCount:rows.length,totalResults:snapshot.totalResults+rows.length-originals.size,
+    onPlayer:(id,role)=>showMatches(id,role),onMatch:id=>showMatches('*','all',id),onSport:sport=>{$('sport-select').value=sport;monthPage=0;renderResults();renderStats();$('stats-title').scrollIntoView({block:'start'});}
   });
+  const squash=inScope(rows,'squash','all');
+  renderSquashTime(recordedTime(squash),squash.length);
+  chartData=monthlyStatistics(selected,period);
+  monthPage=renderMonthChart(chartData,monthPage);
 }
 function stagedNames() {
   return snapshot&&(JSON.stringify(catalog)!==JSON.stringify(snapshot.opponents)||changeCurrent&&current!==(snapshot.currentOpponentId||'')||myName!==(snapshot.myName||''));
@@ -372,6 +401,7 @@ function expire(){
   editor.close();originals.clear();pendingResults.clear();link=null;snapshot=null;catalog=[];rows=[];directory.clear();sportsIndex.clear();restoreBackup='';restoreDate=null;
   if(noteDialog.open) noteDialog.close();
   originalNotes.clear();pendingNotes.clear();noteMatchId=null;$('notes-form').reset();noteEvent.replaceChildren();
+  chartData=null;monthPage=0;
   myName='';editPerson=null;editValue='';importCsv='';importRows=[];current='';changeCurrent=false;expiry=0;
   $('workspace').replaceChildren();$('workspace').hidden=true;$('expiry').hidden=true;renderHeading();
   setNotice('This transfer has expired. Scan a new QR code on your watch.');
@@ -408,7 +438,7 @@ $('notes-form').addEventListener('submit',event=>{
     if(newEvent&&!notes.event)throw Error('Enter an event name.');
     if(sameMatchNotes(notes,originalNotes.get(id)||EMPTY_MATCH_NOTES)) pendingNotes.delete(id);
     else pendingNotes.set(id,notes);
-    noteDialog.close();renderResults(false);reopenResult(id);renderDraft();
+    noteDialog.close();refreshNoteResult(id);
   } catch(err){
     const message=$('notes-error');
     message.hidden=false;message.textContent=errorText(err);
@@ -425,7 +455,12 @@ document.addEventListener('keydown',ev=>{
 const wideFilters=matchMedia('(min-width:720px)');
 function fitFilters(){const filters=$('result-filters');if(filters)filters.open=wideFilters.matches;}
 fitFilters();wideFilters.addEventListener('change',fitFilters);
-for(const id of ['sport-select','mode-select']) $(id).addEventListener('change',()=>{renderResults();renderStats();});
+for(const id of ['sport-select','mode-select']) $(id).addEventListener('change',()=>{monthPage=0;renderResults();renderStats();});
+for(const id of ['stats-event','stats-period']) $(id).addEventListener('change',()=>{monthPage=0;renderStats();});
+$('month-metric').addEventListener('change',()=>{if(chartData)monthPage=renderMonthChart(chartData,monthPage);});
+for(const [id,step] of [['older-months',1],['newer-months',-1]]) $(id).addEventListener('click',()=>{
+  if(chartData)monthPage=renderMonthChart(chartData,monthPage+step);
+});
 for(const id of ['opponent-filter','role-filter','outcome-filter','event-filter','result-sort','from','to']) $(id).addEventListener('change',()=>{
   if(id==='opponent-filter') $('role-filter').value='all';
   renderResults();

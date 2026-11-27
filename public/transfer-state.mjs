@@ -92,6 +92,47 @@ export function filteredRows(rows,{id='*',role='all',outcome='all',from='',to=''
     return (!from||date>=from)&&(!to||date<=to);
   });
 }
+export function last30Days(now=new Date()) {
+  const first=new Date(now);
+  first.setDate(first.getDate()-29);
+  return {from:todayLocal(first),to:todayLocal(now)};
+}
+
+export function recordedTime(rows) {
+  let milliseconds=0, timed=0;
+  for(const row of rows) {
+    const start=Date.parse(row[7]), finish=Date.parse(row[8]);
+    if(!Number.isFinite(start)||!Number.isFinite(finish)||finish<start) continue;
+    milliseconds+=finish-start;
+    timed++;
+  }
+  return {timed,totalSeconds:timed?Math.floor(milliseconds/1000):null,averageSeconds:timed?Math.round(milliseconds/1000/timed):null};
+}
+
+function monthIndex(day) {
+  const [year,month]=day.split('-').map(Number);
+  return year*12+month-1;
+}
+
+export function monthlyStatistics(rows,{from='',to=''}={}) {
+  const groups=new Map();
+  for(const row of rows) {
+    const month=monthIndex(recordedDay(row));
+    if(!groups.has(month)) groups.set(month,[]);
+    groups.get(month).push(row);
+  }
+  const records=new Map();
+  for(const [month,matches] of groups) {
+    records.set(month,{...statistics(matches),...recordedTime(matches)});
+  }
+  const months=[...records.keys()];
+  return {
+    records,
+    first:from?monthIndex(from):months.length?Math.min(...months):null,
+    last:to?monthIndex(to):months.length?Math.max(...months):null,
+  };
+}
+
 export function newest(rows) {
   // Match the watch's recorded local day, known start time, then daily reference.
   return rows.map(row=>({row,day:recordedDay(row),start:row[7]?Date.parse(row[7]):0}))
@@ -139,9 +180,7 @@ export function sportsByPlayer(rows) {
 }
 
 export function playersInLast30Days(rows, now = new Date()) {
-  const first = new Date(now);
-  first.setDate(first.getDate() - 29);
-  const matches = filteredRows(rows, {from: todayLocal(first), to: todayLocal(now)});
+  const matches = filteredRows(rows,last30Days(now));
   return new Set(matches.flatMap(participants));
 }
 

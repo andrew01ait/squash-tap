@@ -79,9 +79,10 @@ summary { list-style: none; }
 summary::-webkit-details-marker { display: none; }
 #journal-tools summary::after, .disclosure > summary::after, .player-record summary::after, .result-summary::after { content: ""; flex: none; width: 8px; height: 8px; border-right: 2px solid #9aaebf; border-bottom: 2px solid #9aaebf; transform: rotate(45deg); }
 details[open] > .result-summary::after, .player-record[open] summary::after, .disclosure[open] > summary::after, #journal-tools[open] summary::after { transform: rotate(225deg); }
-.sport-scope, .filter-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px 14px; }
+.sport-scope, .filter-grid, .stats-filters { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px 14px; }
 .sport-scope { margin-bottom: clamp(19px,2.5vw,29px); }
 .sport-scope label { min-width: 0; }
+.stats-filters { margin-top: 12px; max-width: 39rem; }
 .results-layout, .roster-layout, .stats-layout, .file-layout { display: grid; align-items: start; gap: 18px; }
 .section-head { align-items: baseline; justify-content: space-between; gap: 8px; }
 .counter { font-size: 14px; color: var(--muted); white-space: nowrap; }
@@ -124,11 +125,20 @@ details[open] > .result-summary::after, .player-record[open] summary::after, .di
 .timing div { display: grid; grid-template-columns: minmax(65px,25%) minmax(0,1fr); gap: 6px 12px; padding: 2px 0; }
 .timing dt { color: var(--muted); }
 .timing dd { margin: 0; overflow-wrap: anywhere; }
-.match-note-details { padding: 12px 14px; margin: 12px 0; background: #0d1926; border: 1px solid var(--line); border-radius: 9px; }
+.match-note-panel {
+  display: grid; gap: 12px; margin-top: 14px; padding: 12px;
+  background: #10262f; border: 1px solid #365c61; border-radius: 10px;
+}
 .match-note-details div + div { margin-top: 10px; }
-.match-note-details dt { color: #9deae4; font-weight: 650; font-size: 13px; }
-.match-note-details dd { margin: 3px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.match-note-details dt { color: var(--menu-results); font-weight: 650; font-size: 14px; }
+.match-note-details dd { margin: 3px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 15px; }
 .actions, .pagination { flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.result-actions { display: grid; gap: 8px; border-top: 1px solid var(--line); margin-top: 14px; padding-top: 12px; }
+.result-actions > .actions, .note-actions { margin-top: 0; }
+.note-action { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.note-add-mark { font-size: 20px; line-height: 1; }
+button.journal-primary { background: var(--menu-results); color: #112b2c; }
+button.journal-discard { background: #3a2934; border-color: #744956; color: var(--red); }
 .pagination { justify-content: space-between; font-size: 14px; color: var(--muted); }
 .section-foot { margin-top: 14px; }
 .metric-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(140px,45%),1fr)); background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: clip; margin: 16px 0; }
@@ -140,6 +150,18 @@ details[open] > .result-summary::after, .player-record[open] summary::after, .di
 .metric-grid .metric:nth-child(2) strong { color: var(--lime); }
 .stat-panel, .file-panel { padding: clamp(16px,2.4vw,26px); }
 .stat-panel > .muted { font-size: 14px; margin-top: 7px; }
+.squash-time-panel, .monthly-panel { margin-bottom: 18px; }
+#squash-time { display: block; margin-top: 4px; font-size: clamp(23px,3.4vw,34px); font-variant-numeric: tabular-nums; color: var(--menu-accent); }
+.month-chart-head { display: grid; gap: 10px 18px; align-items: end; }
+.month-chart { margin-top: 14px; }
+.month-chart > div { display: grid; grid-template-columns: minmax(5.4rem,.35fr) minmax(0,1fr); align-items: center; gap: 10px; min-height: 32px; }
+.month-chart dt { color: var(--muted); font-size: 14px; }
+.month-chart dd { display: grid; grid-template-columns: minmax(0,1fr) minmax(5.5rem,.4fr); align-items: center; gap: 10px; margin: 0; text-align: right; font-size: 14px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.month-chart progress { width: 100%; height: 9px; border: 0; border-radius: 4px; overflow: hidden; background: var(--raised); accent-color: var(--menu-accent); }
+.month-chart progress::-webkit-progress-bar { background: var(--raised); }
+.month-chart progress::-webkit-progress-value { background: var(--menu-accent); border-radius: 4px; }
+.month-chart progress::-moz-progress-bar { background: var(--menu-accent); border-radius: 4px; }
+#month-pages { margin-top: 12px; gap: 8px; }
 .recent-form { display: flex; flex-wrap: wrap; gap: 4px; margin: 13px 0; }
 .recent-form button { min-width: 44px; padding: 5px 7px; font-size: 14px; color: #cbedb1; background: #243928; border-color: #466046; }
 .recent-form button.loss { color: #ffcad3; background: #3c2530; border-color: #704459; }
@@ -219,6 +241,8 @@ footer { margin-top: clamp(24px,4vw,44px); border-top: 1px solid var(--line); pa
   .result-detail { padding-inline: 18px; }
   .stats-layout, .file-layout { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .stat-panel { height: 100%; }
+  .squash-time-panel, .monthly-panel { height: auto; }
+  .month-chart-head { grid-template-columns: minmax(0,1fr) minmax(12rem,17rem); }
   .directory-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
   .directory-tools input[type=search] { flex: 1 1 11rem; min-width: 0; }
   .directory-tools .checkbox { max-width: 54%; }
@@ -246,6 +270,7 @@ footer { margin-top: clamp(24px,4vw,44px); border-top: 1px solid var(--line); pa
 #result-editor, #notes-editor { color: var(--ink); background: var(--surface); border: 1px solid var(--stroke); border-radius: 16px; width: min(780px,calc(100% - 20px)); max-width: none; max-height: 93dvh; padding: clamp(14px,3vw,28px); }
 #result-editor::backdrop, #notes-editor::backdrop { background: rgb(3 10 18 / .78); }
 #notes-editor { width: min(500px,calc(100% - 20px)); }
+#notes-title { color: var(--menu-results); }
 #notes-editor label { margin-top: 12px; }
 #notes-editor .muted { margin-top: 5px; font-size: 14px; }
 #notes-editor textarea { resize: vertical; }
@@ -278,3 +303,8 @@ footer { margin-top: clamp(24px,4vw,44px); border-top: 1px solid var(--line); pa
 .entry-queued { color: var(--lime); font-size: 13px; font-weight: 650; }
 @media (min-width: 680px) { .entry-columns { grid-template-columns: 1.1fr 1fr; gap: 28px; } }
 @media (max-width: 360px) { .entry-fields { column-gap: 6px; } }
+@media (max-width: 420px) {
+  .note-actions > button { width: 100%; }
+  .result-sharing > button { flex: 1 1 8rem; }
+  .entry-actions > button { flex: 1 1 auto; }
+}
