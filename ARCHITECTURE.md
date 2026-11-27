@@ -29,7 +29,7 @@ The installed watch app declares both NFC Forum Type 4 NDEF identifiers (mapping
 
 The web interfaces live in `public` and the hosted application in `app` and `worker`. The referee view can retain scoring changes while disconnected. Watch users review journal edits before applying them.
 
-The browser computes journal statistics from the decrypted matches and their event labels. Date ranges use each recorded playing day. The monthly series and squash total derive elapsed time from paired timestamps. The chart, event selection and time totals stay inside the open journal.
+The browser computes journal statistics from the decrypted matches and their event labels. Date ranges use each recorded playing day. The squash total, averages and monthly series apply one duration policy to elapsed time from paired timestamps. Durations above four hours, or eight for tennis, are excluded from time aggregates and flagged wherever the journal displays the duration. Outcomes still count. Timestamps stay intact and duration eligibility is recalculated when the journal opens.
 
 The watch import review reads from the validated transfer plan. It lists each new or edited match and its note changes by ID, and keeps player changes and import notices separately navigable. Viewing a page or opening a detail does not apply the transfer. Final confirmation still verifies the source snapshot and expiry before saving both books.
 

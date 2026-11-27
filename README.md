@@ -92,7 +92,7 @@ Internet is needed for audience updates; watch scoring remains offline. The late
 
 On the watch, open **Results → Options → View results on phone → Show phone QR**. Scan it with the phone camera. Both devices need internet for this optional transfer; playing and recording scores remain offline. A companion phone app is unnecessary after initial APK installation.
 
-In the phone journal, open **Statistics** to combine an event with the last 30 days. The monthly chart follows your sport, mode, event and period. **Total squash playing time** sums the measured times in the whole journal and shows how many squash matches have both timestamps.
+In the phone journal, open **Statistics** to combine an event with the last 30 days. The monthly chart follows your sport, mode, event and period. **Total squash playing time** sums the eligible times in the whole journal and shows how many squash matches contributed. Unusually long durations are flagged on result cards and omitted from time statistics.
 
 Each transfer has independent random secrets. The QR carries the decryption key in its URL fragment; the relay stores encrypted payloads and hashed access capabilities. Anyone holding the complete active link can open that transfer, so keep it private. There is no public history listing or permanent account-based cloud history.
 

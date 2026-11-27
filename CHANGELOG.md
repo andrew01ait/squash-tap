@@ -1,5 +1,10 @@
 # Releases
 
+## Phone journal timing · 2026-11-27
+
+- Omit unusually long elapsed times from the squash total, averages and monthly time charts. Count these matches in the results and win rate.
+- Show duration on collapsed result cards and label outliers on both the journal card and the exported image.
+
 ## v0.23.14 · 2026-11-27 · direct APK code 53
 
 - Review phone imports by change type and count on the watch. Open an individual result or note to compare old and new values, and page through larger batches before applying.

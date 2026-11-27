@@ -98,15 +98,29 @@ export function last30Days(now=new Date()) {
   return {from:todayLocal(first),to:todayLocal(now)};
 }
 
+const HOUR_MS=60*60*1000;
+
+export function matchDuration(row) {
+  const start=Date.parse(row[7]), finish=Date.parse(row[8]);
+  if(!Number.isFinite(start)||!Number.isFinite(finish)||finish<start) return null;
+  const milliseconds=finish-start;
+  const limitHours=rowSport(row)==='tennis'?8:4;
+  return {milliseconds,outlier:milliseconds>limitHours*HOUR_MS};
+}
+
 export function recordedTime(rows) {
-  let milliseconds=0, timed=0;
+  let milliseconds=0, timed=0, outliers=0;
   for(const row of rows) {
-    const start=Date.parse(row[7]), finish=Date.parse(row[8]);
-    if(!Number.isFinite(start)||!Number.isFinite(finish)||finish<start) continue;
-    milliseconds+=finish-start;
-    timed++;
+    const duration=matchDuration(row);
+    if(!duration) continue;
+    if(duration.outlier) {
+      outliers++;
+    } else {
+      milliseconds+=duration.milliseconds;
+      timed++;
+    }
   }
-  return {timed,totalSeconds:timed?Math.floor(milliseconds/1000):null,averageSeconds:timed?Math.round(milliseconds/1000/timed):null};
+  return {timed,outliers,totalSeconds:timed?Math.floor(milliseconds/1000):null,averageSeconds:timed?Math.round(milliseconds/1000/timed):null};
 }
 
 function monthIndex(day) {
@@ -156,7 +170,7 @@ export function sortResults(rows,eventFor,byEvent,locale) {
 }
 export function matchInsights(rows) {
   const ordered=newest(rows);
-  let run=0, best=0, current=0, deciding=0, decidingWon=0, seconds=0, timed=0;
+  let run=0, best=0, current=0, deciding=0, decidingWon=0;
   const last=ordered.length?rowWinner(ordered[0]):null;
   for(const [index,row] of ordered.entries()) {
     const winner=rowWinner(row);
@@ -166,9 +180,9 @@ export function matchInsights(rows) {
       deciding++;
       if(winner===0) decidingWon++;
     }
-    if(row[10]!==''&&row[10]!=null) {seconds+=Number(row[10]);timed++;}
   }
-  return {last,current,best,deciding,decidingWon,timed,averageSeconds:timed?Math.round(seconds/timed):null};
+  const {timed,averageSeconds}=recordedTime(rows);
+  return {last,current,best,deciding,decidingWon,timed,averageSeconds};
 }
 export function sportsByPlayer(rows) {
   const index=new Map();

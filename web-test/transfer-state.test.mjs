@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {addName,incomingPayload,checkRetirementSupport,opponentStatistics,initialView,recentPlayerRanks,playersInLast30Days,EMPTY_MATCH_NOTES,normalizeMatchNotes,notesFromSnapshot,matchNoteEdits,eventLabels,sortResults,last30Days,recordedTime,monthlyStatistics} from '../public/transfer-state.mjs';
+import {addName,incomingPayload,checkRetirementSupport,opponentStatistics,initialView,recentPlayerRanks,playersInLast30Days,EMPTY_MATCH_NOTES,normalizeMatchNotes,notesFromSnapshot,matchNoteEdits,eventLabels,sortResults,last30Days,matchDuration,recordedTime,monthlyStatistics} from '../public/transfer-state.mjs';
 import {statistics,rowWinner,rowOutcome,writeCsv,parseCsv,RETIREMENT_HEADER} from '../public/interchange.mjs';
 import {newest} from '../public/transfer-view.mjs';
 const snapshot={baseDirectory:'base',currentMatchId:'last-completed',currentOpponentId:'alice',opponents:[{id:'alice',name:'Alice',archived:false}]};
@@ -57,7 +57,9 @@ test('phone journal filters intersect and order by the recorded local day and ti
 });
 test('streaks use actual outcomes; deciders exclude retirements and averages exclude untimed matches',()=>{
   const full=[...normal];full[15]='7';full[16]='11';full[17]='11';full[18]='1';full[12]='1';full[3]='2';full[10]='200';
+  full[7]='2026-11-07T18:00:00Z';full[8]='2026-11-07T18:03:20Z';full[9]='Europe/Vienna';
   const loss=[...retired];loss[2]=normal[2];loss[3]='3';loss[10]='0';
+  loss[7]='2026-11-07T18:10:00Z';loss[8]=loss[7];loss[9]='Europe/Vienna';
   const data=matchInsights([full,loss,normal]);
   assert.deepEqual(data,{last:1,current:1,best:2,deciding:1,decidingWon:1,timed:2,averageSeconds:100});
   assert.equal(matchInsights([]).averageSeconds,null);
@@ -145,10 +147,34 @@ test('overall squash time sums elapsed timestamps across legacy and current resu
   const reversed=Object.assign([...overnight],{8:'2026-10-29T22:00:00Z'});
   const tennis=Object.assign([...timed],{24:'tennis'});
   const squash=inScope([tennis,overnight,timed,dateOnly,withoutFinish,reversed],'squash','all');
-  assert.deepEqual(recordedTime(squash),{timed:2,totalSeconds:3900,averageSeconds:1950});
-  assert.deepEqual(recordedTime([dateOnly,withoutFinish,reversed]),{timed:0,totalSeconds:null,averageSeconds:null});
+  assert.deepEqual(recordedTime(squash),{timed:2,outliers:0,totalSeconds:3900,averageSeconds:1950});
+  assert.deepEqual(recordedTime([dateOnly,withoutFinish,reversed]),{timed:0,outliers:0,totalSeconds:null,averageSeconds:null});
   const immediate=Object.assign([...overnight],{8:overnight[7]});
-  assert.deepEqual(recordedTime([immediate]),{timed:1,totalSeconds:0,averageSeconds:0});
+  assert.deepEqual(recordedTime([immediate]),{timed:1,outliers:0,totalSeconds:0,averageSeconds:0});
+});
+
+test('the duration cap is inclusive and allows longer tennis matches',()=>{
+  const squash=Object.assign([...normal],{7:'2026-11-07T15:00:00Z',8:'2026-11-07T19:00:00Z',9:'UTC'});
+  assert.deepEqual(matchDuration(squash),{milliseconds:14400000,outlier:false});
+  squash[8]='2026-11-07T19:00:00.001Z';
+  assert.deepEqual(matchDuration(squash),{milliseconds:14400001,outlier:true});
+  const tennis=Object.assign([...squash],{0:'3',24:'tennis',8:'2026-11-07T23:00:00Z'});
+  assert.equal(matchDuration(tennis).outlier,false);
+  tennis[8]='2026-11-07T23:00:00.001Z';
+  assert.equal(matchDuration(tennis).outlier,true);
+});
+
+test('unusually long matches stay in the record and leave all time summaries',()=>{
+  const overnight=Object.assign([...normal],{7:'2026-11-07T22:50:00Z',8:'2026-11-07T23:25:00Z',9:'Europe/Vienna'});
+  const long=Object.assign([...retired],{7:'2026-11-06T18:00:00Z',8:'2026-11-08T12:27:00Z',9:'Europe/Vienna',10:'152820'});
+  assert.deepEqual(matchDuration(overnight),{milliseconds:2100000,outlier:false});
+  assert.deepEqual(matchDuration(long),{milliseconds:152820000,outlier:true});
+  const rows=[overnight,long];
+  assert.deepEqual(recordedTime(rows),{timed:1,outliers:1,totalSeconds:2100,averageSeconds:2100});
+  assert.deepEqual(recordedTime([long]),{timed:0,outliers:1,totalSeconds:null,averageSeconds:null});
+  assert.equal(matchInsights(rows).averageSeconds,2100);
+  const month=[...monthlyStatistics(rows).records.values()][0];
+  assert.deepEqual([month.played,month.winRate,month.timed,month.totalSeconds,month.averageSeconds],[2,50,1,2100,2100]);
 });
 
 test('monthly rows use the recorded start month and keep untimed outcomes in the win rate',()=>{

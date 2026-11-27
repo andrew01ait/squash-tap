@@ -5,9 +5,9 @@ import {mountLanguage,language} from './locale.mjs';
 import {validateBackup,datedFile} from './backup.mjs?v=0.16.0';
 import {SPORTS,sportMarkup,rowSport} from './sports.mjs?v=0.16.3';
 import {open,seal,name,parseCsv,writeCsv,HEADER,statistics,localDate,rowWinner} from './interchange.mjs?v=0.16.0';
-import {addName,incomingPayload,checkRetirementSupport,initialView,filteredRows,sportsByPlayer,inScope,filterPlayers,recentPlayerRanks,playersInLast30Days,EMPTY_MATCH_NOTES,normalizeMatchNotes,sameMatchNotes,notesFromSnapshot,matchNoteEdits,eventLabels,sortResults,last30Days,recordedTime,monthlyStatistics} from './transfer-state.mjs?v=7';
-import {resultCard,shortRecord,renderStatistics,renderSquashTime,renderMonthChart,orderedSports,node} from './transfer-view.mjs?v=7';
-import {tx,errorText,sportText,momentText} from './transfer-copy.mjs?v=10';
+import {addName,incomingPayload,checkRetirementSupport,initialView,filteredRows,sportsByPlayer,inScope,filterPlayers,recentPlayerRanks,playersInLast30Days,EMPTY_MATCH_NOTES,normalizeMatchNotes,sameMatchNotes,notesFromSnapshot,matchNoteEdits,eventLabels,sortResults,last30Days,recordedTime,monthlyStatistics} from './transfer-state.mjs?v=8';
+import {resultCard,shortRecord,renderStatistics,renderSquashTime,renderMonthChart,orderedSports,node} from './transfer-view.mjs?v=8';
+import {tx,errorText,sportText,momentText} from './transfer-copy.mjs?v=11';
 
 const $=id=>document.getElementById(id);
 const PAGE_SIZE=25;

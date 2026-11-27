@@ -1,7 +1,8 @@
 import {rowRules,scorePairs,finalScore,details} from './sports.mjs?v=0.16.3';
 import {rowWinner} from './interchange.mjs?v=0.16.0';
 import {datedFile} from './backup.mjs?v=0.16.0';
-import {tx,sportText,modeText,momentText,durationText} from './transfer-copy.mjs?v=6';
+import {matchDuration} from './transfer-state.mjs?v=8';
+import {tx,sportText,modeText,momentText,durationText} from './transfer-copy.mjs?v=11';
 
 const width = 1080, margin = 64, centers = [272, 808];
 const fontFamily = 'Inter, Roboto, system-ui, sans-serif';
@@ -108,7 +109,9 @@ export async function resultCardBlob(row, opponent, myName = tx('Me')) {
       label:tie ? tx('Match tie-break') : tx(rules.nested ? 'Set {0}' : 'Game {0}', i + 1)};
   });
   const rowHeight = game => game.note ? 98 : 82;
-  canvas.height = headerHeight + 115 + games.reduce((height, game) => height + rowHeight(game), 0) + 40;
+  const duration = matchDuration(row);
+  const outlierSpace = duration?.outlier ? 31 : 0;
+  canvas.height = headerHeight + 115 + outlierSpace + games.reduce((height, game) => height + rowHeight(game), 0) + 40;
 
   ctx.fillStyle = paper; ctx.fillRect(0, 0, width, canvas.height);
   const gradient = ctx.createLinearGradient(0, 0, width, headerHeight);
@@ -135,8 +138,12 @@ export async function resultCardBlob(row, opponent, myName = tx('Me')) {
   textAt(ctx, '–', width / 2, scoreBaseline - 22, 62, 400, '#8396a7', 'center');
 
   textAt(ctx, tx(rules.nested ? 'Set scores' : 'Game scores'), margin, headerHeight + 72, 40, 700, ink);
-  if (row[10]) textAt(ctx, durationText(Number(row[10])), width - margin, headerHeight + 70, 29, 500, mutedInk, 'right');
-  let top = headerHeight + 111;
+  if (duration) {
+    const elapsed = durationText(Math.floor(duration.milliseconds / 1000));
+    textAt(ctx, tx('Duration') + ' · ' + elapsed, width - margin, headerHeight + 70, 29, 500, mutedInk, 'right');
+    if (duration.outlier) textAt(ctx, tx('Time outlier'), width - margin, headerHeight + 103, 25, 600, '#754b15', 'right');
+  }
+  let top = headerHeight + 111 + outlierSpace;
   for (const game of games) {
     ctx.fillStyle = '#c9d1ca'; ctx.fillRect(margin, top, width - margin * 2, 2);
     const centerY = top + rowHeight(game) / 2;

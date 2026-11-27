@@ -214,7 +214,9 @@ The note action has its own area on each saved result. Use **Stage match notes**
 
 Open **Statistics**, choose an **Event** and set **Period** to **Last 30 days** to combine both filters. The period includes today and the preceding 29 calendar days. Sport and mode select which matches appear in the record and monthly chart. The sport comparison uses the same event, period and mode across sports.
 
-Under **Month by month**, switch between matches, wins, losses, win rate, recorded playing time and average duration. Older and Newer page through long histories. **Total squash playing time** always covers the whole journal opened by the link. It counts elapsed time from recorded start to finish and shows how many squash matches have both timestamps. Use a full results link for the entire saved history.
+Under **Month by month**, switch between matches, wins, losses, win rate, recorded playing time and average duration. Older and Newer page through long histories. **Total squash playing time** always covers the whole journal opened by the link. It shows how many squash matches contribute and how many durations were excluded as outliers. Use a full results link for the entire saved history.
+
+Time statistics use elapsed time between the recorded start and finish. The duration limit is four hours for squash, badminton, padel, pickleball and table tennis, and eight hours for tennis. Short matches played across midnight count normally. Matches above the limit still contribute their scores and outcomes. The journal and exported result cards show recorded durations and flag outliers.
 
 ## Pairing and removing devices
 

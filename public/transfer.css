@@ -104,6 +104,8 @@ details[open] > .result-summary::after, .player-record[open] summary::after, .di
 .match-meta > span, .match-meta > time { display: block; }
 .match-sport { color: var(--ink); font-size: 13px; font-weight: 650; }
 .match-meta > time { margin-top: 2px; color: var(--muted); font-size: 12px; }
+.match-meta > .match-duration { margin-top: 3px; font-size: 13px; overflow-wrap: anywhere; }
+.match-meta > .duration-outlier { color: var(--menu-statistics); }
 .match-event { color: #9deae4; font-size: 13px; margin-top: 4px; overflow-wrap: anywhere; }
 .outcome { grid-area: outcome; font-size: 12px; font-weight: 660; color: var(--lime); max-width: 14ch; text-align: right; overflow-wrap: anywhere; }
 .result.lost .outcome { color: var(--red); }

@@ -2,6 +2,12 @@
 
 Current watch release: **v0.23.14 / code 53**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
 
+## Phone journal timing · 2026-11-27
+
+All 120 web and relay tests passed with `node --test web-test/*.test.mjs`. The new tests check both duration limits, a genuine match that crosses midnight and a long recorded result that still contributes to wins and losses.
+
+The browser preview checked collapsed and expanded cards at 320 CSS pixels. It also checked the squash total, time coverage, average duration and monthly chart with a synthetic 42-hour result. The card renderer produced labelled PNGs for both the short overnight match and the outlier.
+
 ## Direct v0.23.14 · 2026-11-27
 
 The direct release run passed 354 core, 299 native watch UI and 118 web and relay tests. The Play-source UI suite with compiled resources passed 315 tests.

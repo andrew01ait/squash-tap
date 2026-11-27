@@ -1,9 +1,9 @@
-import {downloadResultCard,shareResultCard} from './result-card.mjs?v=3';
+import {downloadResultCard,shareResultCard} from './result-card.mjs?v=4';
 import {scoreValue} from './match-sheet.mjs?v=2';
 import {rowSport,rowMode,rowRules,scorePairs,finalScore,details,SPORTS,sportMarkup} from './sports.mjs?v=0.16.3';
 import {rowWinner,statistics} from './interchange.mjs?v=0.16.0';
-import {byPlayer,matchInsights,matchesPerson,newest} from './transfer-state.mjs?v=7';
-import {tx,modeText,sportText,durationText,errorText,momentText,outcomeText} from './transfer-copy.mjs?v=10';
+import {byPlayer,matchInsights,matchesPerson,newest,matchDuration} from './transfer-state.mjs?v=8';
+import {tx,modeText,sportText,durationText,errorText,momentText,outcomeText} from './transfer-copy.mjs?v=11';
 import {language} from './locale.mjs';
 export {newest};
 const $=id=>document.getElementById(id);
@@ -49,6 +49,16 @@ export function resultCard(row,opponent,myName=tx('Me')) {
   const meta=node('span',undefined,'match-meta'),date=node('time',momentText(row));
   date.dateTime=row[7]||row[2];
   meta.append(node('span',sportText(rules.sport)+' · '+modeText(rowMode(row)),'match-sport'),date);
+  const duration=matchDuration(row);
+  let shownDuration=tx('Not recorded');
+  if(duration) {
+    const seconds=Math.floor(duration.milliseconds/1000);
+    shownDuration=durationText(seconds)+(duration.outlier?' · '+tx('Time outlier'):'');
+    const time=node('time',tx('Duration')+' · '+shownDuration,'match-duration');
+    time.dateTime='PT'+seconds+'S';
+    time.classList.toggle('duration-outlier',duration.outlier);
+    meta.append(time);
+  }
   const teams=node('span',undefined,'match-teams');
   teams.append(playerLine(mine,row[11],'mine',won),playerLine(other,row[12],'other',!won));
   summary.append(meta,teams,node('span',outcomeText(row),'outcome'));
@@ -86,7 +96,7 @@ export function resultCard(row,opponent,myName=tx('Me')) {
   if(pairs.length) detail.append(sheet);
   const times=node('dl',undefined,'timing');
   statRow(times,tx('Start'),momentText(row,7,'required'));statRow(times,tx('End'),momentText(row,8,'required'));
-  statRow(times,tx('Duration'),row[10]?durationText(Number(row[10])):tx('Not recorded'));
+  statRow(times,tx('Duration'),shownDuration);
   detail.append(times);
   const actions=node('div',undefined,'result-actions');
   const sharing=node('div',undefined,'actions result-sharing');
@@ -148,9 +158,10 @@ function renderPlayers(rows,catalog,role,onPlayer,selectedSport) {
   }
   if(!groups.length) list.append(node('p',tx(role==='partner'?'No named partners in this selection.':'No matches in this selection.'),'muted'));
 }
-export function renderSquashTime({timed,totalSeconds},matchCount) {
-  $('squash-time').textContent=totalSeconds===null?tx('Not recorded'):durationText(totalSeconds);
-  $('squash-time-coverage').textContent=tx('{0} of {1} squash matches in this journal have recorded times.',timed,matchCount);
+export function renderSquashTime({timed,totalSeconds,outliers},matchCount) {
+  $('squash-time').textContent=totalSeconds===null?tx(outliers?'No usable durations':'Not recorded'):durationText(totalSeconds);
+  const coverage=tx('{0} of {1} squash matches count toward this total.',timed,matchCount);
+  $('squash-time-coverage').textContent=outliers?coverage+' '+tx('Unusually long durations excluded ({0}).',outliers):coverage;
 }
 
 const MONTHS_PER_PAGE=12;
