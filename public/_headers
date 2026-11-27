@@ -30,6 +30,10 @@
   X-Frame-Options: DENY
 /diagnostics*
   X-Robots-Tag: noindex, nofollow, nosnippet
+/watch-invite*
+  X-Robots-Tag: noindex, nofollow, nosnippet
+  Cache-Control: no-store
+  Referrer-Policy: no-referrer
 /robots.txt
   Content-Type: text/plain; charset=utf-8
 /sitemap.xml

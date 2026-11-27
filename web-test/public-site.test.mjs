@@ -79,7 +79,7 @@ test('discovery files list public guides and keep match sessions and identifiers
   assert.deepEqual([...sitemap.matchAll(/<loc>(.*?)<\/loc>/g)].map(m=>m[1]),[origin+'/',origin+'/watch-menus']);
   assert.ok(robots.includes('Sitemap: '+origin+'/sitemap.xml'));
   assert.ok(!/^Disallow:\s*\/\s*$/m.test(robots));
-  for(const name of ['transfer','referee','referee-join','live','diagnostics']) {
+  for(const name of ['transfer','referee','referee-join','live','diagnostics','watch-invite']) {
     assert.match(read('public/'+name+'.html'),/name="robots" content="noindex,nofollow,nosnippet"/);
   }
 });

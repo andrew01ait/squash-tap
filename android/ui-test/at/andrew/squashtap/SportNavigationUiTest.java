@@ -92,7 +92,7 @@ public class SportNavigationUiTest {
         String before=book().encode();
         List<String> order=new ArrayList<>();
         for(View v:views())if(v instanceof Button)order.add(((Button)v).getText().toString());
-        assertEquals(Arrays.asList("New Squash match","Badminton","Padel","Pickleball","Squash","Table tennis","Tennis","Players","Live sharing & referee","Settings","Close app"),order);
+        assertEquals(Arrays.asList("New Squash match","Badminton","Padel","Pickleball","Squash","Table tennis","Tennis","Players","Live sharing & referee","Settings","Back to Home"),order);
         click("Live sharing & referee");
         for(String item:new String[]{"Audience live link","Referee on phone","Share with watches","Join with watch code"})assertNotNull(button(item));
         click("Join with watch code");assertNotNull(button("Join match"));swipe();
@@ -129,8 +129,8 @@ public class SportNavigationUiTest {
         click("Tennis");click("Create & invite referee");
         assertEquals("host",client.current().role);assertEquals("tennis",rooms.displayed().format().sport);
         String before=book().encode();
-        click("Invite other watches");assertTrue(client.current().watchJoin);
-        assertNull(find("Language"));assertNull(find("Set scores"));click("Back to score");
+        back();click("Share with watches");click("Pair watches");click("Enable new joins");assertTrue(client.current().watchJoin);
+        assertNull(find("Language"));assertNull(find("Set scores"));swipe();swipe();click("Back to score");
         activity.action(TouchTargets.MENU);click("Set scores");assertTrue(text().contains("Sets won"));back();
         click("Settings");click("Language · English");click("Deutsch");
         back();assertNotNull(button("Sprache · Deutsch"));back();assertNotNull(button("Einstellungen"));
@@ -236,12 +236,12 @@ public class SportNavigationUiTest {
         assertEquals("Cancel match",firstAction().getText().toString());
         click("Cancel match");
         swipe();
-        assertNotNull(button("Invite other watches"));
-        click("Invite other watches");
+        assertNotNull(button("Back to sharing"));
+        swipe();click("Share with watches");click("Pair watches");click("Enable new joins");
         RoomClient.Session ready=host.sync();
         RoomClient follower=new RoomClient(new RoomClientUiTest.MemoryVault(),relay);
         follower.findJoin(ready.joinCode).accept();
-        click("Back to score");
+        swipe();swipe();click("Back to score");
         ScoreView score=ReflectionHelpers.getField(activity,"counter");
         score.performClick();
         assertEquals("Cancel match",firstAction().getText().toString());
@@ -263,7 +263,9 @@ public class SportNavigationUiTest {
         assertNotEquals("active",book().current().id());
         assertNull(book().result("active"));
         assertNotNull(book().result("history"));
-        assertTrue(button("Tennis").isEnabled());
+        assertNotNull(button("New Squash match"));
+        swipe();assertTrue(button("Tennis").isEnabled());
+        swipe();assertNotNull(button("Sports"));assertFalse(activity.isFinishing());
         MatchRooms rooms=ReflectionHelpers.getField(activity,"rooms");
         drainRoom(rooms);
         relay.offline=false;
@@ -277,6 +279,7 @@ public class SportNavigationUiTest {
         RoomClient host=startRefereeMatch(relay);
         RoomClient.Session ready=host.sync();
         String before=book().encode();
+        click("Back to sharing");
         click("Back to score");
         activity.action(TouchTargets.MENU);
         click("Cancel match");
@@ -298,6 +301,7 @@ public class SportNavigationUiTest {
     public void germanHostSeesTheWholeCancelButtonWhenReopeningTheMatchMenu() {
         RuntimeEnvironment.setFontScale(1.3f);
         startRefereeMatch(new RoomClientUiTest.Relay());
+        click("Back to sharing");
         click("Back to score");
         activity.action(TouchTargets.MENU);
         click("Settings");click("Language · English");click("Deutsch");back();back();
@@ -367,13 +371,92 @@ public class SportNavigationUiTest {
             return relay.send(method,path,token,body);
         });
         ReflectionHelpers.setField(rooms,"client",host);click("Current match");click("Live sharing & referee");click("Share with watches");
-        RoomClient.Session ready=host.sync();ReflectionHelpers.callInstanceMethod(rooms,"apply",ReflectionHelpers.ClassParameter.from(RoomClient.Session.class,ready));rooms.hub();
+        RoomClient.Session ready=host.sync();ReflectionHelpers.callInstanceMethod(rooms,"apply",ReflectionHelpers.ClassParameter.from(RoomClient.Session.class,ready));back();click("Share with watches");
         String before=book().encode();click("Connected devices");drainRoom(rooms);
         click("Player watch #234567 · just now");back();drainRoom(rooms);assertFalse(removed.get());
         click("Player watch #234567 · just now");click("Remove device");drainRoom(rooms);drainRoom(rooms);
         assertNull(find("Player watch #234567 · just now"));assertNotNull(button("Referee #DCBA98 · just now"));
         back();assertEquals(ready.joinCode,host.current().joinCode);assertEquals(before,book().encode());
         click("Connected devices");back();drainRoom(rooms);assertNotNull(button("Connected devices"));assertFalse(activity.isFinishing());
+    }
+
+    @Test public void watchPairingGroupsTheInvitationMethodsAndReturnsThroughEachParent() throws Exception {
+        MatchRooms rooms=ReflectionHelpers.getField(activity,"rooms");
+        rooms.pause();
+        RoomClient host=new RoomClient(new RoomClientUiTest.MemoryVault(),new RoomClientUiTest.Relay());
+        ReflectionHelpers.setField(rooms,"client",host);
+        shadowOf(activity.getPackageManager()).setSystemFeature(android.content.pm.PackageManager.FEATURE_NFC,true);
+        shadowOf(activity.getPackageManager()).setSystemFeature(android.content.pm.PackageManager.FEATURE_NFC_HOST_CARD_EMULATION,true);
+        shadowOf(android.nfc.NfcAdapter.getDefaultAdapter(activity)).setEnabled(true);
+        click("Current match");click("Live sharing & referee");click("Share with watches");
+        RoomClient.Session ready=host.sync();
+        ReflectionHelpers.callInstanceMethod(rooms,"apply",ReflectionHelpers.ClassParameter.from(RoomClient.Session.class,ready));
+        swipe();click("Share with watches");
+        assertEquals("Share with watches",((MenuLocation)ReflectionHelpers.getField(activity,"location")).title);
+        assertNotNull(button("Connected devices"));
+        assertNull(find("Hand over to referee"));assertNull(find("Audience live link"));assertNull(find("Disable new joins"));
+        click("Pair watches");
+        assertNotNull(button("Pair a watch via NFC"));
+        assertNull(find("Connected devices"));
+        click("Show watch QR");
+        String payload=BuildConfig.SITE_URL+"/watch-invite.html?lang=en#code="+ready.joinCode;
+        assertEquals(payload,decodeDisplayedQr());
+        assertNull(find("Share page via NFC"));
+        for(View v:views())assertFalse(String.valueOf(v.getContentDescription()).contains("Show menu path"));
+        swipe();click("Show watch code");
+        assertTrue(text().contains(ready.joinCode.substring(0,5)+" "+ready.joinCode.substring(5)));
+        swipe();click("Pair a watch via NFC");swipe();assertNotNull(button("Show watch QR"));
+        click("Disable new joins");assertFalse(host.current().watchJoin);assertNull(find("Show watch QR"));
+        swipe();assertNotNull(button("Connected devices"));
+        swipe();click("Referee on phone");assertNotNull(button("Hand over to referee"));
+        swipe();swipe();assertNotNull(button("Pause match"));
+    }
+
+    private String decodeDisplayedQr() throws Exception {
+        for(View view:views())if(view instanceof ImageView){
+            android.graphics.drawable.Drawable image=((ImageView)view).getDrawable();
+            if(!(image instanceof android.graphics.drawable.BitmapDrawable))continue;
+            android.graphics.Bitmap bitmap=((android.graphics.drawable.BitmapDrawable)image).getBitmap();
+            int width=bitmap.getWidth(),height=bitmap.getHeight();
+            int[] pixels=new int[width*height];
+            bitmap.getPixels(pixels,0,width,0,0,width,height);
+            com.google.zxing.RGBLuminanceSource source=new com.google.zxing.RGBLuminanceSource(width,height,pixels);
+            return new com.google.zxing.qrcode.QRCodeReader().decode(new com.google.zxing.BinaryBitmap(
+                new com.google.zxing.common.HybridBinarizer(source))).getText();
+        }
+        throw new AssertionError("Missing watch invitation QR");
+    }
+
+    @Test public void discardingBadmintonWithPhoneRefereeReturnsThroughSportSelectionToHome() throws Exception {
+        cancelCurrent();swipe();swipe();
+        click("New match");click("Badminton");click("Create match");
+        activity.action(TouchTargets.MENU);
+        RoomClientUiTest.Relay relay=new RoomClientUiTest.Relay();
+        RoomClient host=startRefereeMatch(relay);
+        RoomClient.Session ready=host.sync();
+        MatchState score=MatchState.decode(ready.snapshot().getString("match"));
+        assertTrue(score.add(1));
+        org.json.JSONObject stored=relay.rooms.get(ready.id);
+        int revision=stored.getInt("revision");
+        String cipher=RoomCrypto.seal(RoomCrypto.roomContext(ready.id),ready.key,RoomClientUiTest.snapshot(score,false).toString());
+        relay.send("PUT","/"+ready.id,stored.getString("writer"),new org.json.JSONObject()
+            .put("baseRevision",revision).put("revision",revision+1).put("final",false).put("cipher",cipher));
+        MatchRooms rooms=ReflectionHelpers.getField(activity,"rooms");
+        RoomClient.Session playing=host.sync();
+        ReflectionHelpers.callInstanceMethod(rooms,"apply",ReflectionHelpers.ClassParameter.from(RoomClient.Session.class,playing));
+        assertEquals(1,rooms.displayed().game().red());
+        String discarded=book().current().id();
+        click("Back to sharing");click("Back to score");
+        activity.action(TouchTargets.MENU);
+        click("Cancel match");click("Discard match");
+        assertNull(host.current());
+        assertNull(book().result(discarded));
+        assertNotNull(book().result("history"));
+        assertNotNull(button("New Badminton match"));
+        assertNotNull(button("Back to sports"));
+        swipe();assertTrue(button("Tennis").isEnabled());assertNotNull(button("Back to Home"));
+        swipe();assertNotNull(button("New match"));assertNotNull(button("Results"));assertNotNull(button("Sports"));
+        assertFalse(activity.isFinishing());
     }
 
 }

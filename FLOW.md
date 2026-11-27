@@ -1,4 +1,4 @@
-# Navigation and match flows — v0.23.3
+# Navigation and match flows — v0.23.4
 
 The separate Play preparation candidate retains these scoring/navigation flows. Its Settings → Check for updates opens a Google Play explanation, Open Google Play and Back to Settings. All website update/download/install/setup entry points route there in that build; a missing Store produces an actionable message and keeps the match. The public direct-APK release keeps its existing updater. See [PLAY_RELEASE.md](PLAY_RELEASE.md).
 
@@ -6,7 +6,7 @@ The separate Play preparation candidate retains these scoring/navigation flows. 
 
 | From | Action | Result |
 | --- | --- | --- |
-| Host watch with an active watch invitation | Choose **Pair a watch via NFC**. On the receiving watch open **Live sharing & referee → Join via NFC** and bring the watches together. | The receiver uses the shared watch code and joins as a read-only follower. Each additional watch can join the same match. |
+| Host watch with an active watch invitation | Choose **Share with watches → Pair watches → Pair a watch via NFC**. On the receiving watch open **Live sharing & referee → Join via NFC** and bring the watches together. | The receiver uses the shared watch code and joins as a read-only follower. Each additional watch can join the same match. |
 | Host already broadcasting to browsers | Open **Audience live link → Invite a watch**. | The host opens watch sharing for this match. A referee can keep scoring while other watches join. |
 | Audience, referee or private transfer QR | Choose **Share page via NFC** and bring an unlocked NFC phone close. | The phone offers the same page and role as the displayed QR. **Back to QR** returns to the same code. |
 
@@ -48,7 +48,7 @@ The scoreboard stays focused on Me/Opponent scoring, Undo and Next/New. Its head
 | New match | Fresh setup in the selected sport | Filled green |
 | Current match | Live session, set entry and current scores | Filled blue |
 | Players | Shared player list, accessible directly below the match action | Purple person row |
-| Live sharing & referee | Audience QR, phone referee, share with watches, join by watch code | Raspberry |
+| Live sharing & referee | Audience QR, phone referee, watch invitations and connected devices | Raspberry entry button, soft rose menu accents |
 | Results | Saved history, filters, past matches, CSV and phone viewing | Teal |
 | Favourite formats | Choose a saved sport preset or manage favourites in setup | Indigo |
 | Statistics | All-result match/set/point balances | Gold |
@@ -56,7 +56,7 @@ The scoreboard stays focused on Me/Opponent scoring, Undo and Next/New. Its head
 | Scoring rules | Sport presets, service guidance and limits | Olive |
 | Settings | Version, updates, screen/notification options and diagnostics | Grey |
 
-The sport Menu returns to its own current scoreboard when available; an idle sport Menu returns to Choose sport. A sport icon/name badge identifies the scope. App-wide Players/Settings and their subpages use a Keep Score badge and return to their originating Menu or sport selector. Every subpage has one named outlined Back/Cancel action. Hardware Back and native right-swipe dismissal invoke that same return. During active or resumable play, compatible subpages have a Scoreboard shortcut for the actual match sport; it changes no session state. Dialog replacement, backgrounding and ambient transitions do not act as a user Back.
+The sport Menu returns to its own current scoreboard when available; an idle sport Menu returns to Choose sport. A sport icon/name badge identifies the scope. App-wide Players/Settings and their subpages use a Keep Score badge and return to their originating Menu or sport selector. QR pages omit the depth bars to leave room for the code. Every subpage has a named Back or Cancel action. Hardware Back and native right-swipe dismissal invoke that same return. During active or resumable play, compatible subpages have a Scoreboard shortcut for the actual match sport; it changes no session state. Dialog replacement, backgrounding and ambient transitions do not act as a user Back.
 
 ## Current match
 
@@ -121,7 +121,7 @@ Current match → Match options → Save retirement result → I quit / Opponent
 
 ## Cancel without recording
 
-Current match → Cancel match → Discard match removes only the unfinished current match, without a result, retirement, win/loss, daily reference or statistics entry. Keep playing, hardware Back and swipe preserve the match/session. A successful discard commits a fresh empty current state, removes only the abandoned match’s role assignments, clears active/pause/prepared state, stops the service and returns to the sport Menu. Shared names, saved results, durable counters and historical identities remain. Undo cannot recover the discarded rallies. Other sports become selectable. Finished results use their existing confirmed deletion flow instead.
+Current match → Cancel match → Discard match removes only the unfinished current match, without a result, retirement, win/loss, daily reference or statistics entry. Keep playing, hardware Back and swipe preserve the match/session. A successful discard commits a fresh empty current state, removes only the abandoned match’s role assignments, clears active/pause/prepared state, stops the service and returns to the sport Menu. Back or swipe then opens Choose sport, followed by the Home tiles. Shared names, saved results, durable counters and historical identities remain. Undo cannot recover the discarded rallies. Other sports become selectable. Finished results use their existing confirmed deletion flow instead.
 
 
 ## Names
@@ -192,7 +192,7 @@ Results → Filters → Reset all filters is the first filter action. Filtered R
 
 ## Linked matches and language
 
-Live sharing & referee appears below the sports in the sport selector, near the top of each sport menu and directly after Start, Pause or Resume in Current match. During play, tap the scoreboard’s sport/Menu header. The hub offers Audience live link, Referee on phone, Share with watches and Join with watch code. Opening the hub does not start sharing. Starting without a match takes you through sport and match setup before you confirm. Referee on phone shows a private scoring QR after the current state reaches the server and locks local score actions immediately. Share with watches starts a ten-character read-only code. A watch scorer can hand the same match to a referee while followers stay connected. In referee mode, Invite other watches enables the same code. The host can redisplay the QR and enable or disable new joins.
+Live sharing & referee appears below the sports in the sport selector, near the top of each sport menu and directly after Start, Pause or Resume in Current match. During play, tap the scoreboard’s sport/Menu header. The hub offers Audience live link, Referee on phone, Share with watches and Join with watch code. Opening the hub does not start sharing. Starting without a match takes you through sport and match setup before you confirm. Referee on phone shows a private scoring QR after the current state reaches the server and locks local score actions immediately. Share with watches opens **Pair watches** and **Connected devices**. In **Pair watches**, show the watch code or its QR, or choose **Pair a watch via NFC** when supported. Scanning the QR with a phone displays the same ten-character code to enter on each watch. **Disable new joins** keeps existing watches connected. **Referee on phone** opens its own QR and NFC options. To hand off a match already shared with watches, open it and choose **Hand over to referee**. Back or swipe from the code, QR or NFC returns to Pair watches. Back from Pair watches or Connected devices opens Share with watches.
 
 A receiving watch opens Live sharing & referee → Join with watch code and enters the two groups of five characters. The scoreboard and its accessibility action open Shared match. Set scores, Live sharing & referee and Settings are sibling destinations. A final result appears here for explicit saving. After confirmation, the host chooses Save to my results. A follower also selects their player position. An interrupted session reopens with its last received score. Leaving a followed game preserves local history. The host can also select **Cancel match** at the top of Live sharing & referee. **Keep playing**, Back and swipe return to the screen that opened the confirmation. Discarding clears the unfinished match on the watch and queues revocation of referee and player-watch access. A final result received before confirmation stays available to save.
 
@@ -205,4 +205,4 @@ Scan the Results phone QR. **Add result** opens the sport, mode, rules, date, te
 
 ## Pairing and removing devices
 
-Use the same ten-character code for every player watch. Each receiving watch opens Live sharing & referee → Join with watch code. A referee scans the dedicated phone QR. In a new v0.20.0 room the host opens Live sharing & referee → Connected devices, matches the short device identifier, selects a device and confirms Remove device. Refresh obtains the latest contact times. The referee page shows its identifier below the match and a player watch shows its identifier in Live sharing & referee. Offline devices can still display cached scores. A removed device cannot fetch updates or upload buffered points when it next connects. Hiding the code closes new watch admissions. Rooms created before v0.20.0 keep the previous sharing controls.
+Use the same ten-character code for every player watch. Each receiving watch opens Live sharing & referee → Join with watch code. A referee scans the dedicated phone QR. In a new v0.20.0 room the host opens Live sharing & referee → Share with watches → Connected devices, matches the short device identifier, selects a device and confirms Remove device. Refresh obtains the latest contact times. The referee page shows its identifier below the match and a player watch shows its identifier in Live sharing & referee. Offline devices can still display cached scores. A removed device cannot fetch updates or upload buffered points when it next connects. Disabling new joins closes new watch admissions. Rooms created before v0.20.0 keep the previous sharing controls.

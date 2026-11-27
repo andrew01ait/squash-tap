@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,nosnippet">
+  <meta name="referrer" content="no-referrer">
+  <title>Watch invitation · Keep Score</title>
+  <link rel="icon" href="/favicon.svg">
+  <link rel="stylesheet" href="/imprint.css">
+  <script type="module" src="/watch-invite.mjs"></script>
+</head>
+<body>
+  <header><a class="brand" href="/"><img src="/favicon.svg" alt="" width="36" height="36">Keep Score</a></header>
+  <main>
+    <h1 id="title">Watch invitation</h1>
+    <section id="invite" hidden aria-labelledby="label">
+      <h2 id="label">Watch code</h2>
+      <p class="owner"><code id="code"></code></p>
+      <p id="instructions"></p>
+      <button type="button" id="copy">Copy code</button>
+      <p id="status" role="status"></p>
+    </section>
+    <p id="unavailable" hidden></p>
+    <noscript><p>Open the watch code on the host watch to join the match.</p></noscript>
+  </main>
+</body>
+</html>

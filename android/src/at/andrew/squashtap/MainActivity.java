@@ -722,7 +722,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
                 MatchBook next=MatchBook.decode(before);OpponentDirectory names=OpponentDirectory.decode(namesBefore);String old=next.current().id();
                 next.discardCurrent(UUID.randomUUID().toString());names.forgetMatch(old);
                 if(!preferences.edit().putString("match_book",next.encode()).putString("opponent_book",names.encode()).remove(MatchDisplayPolicy.ACTIVE_MATCH).remove("match_ready_id").putBoolean("match_paused",false).commit())throw new IllegalStateException(tr("The watch did not confirm saving. Your match is kept."));
-                if(live!=null)live.discard();book=next;opponents=names;manualMatch=null;scoreMenu=false;counter.match(book.current());updateDisplay();showMenu();
+                if(live!=null)live.discard();book=next;opponents=names;manualMatch=null;restoreLocalScore();showSportAfterDiscard();
             }catch(Exception error){message(tr("Match not cancelled"),safe(error),this::showMatchControls);}
         });
         backButton(content,tr("Keep playing"),back);
@@ -1089,6 +1089,14 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         if(location.parent!=null&&location.parent.key.equals("home"))backButton(content,"Back to Home",this::showHome);
         else backButton(content,tr("Close app"),this::finish);
     }
+    void showSportAfterDiscard(){
+        if(!selectSport(book.current().format().sport))return;
+        MenuLocation home=MenuLocation.open(null,"home","Home",MenuSection.HOME);
+        location=MenuLocation.open(home,"sports","Choose sport",MenuSection.SPORTS);
+        sportMenuFromSelector=true;
+        scoreMenu=false;
+        showMenu();
+    }
     private boolean selectSport(String sport){if(!allowSport(sport))return false;if(!selectedSport.equals(sport)){filterOpponent=null;filterFrom=filterTo=null;filterMode=-1;resultsPage=0;}selectedSport=sport;preferences.edit().putString("selected_sport",sport).apply();return true;}
     private void showSportRules(){
         LinearLayout content=panel(tr(MatchFormat.name(selectedSport))+tr(" rules"),null,MenuSection.RULES);
@@ -1398,9 +1406,9 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     boolean roomAlreadySaved(String id){return book.result(id)!=null;}
     boolean roomLocalFinished(){return book.current().complete();}
     boolean roomPageVisible(View page){return panel!=null && panel.isShowing() && page.getRootView()==panel.getWindow().getDecorView();}
-    boolean roomHubVisible(){return panel!=null && "room-hub".equals(panelScrollKey);}
-    boolean roomMenuVisible(){return panel!=null && "room-menu".equals(panelScrollKey);}
-    boolean roomCancelVisible(){return panel!=null && "room-cancel".equals(panelScrollKey);}
+    boolean roomPanelVisible(String key){return panel!=null && key.equals(panelScrollKey);}
+    boolean roomMenuVisible(){return roomPanelVisible("room-menu");}
+    boolean roomCancelVisible(){return roomPanelVisible("room-cancel");}
     boolean roomScoreVisible(){return panel==null;}
     void refreshRoomScore(){updateDisplay();}
     String roomSport(String sport){return tr(MatchFormat.name(sport));}
@@ -1745,6 +1753,9 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         showQr(link,title,back,"Back to Diagnostics");
     }
     void showQr(String link,String title,Runnable back,String backLabel){
+        showQr(link,title,back,backLabel,true);
+    }
+    void showQr(String link,String title,Runnable back,String backLabel,boolean phoneNfc){
         try{
             java.util.Map<com.google.zxing.EncodeHintType,Object> hints=new java.util.EnumMap<>(com.google.zxing.EncodeHintType.class);
             hints.put(com.google.zxing.EncodeHintType.ERROR_CORRECTION,com.google.zxing.qrcode.decoder.ErrorCorrectionLevel.L);
@@ -1795,9 +1806,8 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
             frame.topMargin=Math.max(0,centerY-size/2-used);
             frame.bottomMargin=dp(4);
             page.addView(qr,titleFits?1:0,frame);
-            locationHeader(page,null,null);
-            if(nfc.canSend())navigationButton(page,tr("Share page via NFC"),
-                ()->nfc.shareLink(link,()->showQr(link,title,back,backLabel),"Back to QR"));
+            if(phoneNfc&&nfc.canSend())navigationButton(page,tr("Share page via NFC"),
+                ()->nfc.shareLink(link,()->showQr(link,title,back,backLabel,phoneNfc),"Back to QR"));
             backButton(page,backLabel,back);
             final Window qrWindow=panel.getWindow();
             if(resumed)qrWindow.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);

@@ -1,10 +1,18 @@
 # Testing and verification
 
-Current watch release: **v0.23.3 / code 42**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
+Current watch release: **v0.23.4 / code 43**. Record the source revision and actual commands for each verification; do not present historical release results as a fresh rerun.
 
 ## Website support options · 2026-11-26
 
 All 112 tests passed with `node --test web-test/*.test.mjs`. The browser showed both links when the footer was expanded, kept the QR images behind a separate disclosure and opened the French support shortcut in French. Each published-size QR image decoded to its matching payment link at widths from 180 to 208 pixels.
+
+## Direct v0.23.4 · 2026-11-27
+
+The signed direct release passed 349 core, 290 native watch UI and 112 web/relay tests (751 total). The Play-source UI suite with compiled resources passed 306 tests.
+
+The native suite verifies that the German QR can be decoded from a simulated 192 dp round watch at 130% font scale with the menu depth bars absent. It follows the watch invitation's QR, manual code and NFC screens back through Pair watches and Share with watches. It tests disabling new joins separately from removing a connected device. The Badminton regression creates a match from Home, gives control to a phone referee and discards the match from the host menu. Two swipe dismissals go through the sport selector to Home and the saved results remain available.
+
+The original certificate, package identity, version, minimum SDK, alignment and 39 retained APK checksums were verified. Physical watch acceptance for this release is pending.
 
 ## Direct v0.23.3 · 2026-11-26
 

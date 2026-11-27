@@ -1,5 +1,11 @@
 # Releases
 
+## v0.23.4 · 2026-11-27 · direct APK code 43
+
+- QR screens show the code and its instructions without the menu depth indicator.
+- Sharing keeps its familiar entry button and uses a softer accent inside its menus. Share with watches groups the invitation QR, manual code and supported NFC pairing on one page. Connected devices opens separately. Audience and phone referee access remain in Live sharing & referee.
+- After discarding a match, Back and swipe take you from its sport menu through sport selection to the Home tiles, including when a phone referee scored the match.
+
 ## Website · 2026-11-26
 
 - The optional support section in the footer offers Buy Me a Coffee and PayPal. Each has a direct link and a QR code for visitors who prefer to scan with a phone.

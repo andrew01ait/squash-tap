@@ -384,7 +384,10 @@ public class MenuRevisionUiTest {
         readyTransfer();activity.showSports();assertDepthBars(1);
         click("Squash");click("Results (17)");assertDepthBars(3);
         click("Options");click("Import CSV");assertDepthBars(5);
-        click("Show phone QR");assertDepthBars(6);back();assertDepthBars(5);
+        click("Show phone QR");
+        assertEquals(6,location().depth);
+        for(View view:all())assertFalse(String.valueOf(view.getContentDescription()).contains("Level 6"));
+        back();assertDepthBars(5);
     }
     private void assertDepthBars(int depth){
         assertEquals(depth,location().depth);
@@ -432,6 +435,7 @@ public class MenuRevisionUiTest {
         activity.showQr(payload,"Scan with phone",activity::showMatchControls,"Back to Current match");
         assertTrue(sections().isEmpty());
         assertFalse(hasButton("Spielstand"));
+        for(View view:all())assertFalse(String.valueOf(view.getContentDescription()).contains(activity.tr("Show menu path")));
         Button backButton=button("Zurück zur Partie");
         int diameter=activity.getResources().getDisplayMetrics().widthPixels;
         View root=dialog().getWindow().getDecorView();

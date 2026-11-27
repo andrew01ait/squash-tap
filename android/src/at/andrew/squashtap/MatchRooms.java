@@ -31,6 +31,7 @@ final class MatchRooms {
     private TextView connection, summary;
     private boolean visible, destroyed, syncing, askQr, blocked, terminalError, outboxRequested;
     private String joiningCode;
+    private boolean watchSharingFromLive;
     private int failures;
     private long generation;
     private Entry entry=Entry.MATCH;
@@ -47,6 +48,9 @@ final class MatchRooms {
     String backToSharing() { return text("Back to sharing","Zurück zum Teilen","Retour au partage","Volver a compartir"); }
     private String audienceTitle() { return text("Audience live link","Live-Link für Zuschauer","Lien pour le public","Enlace para el público"); }
     private String joinTitle() { return text("Join with watch code","Mit Uhrencode beitreten","Rejoindre avec un code","Unirse con código"); }
+    private String watchSharingTitle() { return a.tr("Share with watches"); }
+    private String refereeTitle() { return a.tr("Referee on phone"); }
+    private String pairingTitle() { return a.tr("Pair watches"); }
     void open(Entry from) { entry=from;hub(); }
     boolean readOnly() { return blocked || joiningCode!=null || s != null && !"score".equals(s.role); }
     boolean hasRoom(){return s!=null;}
@@ -166,9 +170,15 @@ final class MatchRooms {
                     error=problem(failure,false);terminalError=gone(failure);
                 }
                 a.refreshRoomScore();
-                if (visible && a.roomHubVisible()) {
-                    if (askQr && isHost() && s.ready) qr();
-                    else if (!old.equals(shape())) hub(); else refreshText();
+                if (visible && a.roomPanelVisible("room-referee")) {
+                    if (askQr && isHost() && s.ready && !finalScore() && !terminalError) refereeQr();
+                    else if (!old.equals(shape())) showReferee(); else refreshText();
+                } else if (visible && a.roomPanelVisible("room-pairing")) {
+                    if (!old.equals(shape())) showPairing(); else refreshText();
+                } else if (visible && a.roomPanelVisible("room-watches")) {
+                    if (!old.equals(shape())) showWatchSharing(); else refreshText();
+                } else if (visible && a.roomPanelVisible("room-hub")) {
+                    if (!old.equals(shape())) hub(); else refreshText();
                 } else if(visible && a.roomMenuVisible()){
                     if(!old.equals(shape()))menu();else refreshText();
                 } else if(visible && a.roomDetailsVisible() && s!=null && s.seenRevision!=previousRevision) a.showSharedMatchDetails();
@@ -228,10 +238,10 @@ final class MatchRooms {
                 a.sharingBack(page,entry);
                 return;
             }
-            a.navigationButton(page,text("Referee on phone","Schiedsrichter am Handy","Arbitre sur téléphone","Árbitro en el móvil"),
+            a.navigationButton(page,refereeTitle(),
                 ()->a.chooseSharingMatch(entry,false,text("Create & invite referee","Erstellen & Schiedsrichter einladen","Créer et inviter l’arbitre","Crear e invitar al árbitro"),()->start(true)));
-            a.navigationButton(page,text("Share with watches","Mit Uhren teilen","Partager avec des montres","Compartir con relojes"),
-                ()->a.chooseSharingMatch(entry,false,text("Create & invite watches","Erstellen & Uhren einladen","Créer et inviter des montres","Crear e invitar a otros relojes"),()->start(false)));
+            a.navigationButton(page,watchSharingTitle(),
+                ()->a.chooseSharingMatch(entry,false,text("Create & invite watches","Erstellen & Uhren einladen","Créer et inviter des montres","Crear e invitar a otros relojes"),()->openWatchSharing(false)));
             a.section(page,"Join another match");
             if(a.nfc.canRead())a.navigationButton(page,a.tr("Join via NFC"),
                 ()->a.nfc.receive(this::join,this::hub,backToSharing()));
@@ -239,43 +249,117 @@ final class MatchRooms {
             a.sharingBack(page,entry);
             return;
         }
-        if(!"follow".equals(s.role)) {
-            if(!terminalError||s.ready||!s.managed)a.section(page,"Invitations & devices");
-            if(s.managed && s.ready)a.navigationButton(page,devicesTitle(),this::devices);
-            else if(!s.managed)a.paragraph(page,text("Individual devices are available in new shares from v0.20.","Einzelne Geräte siehst du in neuen Freigaben ab v0.20.","Les appareils individuels apparaissent dans les nouveaux partages depuis la v0.20.","Los dispositivos aparecen en las nuevas sesiones desde la v0.20."));
-        }
-        if(isHost() && s.ready && !finalScore() && !terminalError) {
-            a.navigationButton(page,text("Referee QR","Schiedsrichter-QR","QR de l’arbitre","QR del árbitro"),this::qr);
-            if(a.nfc.canSend())a.navigationButton(page,a.tr("Referee page via NFC"),
-                ()->{if(isHost() && s.ready && !finalScore() && !terminalError)a.nfc.shareLink(s.refereeLink,this::hub,backToSharing());});
-        }
-        if("score".equals(s.role) && !finalScore() && !terminalError)
-            a.navigationButton(page,text("Hand over to referee","An Schiedsrichter übergeben","Confier à l’arbitre","Pasar al árbitro"),()->start(true));
-        if(!"follow".equals(s.role) && !terminalError) {
-            if(s.watchJoinReady) {
-                if(a.nfc.canSend())a.navigationButton(page,a.tr("Pair a watch via NFC"),
-                    ()->{if(s!=null && s.watchJoinReady && !terminalError)a.nfc.shareInvitation(s.joinCode,this::hub,backToSharing());});
-                TextView code=a.paragraph(page,s.joinCode.substring(0,5)+" "+s.joinCode.substring(5)); code.setTextSize(22);
-                a.paragraph(page,text("Use this same code on every player watch","Denselben Code auf jeder Spieleruhr eingeben","Utilisez ce même code sur chaque montre","Usa este mismo código en todos los relojes")+"\n"+title()+" → "+joinTitle());
-            }
-            a.navigationButton(page,s.watchJoin ? text("Hide joining code","Beitrittscode deaktivieren","Désactiver le code","Desactivar el código")
-                : text("Invite other watches","Weitere Uhren einladen","Inviter d’autres montres","Invitar a otros relojes"),this::toggleJoin);
+        if(ownsSharing()) {
+            if(!finalScore() || a.hasAudienceLink())a.section(page,"Share your match");
             if(!finalScore()||a.hasAudienceLink())a.navigationButton(page,audienceTitle(),a::showLive);
+            if(!finalScore())a.navigationButton(page,refereeTitle(),this::showReferee);
+            a.navigationButton(page,watchSharingTitle(),()->openWatchSharing(false));
         }
-        if(!"follow".equals(s.role))a.section(page,"Connection");
         if(!s.memberId.isEmpty())a.paragraph(page,text("This watch","Diese Uhr","Cette montre","Este reloj")+" · "+shortId(s.memberId));
-        if(s.pending || !error.isEmpty()) a.navigationButton(page,text("Sync now","Jetzt abgleichen","Synchroniser","Sincronizar"),()->{terminalError=false;schedule(0);});
-        if(!cancelAtTop)leaveButton(page,this::hub);
+        syncButton(page);
+        if(!cancelAtTop && readOnly())leaveButton(page,this::hub);
         if(readOnly()&&entry!=Entry.SHARED)a.backButton(page,"Back to score",a::closePanel);
         else a.sharingBack(page,entry);
     }
+
+    private boolean ownsSharing() {
+        return s!=null && !blocked && !"follow".equals(s.role);
+    }
+
+    private void syncButton(LinearLayout page) {
+        if(s.pending || !error.isEmpty()) {
+            a.navigationButton(page,text("Sync now","Jetzt abgleichen","Synchroniser","Sincronizar"),()->{
+                terminalError=false;
+                schedule(0);
+            });
+        }
+    }
+
     void watchInvitesFromLive(LinearLayout page) {
         if (blocked || terminalError || joiningCode != null || finalScore() || s != null && "follow".equals(s.role)) return;
-        a.navigationButton(page, a.tr("Invite a watch"), () -> {
-            if (s == null) start(false);
-            else if (!s.watchJoin) toggleJoin();
-            else hub();
-        });
+        a.navigationButton(page, a.tr("Invite a watch"), ()->openWatchSharing(true));
+    }
+
+    private void openWatchSharing(boolean fromLive) {
+        watchSharingFromLive=fromLive;
+        if(s==null)start(false);
+        else showWatchSharing();
+    }
+
+    private void showWatchSharing() {
+        if(!ownsSharing()){hub();return;}
+        LinearLayout page=a.roomPanel(watchSharingTitle(),"room-watches");
+        summary=null;
+        connection=null;
+        if(!terminalError)a.navigationButton(page,pairingTitle(),this::showPairing);
+        if(s.managed && s.ready)a.navigationButton(page,devicesTitle(),this::devices);
+        if(!s.ready || !error.isEmpty()) {
+            connection=a.paragraph(page,status());
+            syncButton(page);
+        }
+        if(!s.managed)a.paragraph(page,text("Individual devices are available in new shares from v0.20.","Einzelne Geräte siehst du in neuen Freigaben ab v0.20.","Les appareils individuels apparaissent dans les nouveaux partages depuis la v0.20.","Los dispositivos aparecen en las nuevas sesiones desde la v0.20."));
+        if(!readOnly())leaveButton(page,this::showWatchSharing);
+        a.backButton(page,watchSharingFromLive?"Back to Live scoreboard":backToSharing(),watchSharingFromLive?a::showLive:this::hub);
+    }
+
+    private void showPairing() {
+        if(!ownsSharing()){showWatchSharing();return;}
+        LinearLayout page=a.roomPanel(pairingTitle(),"room-pairing");
+        summary=null;
+        connection=null;
+        if(s.watchJoinReady && !terminalError) {
+            a.navigationButton(page,a.tr("Show watch QR"),()->{
+                if(ownsSharing() && s.watchJoinReady && !terminalError) {
+                    String link=BuildConfig.SITE_URL+"/watch-invite.html?lang="+WatchLanguage.get(a).code+"#code="+s.joinCode;
+                    a.showQr(link,a.tr("Scan to get the watch code"),this::showPairing,"Back to pairing",false);
+                }
+            });
+            a.navigationButton(page,a.tr("Show watch code"),this::showWatchCode);
+            if(a.nfc.canSend())a.navigationButton(page,a.tr("Pair a watch via NFC"),()->{
+                if(ownsSharing() && s.watchJoinReady && !terminalError)
+                    a.nfc.shareInvitation(s.joinCode,this::showPairing,"Back to pairing");
+            });
+        }
+        if(!terminalError) {
+            if(s.watchJoin) {
+                a.deleteButton(page,a.tr("Disable new joins"),this::toggleJoin);
+                a.paragraph(page,a.tr("Connected watches can keep following."));
+            } else a.button(page,a.tr("Enable new joins"),this::toggleJoin);
+        }
+        if(s.pending || !error.isEmpty()) {
+            connection=a.paragraph(page,status());
+            syncButton(page);
+        }
+        a.backButton(page,"Back to watch sharing",this::showWatchSharing);
+    }
+
+    private void showWatchCode() {
+        if(!ownsSharing() || !s.watchJoinReady || terminalError){showPairing();return;}
+        LinearLayout page=a.roomPanel(a.tr("Watch code"),"room-watch-code");
+        TextView code=a.paragraph(page,s.joinCode.substring(0,5)+" "+s.joinCode.substring(5));
+        code.setTextSize(22);
+        a.paragraph(page,a.tr("Use this code on each watch.")+"\n"+title()+" → "+joinTitle());
+        a.backButton(page,"Back to pairing",this::showPairing);
+    }
+
+    private void showReferee() {
+        if(!ownsSharing() || finalScore()){hub();return;}
+        LinearLayout page=a.roomPanel(refereeTitle(),"room-referee");
+        summary=null;
+        if(isHost())leaveButton(page,this::showReferee);
+        connection=a.paragraph(page,status());
+        if(!terminalError) {
+            if(!isHost())a.button(page,a.tr("Hand over to referee"),()->start(true));
+            else if(s.ready) {
+                a.navigationButton(page,a.tr("Referee QR"),this::refereeQr);
+                if(a.nfc.canSend())a.navigationButton(page,a.tr("Referee page via NFC"),()->{
+                    if(isHost() && s.ready && !finalScore() && !terminalError)
+                        a.nfc.shareLink(s.refereeLink,this::showReferee,"Back to phone referee");
+                });
+            }
+        }
+        syncButton(page);
+        a.backButton(page,backToSharing(),()->{askQr=false;hub();});
     }
 
     private void start(boolean referee) {
@@ -286,14 +370,20 @@ final class MatchRooms {
             apply(s==null ? client.prepare(score,referee,!referee) : client.delegate(score));
             ++generation; failures=0;terminalError=false; error="";askQr=referee;
             if(referee) a.pauseForRoom();
-            hub();schedule(0);
+            if(referee)showReferee();else showWatchSharing();
+            schedule(0);
         } catch(Exception failure) { error=problem(failure,false); a.roomMessage(error,this::hub); }
     }
     private void toggleJoin() {
-        try { apply(client.setWatchJoin(!s.watchJoin)); hub();schedule(0); }
-        catch(Exception failure){a.roomMessage(problem(failure,false),this::hub);}
+        if(!ownsSharing() || terminalError)return;
+        try { apply(client.setWatchJoin(!s.watchJoin));showPairing();schedule(0); }
+        catch(Exception failure){a.roomMessage(problem(failure,false),this::showPairing);}
     }
-    private void qr() {askQr=false;if(s!=null && isHost() && s.ready && !finalScore())a.showQr(s.refereeLink,text("Scan to referee","Zum Zählen scannen","Scanner pour arbitrer","Escanear para arbitrar"),this::hub,backToSharing());}
+    private void refereeQr() {
+        askQr=false;
+        if(isHost() && s.ready && !finalScore() && !terminalError)
+            a.showQr(s.refereeLink,text("Scan to referee","Zum Zählen scannen","Scanner pour arbitrer","Escanear para arbitrar"),this::showReferee,"Back to phone referee");
+    }
     void joinPage(){joinPage("");}
     private void joinPage(String code) {
         if(s!=null || blocked || joiningCode!=null){hub();return;}
@@ -331,11 +421,11 @@ final class MatchRooms {
         return ("watch".equals(member.optString("role"))?text("Player watch","Spieleruhr","Montre de joueur","Reloj de jugador"):text("Referee","Schiedsrichter","Arbitre","Árbitro"))+" "+shortId(member.optString("id"));
     }
     private void devices(){
-        if(s==null||!s.managed||"follow".equals(s.role)){hub();return;}
+        if(!ownsSharing()||!s.managed||!s.ready){showWatchSharing();return;}
         String id=s.id;
         LinearLayout page=a.roomPanel(devicesTitle(),"room-devices");
         a.paragraph(page,text("Loading devices…","Geräte werden geladen …","Chargement des appareils…","Cargando dispositivos…"));
-        a.backButton(page,backToSharing(),this::hub);
+        a.backButton(page,"Back to watch sharing",this::showWatchSharing);
         io.execute(()->{
             try{
                 JSONObject result=client.participants(id);
@@ -345,7 +435,7 @@ final class MatchRooms {
                     LinearLayout retry=a.roomPanel(devicesTitle(),"room-devices");
                     a.paragraph(retry,text("Could not load the device list.","Die Geräteliste konnte nicht geladen werden.","Impossible de charger les appareils.","No se pudieron cargar los dispositivos."));
                     a.navigationButton(retry,text("Try again","Erneut versuchen","Réessayer","Reintentar"),this::devices);
-                    a.backButton(retry,backToSharing(),this::hub);
+                    a.backButton(retry,"Back to watch sharing",this::showWatchSharing);
                 });
             }
         });
@@ -368,7 +458,7 @@ final class MatchRooms {
         }
         if(count>0)a.paragraph(page,text("Time shows the last contact. Select a device to remove it.","Die Zeit zeigt den letzten Kontakt. Tippe zum Entfernen auf das Gerät.","L’heure indique le dernier contact. Touchez un appareil pour le retirer.","El tiempo indica el último contacto. Toca un dispositivo para quitarlo."));
         a.navigationButton(page,text("Refresh","Aktualisieren","Actualiser","Actualizar"),this::devices);
-        a.backButton(page,backToSharing(),this::hub);
+        a.backButton(page,"Back to watch sharing",this::showWatchSharing);
     }
     private void confirmRemoval(JSONObject member){
         if(s==null)return;
@@ -429,8 +519,14 @@ final class MatchRooms {
             try{
                 if(client.leaveConfirmed(shown,a::discardRoomDraft)){
                     ++generation;apply(null);errorsReset();requestOutbox();
-                }else apply(client.current());
-                a.restoreLocalScore();a.showSports();
+                    a.restoreLocalScore();
+                    if(cancelHost)a.showSportAfterDiscard();
+                    else a.showSports();
+                }else{
+                    apply(client.current());
+                    a.restoreLocalScore();
+                    a.showSports();
+                }
             }catch(Exception e){a.roomMessage(problem(e,false),back);}
         });
         a.backButton(p,cancelHost?a.tr("Keep playing"):text("Keep match","Partie behalten","Garder le match","Conservar el partido"),back);

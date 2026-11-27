@@ -13,7 +13,7 @@ enum MenuSection {
     RESULTS(0xff006669, 0xff7fe5dc),
     PLAYERS(0xff67427d, 0xffdab0f3),
     STATISTICS(0xff775a10, 0xfff4d46f),
-    SHARING(0xff8a3369, 0xfff9a6d4),
+    SHARING(0xff8a3369, 0xffe8c5d9),
     FAVOURITES(0xff474e99, 0xffbac3ff),
     RULES(0xff516021, 0xffd7e58c),
     SETTINGS(0xff474747, 0xffd3d3d3);
