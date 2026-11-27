@@ -4,7 +4,7 @@ import android.content.res.ColorStateList;
 import android.graphics.Color;
 import androidx.core.graphics.ColorUtils;
 
-/** Destination colours identify Home tiles and menu titles. */
+/** Destination colours identify Home tiles, menu titles and their groups. */
 enum MenuSection {
     HOME(0xff374555, 0xffd6e5f3),
     NEW_MATCH(0xff116748, 0xff95e5b8),
@@ -18,12 +18,14 @@ enum MenuSection {
     RULES(0xff516021, 0xffd7e58c),
     SETTINGS(0xff474747, 0xffd3d3d3);
 
-    final int surface, accent;
+    final int surface, accent, playerRow, selectedPlayerRow;
     final ColorStateList fill;
 
     MenuSection(int surface, int accent) {
         this.surface = surface;
         this.accent = accent;
+        playerRow = ColorUtils.blendARGB(0xff080d17, surface, .32f);
+        selectedPlayerRow = ColorUtils.blendARGB(0xff080d17, surface, .63f);
         fill = filled(surface);
     }
 

@@ -77,7 +77,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     private String panelPage="Scoreboard";
     private MenuLocation location;
     private enum ButtonKind {
-        PRIMARY, PRIMARY_LINK, NAVIGATION, SECONDARY, CHOICE, DELETE, BACK, RESULT_TOOL, TILE
+        PRIMARY, PRIMARY_LINK, NAVIGATION, SECONDARY, CHOICE, PLAYER_LINK, PLAYER_CHOICE, DELETE, BACK, RESULT_TOOL, TILE
     }
     static final ColorStateList MENU_CONTROL_TEXT=MenuSection.text(0xffeeeeee,0xff898989);
     private static final ColorStateList PRIMARY_TEXT=MenuSection.text(0xff191919,0xff252525);
@@ -297,7 +297,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         if(!ongoing)stopService(service);
         else if(resumed){try{startForegroundService(service);}catch(Exception error){AppDiagnostics.record(this,"Session start failed: "+safe(error));}}
     }
-    private int dp(int value){return Math.round(value*getResources().getDisplayMetrics().density);}
+    int dp(int value){return Math.round(value*getResources().getDisplayMetrics().density);}
     @Override public void action(int target){
         if(rooms!=null && rooms.readOnly()){rooms.menu();return;}
         switch(target){
@@ -685,7 +685,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     private void showManualOpponent(){
         final ManualMatchEntry draft=manualMatch;if(draft==null){showResults(resultsPage);return;}LinearLayout content=panel(tr("Choose opponent"),"manual-opponent",MenuSection.PLAYERS);
         playerChoice(content,tr("No name"),draft.opponentId().isEmpty(),()->{draft.opponentId("");showManualMatch();});
-        playerList(content,false,(rows,e)->playerChoice(rows,e.name,e.id.equals(draft.opponentId()),()->{draft.opponentId(e.id);showManualMatch();}));
+        playerList(content,false,(rows,e)->savedPlayerChoice(rows,e.name,e.id.equals(draft.opponentId()),()->{draft.opponentId(e.id);showManualMatch();}));
         paragraph(content,tr("Names are optional. Add them from Opponents → Edit names on phone."));backButton(content,tr("Cancel"),this::showManualMatch);
     }
     private void showManualDate(){
@@ -978,7 +978,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     private void statisticsCard(LinearLayout content,String title,String text){
         LinearLayout card=new LinearLayout(this);card.setOrientation(LinearLayout.VERTICAL);card.setPadding(dp(10),dp(8),dp(10),dp(8));
         GradientDrawable shape=new GradientDrawable();shape.setCornerRadius(dp(16));shape.setColor(MENU_CARD_SURFACE);card.setBackground(shape);
-        TextView heading=paragraph(card,title);heading.setTextSize(16);heading.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);heading.setTextColor(MENU_CONTROL_TEXT);heading.setAccessibilityHeading(true);
+        TextView heading=paragraph(card,title);heading.setTextSize(16);heading.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);heading.setTextColor(location.section.accent);heading.setAccessibilityHeading(true);
         TextView values=paragraph(card,text);values.setTextSize(14);values.setTextColor(0xffedf4ff);
         LinearLayout.LayoutParams position=new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT);position.bottomMargin=dp(10);content.addView(card,position);
     }
@@ -1289,7 +1289,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     private void pickPlayer(String title,String selected,java.util.function.Consumer<String> choose,Runnable back){
         LinearLayout content=panel(title,"role-player:"+title,MenuSection.PLAYERS);
         playerChoice(content,tr("No name"),selected.isEmpty(),()->choose.accept(""));
-        if(playerList(content,false,(rows,entry)->markChoice(playerButton(rows,entry,()->choose.accept(entry.id)),entry.id.equals(selected))))section(content,"Manage names");
+        if(playerList(content,false,(rows,entry)->markChoice(playerButton(rows,entry,ButtonKind.PLAYER_CHOICE,()->choose.accept(entry.id)),entry.id.equals(selected))))section(content,"Manage names");
         navigationButton(content,tr("Add player"),()->showNameEditor(null,null,back,choose));backButton(content,tr("Cancel"),back);
     }
     private void showTeam(String id,Runnable back){
@@ -1320,10 +1320,10 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         },again));
     }
     private String sportsText(String id){java.util.Set<String> sports=opponents.sportsFor(id,book.newestFirst());java.util.List<String> names=new java.util.ArrayList<>();for(String sport:ui.sortedSports())if(sports.contains(sport))names.add(tr(MatchFormat.name(sport)));return names.isEmpty()?tr("No saved results yet"):tr("Results: ")+android.text.TextUtils.join(", ",names);}
-    private Button playerButton(LinearLayout content,OpponentDirectory.Entry entry,Runnable action){
+    private Button playerButton(LinearLayout content,OpponentDirectory.Entry entry,ButtonKind kind,Runnable action){
         java.util.Set<String> sports=opponents.sportsFor(entry.id,book.newestFirst());StringBuilder label=new StringBuilder(entry.name);if(!sports.isEmpty()){label.append('\n');for(String sport:ui.sortedSports())if(sports.contains(sport))label.append("◦ ");}
         android.text.SpannableString text=new android.text.SpannableString(label);int start=entry.name.length()+1;for(String sport:ui.sortedSports())if(sports.contains(sport)){SportIcons icon=new SportIcons(sport,dp(18));icon.setBounds(0,0,dp(18),dp(18));text.setSpan(new android.text.style.ImageSpan(icon,android.text.style.ImageSpan.ALIGN_BASELINE),start,start+1,android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);start+=2;}
-        Button button=personButton(content,entry.name,action);button.setText(text);button.setContentDescription(entry.name+". "+sportsText(entry.id));return button;
+        Button button=styledButton(content,entry.name,action,kind);button.setText(text);button.setContentDescription(entry.name+". "+sportsText(entry.id));return button;
     }
     private void choosePastFormat(){
         if(selectedSport.equals("squash")){manualMatch=new ManualMatchEntry(LocalDate.now());showManualMatch();return;}
@@ -1353,15 +1353,12 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     private void showOpponents(){
         LinearLayout content=panel("Players","opponents",MenuSection.PLAYERS);
         Runnable again=this::showOpponents;
-        personButton(content,tr("Your name: ")+ownName(),()->editOwnName(again));
-        if(!opponents.hasPlayers(false))paragraph(content,tr("No names saved. Names are optional; you can keep playing without one."));
-        else {
-            section(content,"Saved players");
-            playerList(content,false,(rows,entry)->playerButton(rows,entry,()->showOpponent(entry.id)));
+        if(playerList(content,false,(rows,entry)->playerButton(rows,entry,ButtonKind.PLAYER_LINK,()->showOpponent(entry.id)))){
             TextView legend=paragraph(content,tr("Icons show sports in saved results."));legend.setTextSize(11);
-        }
+        }else paragraph(content,tr("No names saved. Names are optional; you can keep playing without one."));
         section(content,"Manage names");
         primaryNavigationButton(content,tr("Add player"),()->showNameEditor(null,null,again));
+        personButton(content,tr("Your name: ")+ownName(),()->editOwnName(again));
         navigationButton(content,tr("Edit names on phone"),()->openPhone("opponents",false,again,"Back to Players"));
         backButton(content,playersReturnLabel,playersReturn);
     }
@@ -1419,7 +1416,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         String selected=filtering?filterOpponent:starting?newMatchOpponent:opponents.opponentId(matchId);
         if(filtering)playerChoice(content,tr("All opponents"),selected==null,()->{filterOpponent=null;resultsPage=0;showResultFilters();});
         playerChoice(content,filtering?tr("Unnamed"):tr("No name"),"".equals(selected),()->{if(filtering){filterOpponent="";resultsPage=0;showResultFilters();}else if(starting){newMatchOpponent="";showNewMatchOptions();}else assignOpponent(matchId,"",back);});
-        boolean hasNames=playerList(content,filtering,(rows,e)->playerChoice(rows,e.name+(e.archived?tr(" (removed)"):""),e.id.equals(selected),()->{
+        boolean hasNames=playerList(content,filtering,(rows,e)->savedPlayerChoice(rows,e.name+(e.archived?tr(" (removed)"):""),e.id.equals(selected),()->{
             if(filtering){filterOpponent=e.id;resultsPage=0;showResultFilters();}else if(starting){newMatchOpponent=e.id;showNewMatchOptions();}else assignOpponent(matchId,e.id,back);}));
         if(!filtering&&hasNames)section(content,"Manage names");
         if(starting)navigationButton(content,tr("Add player"),()->showNameEditor(null,null,this::showNewMatchOptions,id->newMatchOpponent=id));
@@ -2108,12 +2105,12 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
     }
     void section(LinearLayout content,String key){
         String title=tr(key);
-        TextView label=paragraph(content,title.toUpperCase(ui.locale));
-        label.setTextSize(11);
+        TextView label=paragraph(content,title);
+        label.setTextSize(12);
         label.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
-        label.setTextColor(0xffbdbdbd);
+        label.setTextColor(location.section.accent);
         label.setGravity(Gravity.START|Gravity.CENTER_VERTICAL);
-        label.setPadding(dp(10),dp(8),dp(10),dp(3));
+        label.setPadding(dp(10),dp(9),dp(10),dp(4));
         label.setContentDescription(title);
         label.setAccessibilityHeading(true);
     }
@@ -2167,7 +2164,10 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         return option;
     }
     private Button playerChoice(LinearLayout page,String name,boolean selected,Runnable action){
-        return withPersonIcon(choiceButton(page,name,selected,action));
+        return withPersonIcon(choiceButton(page,name,selected,action),MENU_CONTROL_TEXT);
+    }
+    private Button savedPlayerChoice(LinearLayout page,String name,boolean selected,Runnable action){
+        return markChoice(styledButton(page,name,action,ButtonKind.PLAYER_CHOICE),selected);
     }
     Button primaryButton(LinearLayout content,String text,Runnable action){return styledButton(content,text,action,ButtonKind.PRIMARY);}
     Button primaryNavigationButton(LinearLayout content,String text,Runnable action){return styledButton(content,text,action,ButtonKind.PRIMARY_LINK);}
@@ -2176,10 +2176,10 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         return styledButton(content,text,action,ButtonKind.TILE,section);
     }
     Button navigationButton(LinearLayout content,String text,Runnable action){return styledButton(content,text,action,ButtonKind.NAVIGATION);}
-    private Button personButton(LinearLayout content,String text,Runnable action){return withPersonIcon(navigationButton(content,text,action));}
-    private Button withPersonIcon(Button button){
+    private Button personButton(LinearLayout content,String text,Runnable action){return withPersonIcon(navigationButton(content,text,action),MENU_CONTROL_TEXT);}
+    private Button withPersonIcon(Button button,ColorStateList ink){
         Drawable icon=getDrawable(R.drawable.ic_person).mutate();
-        icon.setTintList(MENU_CONTROL_TEXT);
+        icon.setTintList(ink);
         icon.setBounds(0,0,dp(18),dp(18));
         button.setCompoundDrawablesRelative(icon,null,button.getCompoundDrawablesRelative()[2],null);
         return button;
@@ -2199,14 +2199,15 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         boolean primary=kind==ButtonKind.PRIMARY||kind==ButtonKind.PRIMARY_LINK;
         boolean danger=kind==ButtonKind.DELETE;
         boolean tool=kind==ButtonKind.RESULT_TOOL;
-        boolean choice=kind==ButtonKind.CHOICE;
-        boolean submenu=kind==ButtonKind.NAVIGATION||kind==ButtonKind.PRIMARY_LINK||tool;
+        boolean player=kind==ButtonKind.PLAYER_LINK||kind==ButtonKind.PLAYER_CHOICE;
+        boolean choice=kind==ButtonKind.CHOICE||kind==ButtonKind.PLAYER_CHOICE;
+        boolean submenu=kind==ButtonKind.NAVIGATION||kind==ButtonKind.PRIMARY_LINK||kind==ButtonKind.PLAYER_LINK||tool;
         boolean filled=primary||danger||kind==ButtonKind.TILE;
         ColorStateList fill=tileSection!=null?tileSection.fill:primary?PRIMARY_FILL:danger?DANGER_FILL:MENU_CONTROL_FILL;
         ColorStateList ink=primary?PRIMARY_TEXT:filled?FILLED_TEXT:MENU_CONTROL_TEXT;
         Button button=new Button(this);
         button.setText(text);
-        button.setTextSize(14);
+        button.setTextSize(player?15:14);
         button.setAllCaps(false);
         button.setSingleLine(false);
         button.setMinHeight(dp(48));
@@ -2217,7 +2218,13 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
         shape.setCornerRadius(dp(ROW_RADIUS_DP));
         shape.setColor(fill);
         if(back)shape.setStroke(dp(1),MENU_CONTROL_BORDER);
-        if(tool||choice){
+        if(player){
+            int[][] states={{android.R.attr.state_selected},{}};
+            MenuSection section=location.section;
+            shape.setColor(new ColorStateList(states,new int[]{section.selectedPlayerRow,section.playerRow}));
+            shape.setStroke(dp(1),new ColorStateList(states,new int[]{section.accent,Color.TRANSPARENT}));
+            button.setTypeface(android.graphics.Typeface.create("sans-serif-medium",android.graphics.Typeface.NORMAL));
+        }else if(tool||choice){
             int[][] states={{android.R.attr.state_selected},{}};
             shape.setColor(new ColorStateList(states,new int[]{0xff393939,tool?MENU_CARD_SURFACE:Color.TRANSPARENT}));
             shape.setStroke(dp(1),new ColorStateList(states,new int[]{0xffbdbdbd,tool?MENU_CONTROL_BORDER:Color.TRANSPARENT}));
@@ -2240,6 +2247,7 @@ public final class MainActivity extends Activity implements ScoreView.Actions,Li
             }
             button.setCompoundDrawablePadding(dp(tool?3:6));
         }
+        if(player)withPersonIcon(button,MenuSection.text(location.section.accent,0xff898989));
         button.setOnClickListener(v->{reviewInteraction();action.run();});
         LinearLayout.LayoutParams position=new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.WRAP_CONTENT);
         position.topMargin=back?dp(3):0;

@@ -1,6 +1,6 @@
 # Versions and compatibility
 
-Current official watch release: **v0.23.7**, Android version code **46**; package **`at.andrew.squashtap`**. `public/release.properties` is the machine-readable update feed; `public/builds.json` and `SHA256SUMS.txt` record retained artifacts.
+Current official watch release: **v0.23.8**, Android version code **47**; package **`at.andrew.squashtap`**. `public/release.properties` is the machine-readable update feed; `public/builds.json` and `SHA256SUMS.txt` record retained artifacts.
 
 The optional `spoken_scores` boolean is included in full backups. An older backup without the setting restores the default, Off. Match history, rally encodings and CSV formats keep their existing versions.
 

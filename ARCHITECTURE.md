@@ -1,15 +1,15 @@
 # Keep Score components
 
-Keep Score v0.23.7 runs on Wear OS and supports six racket sports. The watch stores match history, scoring rules and player names. Phones and tablets can open a match journal, follow an audience scoreboard or score a match as referee.
+Keep Score v0.23.8 runs on Wear OS and supports six racket sports. The watch stores match history, scoring rules and player names. Phones and tablets can open a match journal, follow an audience scoreboard or score a match as referee.
 
-The idle Home header and Wear OS Tile use the app name and launcher artwork. MenuLocation carries the section for every watch panel. Home tiles and menu titles use the destination colours. Watch buttons use a shared neutral style, with a filled primary action, chevrons for submenus and an outlined Back. Deleting entries and discarding work use red. Sport selectors keep sport colours. The phone journal uses the corresponding accents for its tabs and headings.
+The idle Home header and Wear OS Tile use the app name and launcher artwork. MenuLocation carries the section for every watch panel. Home tiles, menu titles and section headings use the destination colours. Watch buttons use a shared neutral style, with a filled primary action, chevrons for submenus and an outlined Back. Deleting entries and discarding work use red. Sport selectors keep sport colours. The phone journal uses the corresponding accents for its tabs and headings.
 
 ## Watch app
 
 `SpokenScore` formats accepted rallies and corrections from the watch’s scoring and serving models. It derives spoken first names from the four original player labels. Host and following watches use the same formatter for the set leader, tie-break points, service handovers and closing scores. A following watch compares successive snapshots and reports a service event only for a single observed rally. `ScoreSpeech` uses an installed offline Android text-to-speech voice in the app language. A newer call replaces a queued score. Pausing the activity, entering ambient mode or turning speech off releases the engine.
 
 - The scoring classes in `android/src` calculate points, service order and match outcomes. Completed matches provide the data for statistics.
-- The native watch UI uses contextual menus for match setup, active play, following and results. Each multi-purpose menu exposes its translated section headings to Android accessibility services. The player catalog is accessible from the launcher and each sport menu. A current match has its own player or team selector. Shared page components provide headings, action rows, pickers, inputs and contextual Back, including QR pages. Settings contains watch language for every role.
+- The native watch UI uses contextual menus for match setup, active play, following and results. Each multi-purpose menu exposes its translated section headings to Android accessibility services. The player catalog is accessible from the launcher and each sport menu. Catalog screens and player pickers share a panel for search, recency and sorting above the saved player rows. A current match has its own player or team selector. Shared page components provide headings, action rows, pickers, inputs and contextual Back, including QR pages. Settings contains watch language for every role.
 - The host watch exposes confirmed cancellation in the shared match menu and sharing screen. Before discarding the local draft, the room client checks the active room, role and final status under the same lock used to store an incoming referee score.
 - The score view reserves separate space for names, points and serving. Round and rectangular layouts use the same geometry for drawing each scorecard and detecting taps.
 

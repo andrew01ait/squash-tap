@@ -36,7 +36,7 @@ public class MenuRevisionUiTest {
     private void results(){root();click("Results ("+book().count()+")");}
     private void back(){Dialog d=dialog();d.dispatchKeyEvent(new KeyEvent(KeyEvent.ACTION_DOWN,KeyEvent.KEYCODE_BACK));d.dispatchKeyEvent(new KeyEvent(KeyEvent.ACTION_UP,KeyEvent.KEYCODE_BACK));shadowOf(Looper.getMainLooper()).idle();}
     private EditText playerSearch(){
-        for(View view:all())if(view instanceof EditText && "Search players".contentEquals(((EditText)view).getHint()))return (EditText)view;
+        for(View view:all())if(view instanceof EditText && activity.tr("Search players").contentEquals(((EditText)view).getHint()))return (EditText)view;
         throw new AssertionError("No player search");
     }
     private MenuLocation location(){return ReflectionHelpers.getField(activity,"location");}
@@ -81,6 +81,51 @@ public class MenuRevisionUiTest {
         playerSearch().setText("bo");click("Bob");back();
         assertTrue(((CheckBox)button("Last 30 days")).isChecked());assertEquals("bo",playerSearch().getText().toString());
         playerSearch().setText("");click("Last 30 days");assertTrue(hasButton("Unused"));assertTrue(hasButton("Ada"));
+    }
+
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) @Config(qualifiers="w192dp-h192dp-round-xhdpi")
+    public void playerToolsAndSavedPeopleHaveDistinctGroupsOnASmallRoundWatch() throws Exception {
+        close();
+        RuntimeEnvironment.setFontScale(1.3f);
+        preferences.edit().putString(WatchLanguage.PREFERENCE,"de").commit();
+        launch();root();click("Spieler");
+
+        Button sort=button("Sortierung: A–Z"), player=button("Alice");
+        View tools=(View)sort.getParent();
+        assertSame(tools,playerSearch().getParent());
+        assertSame(tools,button(activity.tr("Last 30 days")).getParent());
+        assertNotSame(tools,player.getParent());
+        assertEquals(Arrays.asList("Suchen & sortieren","Gespeicherte Spieler","Namen verwalten"),sections());
+        TextView saved=all().stream().filter(v->v instanceof TextView && v.isAccessibilityHeading()
+            &&"Gespeicherte Spieler".contentEquals(((TextView)v).getText())).map(v->(TextView)v).findFirst().get();
+        assertTrue(all().indexOf(sort)<all().indexOf(saved));
+        assertTrue(all().indexOf(saved)<all().indexOf(player));
+        android.graphics.drawable.RippleDrawable background=(android.graphics.drawable.RippleDrawable)player.getBackground();
+        assertEquals(MenuSection.PLAYERS.playerRow,
+            ((android.graphics.drawable.GradientDrawable)background.getDrawable(0)).getColor().getDefaultColor());
+        assertNotNull(player.getCompoundDrawablesRelative()[0]);
+        assertNotNull(player.getCompoundDrawablesRelative()[2]);
+
+        assertEquals(0,sort.getCompoundDrawablesRelative()[2].getLevel());
+        click("Sortierung: A–Z");
+        assertEquals(10000,sort.getCompoundDrawablesRelative()[2].getLevel());
+        click("Sortierung: A–Z");
+        assertEquals(0,sort.getCompoundDrawablesRelative()[2].getLevel());
+        layout();
+        View screen=dialog().getWindow().getDecorView();
+        for(Button control:new Button[]{sort,player}){
+            centerOnScreen(screen,control);
+            assertInsideRound(screen,control);
+            assertLabelInsideRound(screen,control);
+        }
+        centerOnScreen(screen,saved);
+        captureRoundScreen(screen,screen.getWidth(),"player-groups-round-192-de");
+    }
+
+    private void centerOnScreen(View screen,View item){
+        int[] position=new int[2],window=new int[2];
+        item.getLocationOnScreen(position);screen.getLocationOnScreen(window);
+        scroll().scrollTo(0,scroll().getScrollY()+position[1]-window[1]+item.getHeight()/2-screen.getHeight()/2);
     }
 
     private void mainLaunch(){
@@ -326,8 +371,11 @@ public class MenuRevisionUiTest {
     private void openFirstResult(){for(View v:all())if(v.getContentDescription()!=null&&v.getContentDescription().toString().contains("Open match result")){v.performClick();shadowOf(Looper.getMainLooper()).idle();return;}throw new AssertionError("Missing result card");}
     private List<String> sections(){
         List<String> titles=new ArrayList<>();
-        for(View view:all())if(view.isAccessibilityHeading()&&view.getContentDescription()!=null)
+        for(View view:all())if(view.isAccessibilityHeading()&&view.getContentDescription()!=null){
+            assertEquals(location().section.accent,((TextView)view).getCurrentTextColor());
+            assertEquals(view.getContentDescription().toString(),((TextView)view).getText().toString());
             titles.add(view.getContentDescription().toString());
+        }
         return titles;
     }
     @Test public void mixedMenusUseTaskHeadingsAndSingleChoiceScreensStayCompact(){
@@ -337,7 +385,7 @@ public class MenuRevisionUiTest {
         click("Join with watch code");assertTrue(sections().isEmpty());back();back();back();
         click("Settings");assertEquals(Arrays.asList("Language & display","Feedback","Data","Watch shortcuts","App"),sections());
         click("Language · English");assertTrue(sections().isEmpty());back();back();
-        click("Players");assertEquals(Arrays.asList("Saved players","Manage names"),sections());back();
+        click("Players");assertEquals(Arrays.asList("Search & sort","Saved players","Manage names"),sections());back();
         click("Results (17)");assertEquals(Arrays.asList("More matches"),sections());
         click("Options");assertEquals(Arrays.asList("CSV","Delete results"),sections());back();
         click("Filters");assertEquals(Arrays.asList("Match","Date range"),sections());

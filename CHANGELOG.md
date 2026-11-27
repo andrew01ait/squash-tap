@@ -1,5 +1,10 @@
 # Releases
 
+## v0.23.8 · 2026-11-27 · direct APK code 47
+
+- Section headings share the colour of the open menu and use larger text.
+- Search, the Last 30 days filter and sorting sit in one group above Saved players. Saved names have their own tinted rows. Manage names includes the watch owner's name.
+
 ## v0.23.7 · 2026-11-27 · direct APK code 46
 
 - Home keeps its coloured tiles, and sport selection keeps its coloured rows and icons. Menu colours identify the titles.

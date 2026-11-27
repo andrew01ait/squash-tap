@@ -6,8 +6,8 @@ import argparse, os, subprocess, sys, zipfile
 ROOT=Path(__file__).resolve().parents[1]
 PKG='at.andrew.squashtap'
 SITE='https://squash-tap-andrew.endruuu.chatgpt.site'
-RELEASES=((46,'0.23.7'),)
-RELEASE_NOTES='Watch menus highlight primary actions and mark submenus with arrows. Back uses a neutral outline. Red marks deletion and discard.'
+RELEASES=((47,'0.23.8'),)
+RELEASE_NOTES='Section headings use their menu colour. The player list groups search, sorting and filters above distinct rows for saved players.'
 
 def run(args, env=None):
     result=subprocess.run([str(x) for x in args],cwd=ROOT,env=env,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)

@@ -71,17 +71,18 @@ public class WatchLanguageUiTest {
         return list;
     }
 
-    private TextView find(String label, boolean prefix){
+    private TextView find(String label){
         for(TextView view:texts(ShadowDialog.getLatestDialog().getWindow().getDecorView())){
             String shown=view.getText().toString();
-            if(prefix?shown.startsWith(label):shown.equals(label))return view;
+            if(shown.equals(label))return view;
         }
         throw new AssertionError("Missing label "+label);
     }
 
     private void click(String label){
-        TextView control=find(label,true);
-        assertTrue(control instanceof Button);
+        TextView control=texts(ShadowDialog.getLatestDialog().getWindow().getDecorView()).stream()
+            .filter(view->view instanceof Button && view.getText().toString().startsWith(label))
+            .findFirst().orElseThrow(()->new AssertionError("Missing button "+label));
         assertTrue(control.performClick());
         shadowOf(Looper.getMainLooper()).idle();
     }
@@ -97,16 +98,16 @@ public class WatchLanguageUiTest {
 
     @Test public void localeOverridesSurviveRestartAndCanReturnToAutomatic(){
         launch();
-        assertNotNull(find("Startseite",false));
+        assertNotNull(find("Startseite"));
         click("Einstellungen");click("Sprache");click("Français");
         assertEquals("fr",prefs.getString(WatchLanguage.PREFERENCE,""));
-        assertNotNull(find("✓ Français",false));
-        click("Retour");assertNotNull(find("Réglages",false));
-        close();launch();assertNotNull(find("Accueil",false));
+        assertNotNull(find("✓ Français"));
+        click("Retour");assertNotNull(find("Réglages"));
+        close();launch();assertNotNull(find("Accueil"));
         click("Réglages");click("Langue");click("Español");
-        assertNotNull(find("Idioma",false));
+        assertNotNull(find("Idioma"));
         click("Automático (reloj)");click("Zurück");
-        assertNotNull(find("Einstellungen",false));
+        assertNotNull(find("Einstellungen"));
     }
 
     @Test public void sportOrderAndSavedPlayerTitlesRespectTheLanguageBoundary(){
@@ -116,8 +117,8 @@ public class WatchLanguageUiTest {
         OpponentDirectory directory=new OpponentDirectory();
         directory.add("Settings");prefs.edit().putString("opponent_book",directory.encode()).commit();
         launch();click("Jugadores");click("Settings");
-        assertNotNull(find("Settings",false));
-        assertNotNull(find("Cambiar nombre",false));
+        assertNotNull(find("Settings"));
+        assertNotNull(find("Cambiar nombre"));
         assertEquals("{1} $ \\ / X",WatchLanguage.get(context).format("{0} / {1}","{0} / {1}","{0} / {1}","{0} / {1}","{1} $ \\","X"));
     }
 

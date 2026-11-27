@@ -1,6 +1,9 @@
 package at.andrew.squashtap;
 
 import android.content.SharedPreferences;
+import android.content.res.ColorStateList;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
@@ -30,6 +33,7 @@ final class PlayerListPanel {
     private final Map<String,String> searchNames = new HashMap<>();
     private final LinearLayout choices, rows;
     private final Button sort;
+    private final Drawable sortArrow;
     private List<OpponentDirectory.Entry> roster;
     private String order;
 
@@ -45,7 +49,15 @@ final class PlayerListPanel {
         roster = load.apply(order, location.recentPlayersOnly);
         // Focusing the menu itself lets the keyboard stay closed until the search field is tapped.
         parent.setFocusableInTouchMode(true);
-        EditText input = activity.menuInput(parent, activity.tr("Search players"), activity.tr("Search players"), InputType.TYPE_CLASS_TEXT);
+        activity.section(parent, "Search & sort");
+        LinearLayout tools = column(parent);
+        GradientDrawable background = new GradientDrawable();
+        background.setColor(0xff171c25);
+        background.setCornerRadius(activity.dp(15));
+        tools.setBackground(background);
+        int inset = activity.dp(6);
+        tools.setPaddingRelative(inset, inset, inset, 0);
+        EditText input = activity.menuInput(tools, activity.tr("Search players"), activity.tr("Search players"), InputType.TYPE_CLASS_TEXT);
         input.setText(location.playerQuery);
         input.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_DONE);
         CheckBox recency = new CheckBox(activity);
@@ -53,13 +65,18 @@ final class PlayerListPanel {
         recency.setContentDescription(activity.tr("Played in the last 30 days"));
         recency.setTextColor(MainActivity.MENU_CONTROL_TEXT);
         recency.setTextSize(14);
-        recency.setMinHeight(Math.round(48 * activity.getResources().getDisplayMetrics().density));
-        recency.setButtonTintList(MainActivity.MENU_CONTROL_TEXT);
+        recency.setMinHeight(activity.dp(48));
+        recency.setButtonTintList(new ColorStateList(new int[][]{{android.R.attr.state_checked}, {}},
+                new int[]{location.section.accent, MainActivity.MENU_CONTROL_TEXT.getDefaultColor()}));
         recency.setChecked(location.recentPlayersOnly);
-        parent.addView(recency, new LinearLayout.LayoutParams(-1, -2));
-        sort = activity.navigationButton(parent, "", this::toggleChoices);
-        choices = column(parent);
-        choices.setVisibility(View.GONE);
+        tools.addView(recency, new LinearLayout.LayoutParams(-1, -2));
+        sort = activity.navigationButton(tools, "", this::toggleChoices);
+        sortArrow = activity.getDrawable(R.drawable.ic_disclosure_arrow).mutate();
+        sortArrow.setTintList(MainActivity.MENU_CONTROL_TEXT);
+        sort.setCompoundDrawablesRelativeWithIntrinsicBounds(null, null, sortArrow, null);
+        choices = column(tools);
+        setChoicesExpanded(false);
+        activity.section(parent, "Saved players");
         rows = column(parent);
         updateSortLabel();
         render();
@@ -92,7 +109,7 @@ final class PlayerListPanel {
 
     private void toggleChoices() {
         if (choices.getVisibility() == View.VISIBLE) {
-            choices.setVisibility(View.GONE);
+            setChoicesExpanded(false);
             return;
         }
         choices.removeAllViews();
@@ -105,10 +122,18 @@ final class PlayerListPanel {
                     updateSortLabel();
                     reload();
                 }
-                choices.setVisibility(View.GONE);
+                setChoicesExpanded(false);
             });
         }
-        choices.setVisibility(View.VISIBLE);
+        setChoicesExpanded(true);
+    }
+
+    private void setChoicesExpanded(boolean expanded) {
+        choices.setVisibility(expanded ? View.VISIBLE : View.GONE);
+        sortArrow.setLevel(expanded ? 10000 : 0);
+        sort.setStateDescription(expanded
+                ? language.pick("Expanded", "Ausgeklappt", "Déplié", "Expandido")
+                : language.pick("Collapsed", "Eingeklappt", "Replié", "Contraído"));
     }
 
     private void reload() {
